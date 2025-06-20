@@ -1,2 +1,3 @@
 /node_modules
 /packages/express-backend/.env
+.DS_Store

@@ -16,5 +16,11 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
-  }
+  },
+  "dependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "workspaces":[
+    "packages/*"
+  ]
 }
