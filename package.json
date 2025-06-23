@@ -10,17 +10,18 @@
     "type": "git",
     "url": "git+https://github.com/darryljamescruz/its-checkin.git"
   },
+  "workspaces":[
+    "packages/*"
+  ],
   "license": "ISC",
   "author": "",
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "concurrently \"npm --workspace packages/react-frontend run dev\" \"npm --workspace packages/express-backend run dev\""
   },
   "dependencies": {
     "concurrently": "^9.1.2"
-  },
-  "workspaces":[
-    "packages/*"
-  ]
+  }
 }
