@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Application } from 'express';
 import cors from 'cors';
 // import path from 'path';
 import dotenv from 'dotenv';
@@ -10,7 +10,7 @@ import connectDB from './config/db.js';
 // const __dirname = path.dirname(__filename);
 
 dotenv.config();
-const app = express();
+const app: Application = express();
 
 try {
     // frontend build directory
@@ -22,11 +22,11 @@ try {
 
     await connectDB();
 
-    const PORT = process.env.PORT || 8000;
+    const PORT: number = parseInt(process.env.PORT || '8000', 10);
     app.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}`);
     });
 } catch (error) {
-    console.error("Error starting the server:", error.message);
+    console.error("Error starting the server:", (error as Error).message);
     process.exit(1);
-}
+} 
