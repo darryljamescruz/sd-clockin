@@ -10,12 +10,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Users, Plus, Edit, Trash2, Shield, UserCheck, X, AlertTriangle } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface Staff {
   id: number
   name: string
-  cardId: string
+  iso: string
   role: string
   currentStatus: string
   weeklySchedule: {
@@ -24,8 +24,6 @@ interface Staff {
     wednesday: string[]
     thursday: string[]
     friday: string[]
-    saturday: string[]
-    sunday: string[]
   }
   clockEntries: any[]
 }
@@ -48,9 +46,21 @@ interface DeleteConfirmationModalProps {
 function DeleteConfirmationModal({ isOpen, student, onConfirm, onCancel }: DeleteConfirmationModalProps) {
   if (!isOpen || !student) return null
 
+  // Handle escape key for delete modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onCancel()
+      }
+    }
+
+    document.addEventListener("keydown", handleEscape)
+    return () => document.removeEventListener("keydown", handleEscape)
+  }, [onCancel])
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
-      <Card className="w-full max-w-md shadow-xl border-slate-200">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60]">
+      <Card className="w-full max-w-md shadow-xl border-slate-200" onClick={(e) => e.stopPropagation()}>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-red-700">
             <AlertTriangle className="w-5 h-5" />
@@ -68,7 +78,7 @@ function DeleteConfirmationModal({ isOpen, student, onConfirm, onCancel }: Delet
                 <div className="text-sm text-red-700 space-y-1">
                   <p>• All clock-in history will be permanently removed</p>
                   <p>• This action cannot be undone</p>
-                  <p>• Card ID: {student.cardId}</p>
+                  <p>• ISO: {student.iso}</p>
                   <p>• Role: {student.role}</p>
                 </div>
               </div>
@@ -115,19 +125,30 @@ export function StudentManager({
   })
   const [formData, setFormData] = useState({
     name: "",
-    cardId: "",
+    iso: "",
     role: "Assistant",
     weeklySchedule: {
-      monday: [],
-      tuesday: [],
-      wednesday: [],
-      thursday: [],
-      friday: [],
-      saturday: [],
-      sunday: [],
+      monday: [] as string[],
+      tuesday: [] as string[],
+      wednesday: [] as string[],
+      thursday: [] as string[],
+      friday: [] as string[],
+
     },
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose()
+      }
+    }
+
+    document.addEventListener("keydown", handleEscape)
+    return () => document.removeEventListener("keydown", handleEscape)
+  }, [onClose])
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -136,15 +157,15 @@ export function StudentManager({
       newErrors.name = "Name is required"
     }
 
-    if (!formData.cardId.trim()) {
-      newErrors.cardId = "Card ID is required"
+    if (!formData.iso.trim()) {
+      newErrors.iso = "ISO is required"
     } else {
-      // Check for duplicate card ID (excluding current editing item)
-      const existingCard = staffData.find(
-        (staff) => staff.cardId.toUpperCase() === formData.cardId.toUpperCase() && staff.id !== editingId,
+      // Check for duplicate ISO (excluding current editing item)
+      const existingIso = staffData.find(
+        (staff) => staff.iso.toUpperCase() === formData.iso.toUpperCase() && staff.id !== editingId,
       )
-      if (existingCard) {
-        newErrors.cardId = "Card ID already exists"
+      if (existingIso) {
+        newErrors.iso = "ISO already exists"
       }
     }
 
@@ -158,7 +179,7 @@ export function StudentManager({
         ...prev,
         weeklySchedule: {
           ...prev.weeklySchedule,
-          [day]: [...prev.weeklySchedule[day], timeBlock.trim()],
+          [day]: [...(prev.weeklySchedule as any)[day], timeBlock.trim()],
         },
       }))
     }
@@ -169,7 +190,7 @@ export function StudentManager({
       ...prev,
       weeklySchedule: {
         ...prev.weeklySchedule,
-        [day]: prev.weeklySchedule[day].filter((_, i) => i !== index),
+        [day]: (prev.weeklySchedule as any)[day].filter((_: any, i: number) => i !== index),
       },
     }))
   }
@@ -188,7 +209,7 @@ export function StudentManager({
 
     const studentData = {
       name: formData.name.trim(),
-      cardId: formData.cardId.toUpperCase().trim(),
+      iso: formData.iso.toUpperCase().trim(),
       role: formData.role,
       weeklySchedule: formData.weeklySchedule,
     }
@@ -203,16 +224,14 @@ export function StudentManager({
 
     setFormData({
       name: "",
-      cardId: "",
+      iso: "",
       role: "Assistant",
       weeklySchedule: {
-        monday: [],
-        tuesday: [],
-        wednesday: [],
-        thursday: [],
-        friday: [],
-        saturday: [],
-        sunday: [],
+        monday: [] as string[],
+        tuesday: [] as string[],
+        wednesday: [] as string[],
+        thursday: [] as string[],
+        friday: [] as string[],
       },
     })
     setErrors({})
@@ -221,16 +240,14 @@ export function StudentManager({
   const handleEdit = (staff: Staff) => {
     setFormData({
       name: staff.name,
-      cardId: staff.cardId,
+      iso: staff.iso,
       role: staff.role,
       weeklySchedule: staff.weeklySchedule || {
-        monday: [],
-        tuesday: [],
-        wednesday: [],
-        thursday: [],
-        friday: [],
-        saturday: [],
-        sunday: [],
+        monday: [] as string[],
+        tuesday: [] as string[],
+        wednesday: [] as string[],
+        thursday: [] as string[],
+        friday: [] as string[],
       },
     })
     setEditingId(staff.id)
@@ -243,16 +260,14 @@ export function StudentManager({
     setEditingId(null)
     setFormData({
       name: "",
-      cardId: "",
+      iso: "",
       role: "Assistant",
       weeklySchedule: {
-        monday: [],
-        tuesday: [],
-        wednesday: [],
-        thursday: [],
-        friday: [],
-        saturday: [],
-        sunday: [],
+        monday: [] as string[],
+        tuesday: [] as string[],
+        wednesday: [] as string[],
+        thursday: [] as string[],
+        friday: [] as string[],
       },
     })
     setErrors({})
@@ -298,7 +313,7 @@ export function StudentManager({
       absent: { color: "bg-red-100 text-red-800", label: "Absent", icon: "×" },
     }
 
-    const config = statusConfig[status] || statusConfig["expected"]
+    const config = (statusConfig as any)[status] || statusConfig["expected"]
     return (
       <Badge className={`${config.color} hover:${config.color}`}>
         <span className="mr-1">{config.icon}</span>
@@ -307,10 +322,19 @@ export function StudentManager({
     )
   }
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose()
+    }
+  }
+
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <Card className="w-full max-w-6xl max-h-[90vh] overflow-auto">
+      <div 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+        onClick={handleBackdropClick}
+      >
+        <Card className="w-full max-w-6xl max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -346,15 +370,15 @@ export function StudentManager({
                         {errors.name && <p className="text-sm text-red-600 mt-1">{errors.name}</p>}
                       </div>
                       <div>
-                        <Label htmlFor="cardId">Card ID</Label>
+                        <Label htmlFor="iso">ISO</Label>
                         <Input
-                          id="cardId"
-                          value={formData.cardId}
-                          onChange={(e) => setFormData({ ...formData, cardId: e.target.value.toUpperCase() })}
+                          id="iso"
+                          value={formData.iso}
+                          onChange={(e) => setFormData({ ...formData, iso: e.target.value.toUpperCase() })}
                           placeholder="e.g., CARD007"
-                          className={errors.cardId ? "border-red-500" : ""}
+                          className={errors.iso ? "border-red-500" : ""}
                         />
-                        {errors.cardId && <p className="text-sm text-red-600 mt-1">{errors.cardId}</p>}
+                        {errors.iso && <p className="text-sm text-red-600 mt-1">{errors.iso}</p>}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -391,10 +415,11 @@ export function StudentManager({
                                     className="w-48 text-sm"
                                     onKeyPress={(e) => {
                                       if (e.key === "Enter") {
-                                        const input = e.target.value
+                                        const target = e.target as HTMLInputElement
+                                        const input = target.value
                                         const timeBlocks = parseScheduleInput(input)
                                         timeBlocks.forEach((block) => addScheduleBlock(day, block))
-                                        e.target.value = ""
+                                        target.value = ""
                                       }
                                     }}
                                   />
@@ -403,7 +428,8 @@ export function StudentManager({
                                     size="sm"
                                     variant="outline"
                                     onClick={(e) => {
-                                      const input = e.target.previousElementSibling
+                                      const target = e.target as HTMLButtonElement
+                                      const input = target.previousElementSibling as HTMLInputElement
                                       const timeBlocks = parseScheduleInput(input.value)
                                       timeBlocks.forEach((block) => addScheduleBlock(day, block))
                                       input.value = ""
@@ -472,7 +498,7 @@ export function StudentManager({
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
-                      <TableHead>Card ID</TableHead>
+                      <TableHead>ISO</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Current Week Schedule</TableHead>
                       <TableHead>Current Status</TableHead>
@@ -483,7 +509,7 @@ export function StudentManager({
                     {staffData.map((staff) => (
                       <TableRow key={staff.id}>
                         <TableCell className="font-medium">{staff.name}</TableCell>
-                        <TableCell className="font-mono text-sm">{staff.cardId}</TableCell>
+                        <TableCell className="font-mono text-sm">{staff.iso}</TableCell>
                         <TableCell>{getRoleBadge(staff.role)}</TableCell>
                         <TableCell>
                           <div className="space-y-1 max-w-xs">

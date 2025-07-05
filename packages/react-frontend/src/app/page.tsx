@@ -3,41 +3,15 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Clock, Calendar, CreditCard as CardIcon } from "lucide-react"
+import { Clock } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 
 import { ClockInForm } from "@/components/clock-in-form"
 import { AdminLogin } from "@/components/admin-login"
-import { ClockDisplay } from "./components/clock-display"
-import { CardSwiper } from "./components/card-swiper"
-import { AttendanceTables } from "./components/attendance-tables"
-
-// Move your initial staff data here (we'll extract this to a separate file later)
-const initialStaffData = [
-  {
-    id: 1,
-    name: "Alex Chen",
-    cardId: "CARD001",
-    role: "Student Lead",
-    currentStatus: "present",
-    weeklySchedule: {
-      monday: ["8:30-12:00", "1:00-5:00"],
-      tuesday: ["9:00-1:00"],
-      wednesday: ["8:30-12:00", "1:00-5:00"],
-      thursday: ["9:00-1:00"],
-      friday: ["8:30-12:00"],
-      saturday: [],
-      sunday: [],
-    },
-    todayActual: "08:25 AM",
-    clockEntries: [
-      { timestamp: "2025-01-20T08:25:00", type: "in" },
-      { timestamp: "2025-01-20T12:30:00", type: "out" },
-      { timestamp: "2025-01-20T13:15:00", type: "in" },
-      { timestamp: "2025-01-20T17:05:00", type: "out" },
-    ],
-  },
-]
+import { ClockDisplay } from "@/components/clock-display"
+import { CardSwiper } from "@/components/card-swiper"
+import { AttendanceTables } from "../components/attendance-tables"
+import { useStaffData } from "@/hooks/use-staff-data"
 
 export default function ClockInPage() {
   const router = useRouter()
@@ -48,7 +22,9 @@ export default function ClockInPage() {
   const [clockInMessage, setClockInMessage] = useState("")
   const [showClockInSuccess, setShowClockInSuccess] = useState(false)
   const [isCardSwipeDisabled, setIsCardSwipeDisabled] = useState(false)
-  const [staffData, setStaffData] = useState(initialStaffData)
+
+  // Use custom hook for staff data management
+  const { staffData, handleCardSwipe, handleManualClockIn } = useStaffData()
 
   // Timer for current time
   useEffect(() => {
@@ -58,18 +34,8 @@ export default function ClockInPage() {
     return () => clearInterval(timer)
   }, [])
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString("en-US", {
-      hour12: true,
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    })
-  }
-
   const handleAdminLogin = (username: string, password: string) => {
     if (username === "admin" && password === "admin123") {
-      // TODO: Set up proper auth and redirect to admin
       sessionStorage.setItem('isAdminLoggedIn', 'true')
       router.push('/admin')
       return true
@@ -77,80 +43,31 @@ export default function ClockInPage() {
     return false
   }
 
-  const handleCardSwipe = (cardData: string) => {
+  const onCardSwipe = (cardData: string) => {
     setIsCardSwiping(true)
-    const staff = staffData.find((s) => s.cardId === cardData.toUpperCase())
-
-    if (staff) {
-      const isCurrentlyPresent = staff.currentStatus === "present"
-      const action = isCurrentlyPresent ? "out" : "in"
-
-      // Update staff data
-      setStaffData(prev => prev.map(s => 
-        s.id === staff.id 
-          ? {
-              ...s,
-              currentStatus: action === "in" ? "present" : "absent",
-              todayActual: action === "in" ? formatTime(new Date()) : s.todayActual,
-              clockEntries: [...s.clockEntries, {
-                timestamp: new Date().toISOString(),
-                type: action,
-              }]
-            }
-          : s
-      ))
-
-      setClockInMessage(`${staff.name} clocked ${action} at ${formatTime(new Date())}`)
-      setShowClockInSuccess(true)
-      setTimeout(() => {
-        setShowClockInSuccess(false)
-        setClockInMessage("")
-      }, 5000)
-    } else {
-      setClockInMessage("Card not recognized. Please try again or contact admin.")
-      setShowClockInSuccess(true)
-      setTimeout(() => {
-        setShowClockInSuccess(false)
-        setClockInMessage("")
-      }, 3000)
-    }
-
+    const result = handleCardSwipe(cardData)
+    
+    setClockInMessage(result.message)
+    setShowClockInSuccess(true)
+    
     setTimeout(() => {
+      setShowClockInSuccess(false)
+      setClockInMessage("")
       setIsCardSwiping(false)
-    }, 1000)
+    }, result.success ? 5000 : 3000)
   }
 
-  const handleManualClockIn = (staffId: number, isManual: boolean) => {
-    const staff = staffData.find((s) => s.id === staffId)
-    if (staff) {
-      const isCurrentlyPresent = staff.currentStatus === "present"
-      const action = isCurrentlyPresent ? "out" : "in"
+  const onManualClockIn = (staffId: number, isManual: boolean) => {
+    const result = handleManualClockIn(staffId, isManual)
+    
+    setClockInMessage(result.message)
+    setShowClockInSuccess(true)
+    setIsLoginOpen(false)
 
-      setStaffData(prev => prev.map(s => 
-        s.id === staff.id 
-          ? {
-              ...s,
-              currentStatus: action === "in" ? "present" : "absent",
-              todayActual: action === "in" ? formatTime(new Date()) : s.todayActual,
-              clockEntries: [...s.clockEntries, {
-                timestamp: new Date().toISOString(),
-                type: action,
-                isManual,
-              }]
-            }
-          : s
-      ))
-
-      const manualFlag = isManual ? " (Manual Entry)" : ""
-      setClockInMessage(`${staff.name} clocked ${action} at ${formatTime(new Date())}${manualFlag}`)
-      setShowClockInSuccess(true)
-      setIsLoginOpen(false)
-
-      setTimeout(() => {
-        setShowClockInSuccess(false)
-        setClockInMessage("")
-      }, 5000)
-    }
+    setTimeout(() => {
+      setShowClockInSuccess(false)
+      setClockInMessage("")
+    }, 5000)
   }
 
   return (
@@ -176,7 +93,7 @@ export default function ClockInPage() {
                 setIsLoginOpen(!isLoginOpen)
                 setIsCardSwipeDisabled(!isLoginOpen)
               }}
-              onClockIn={handleManualClockIn}
+              onClockIn={onManualClockIn}
               staffData={staffData}
             />
 
@@ -193,7 +110,7 @@ export default function ClockInPage() {
 
         {/* Card Swiper */}
         <CardSwiper
-          onCardSwipe={handleCardSwipe}
+          onCardSwipe={onCardSwipe}
           isDisabled={isCardSwipeDisabled || isLoginOpen || isAdminLoginOpen}
           isCardSwiping={isCardSwiping}
           showClockInSuccess={showClockInSuccess}

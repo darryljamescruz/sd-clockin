@@ -1,4 +1,3 @@
-// packages/react-frontend/src/app/components/card-swiper.tsx
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
@@ -87,4 +86,4 @@ export function CardSwiper({
       </Card>
     </>
   )
-}
+} 

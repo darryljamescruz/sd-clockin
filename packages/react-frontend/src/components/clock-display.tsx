@@ -1,4 +1,3 @@
-// packages/react-frontend/src/app/components/clock-display.tsx
 import { Card, CardContent } from "@/components/ui/card"
 import { Calendar } from "lucide-react"
 
@@ -40,4 +39,4 @@ export function ClockDisplay({ currentTime }: ClockDisplayProps) {
       </CardContent>
     </Card>
   )
-}
+} 

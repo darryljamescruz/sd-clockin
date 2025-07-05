@@ -8,7 +8,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Clock, Settings, LogOut, User, Calendar, Users } from "lucide-react"
+import { Clock, Settings, LogOut, User, Calendar, Users, Moon, Sun } from "lucide-react"
+import { useTheme } from "next-themes"
 
 interface AdminHeaderProps {
   currentTime: Date
@@ -18,6 +19,8 @@ interface AdminHeaderProps {
 }
 
 export function AdminHeader({ currentTime, onLogout, onManageTerms, onManageStudents }: AdminHeaderProps) {
+  const { theme, setTheme } = useTheme()
+  
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("en-US", {
       hour12: true,
@@ -37,50 +40,68 @@ export function AdminHeader({ currentTime, onLogout, onManageTerms, onManageStud
   }
 
   return (
-    <div className="flex justify-between items-center mb-8">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center">
-          <Clock className="w-6 h-6 text-white" />
+    <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6 mb-8 p-6 bg-white/70 backdrop-blur-sm border border-slate-200 rounded-xl shadow-lg">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-gradient-to-br from-slate-900 to-slate-700 rounded-xl flex items-center justify-center shadow-md">
+          <Clock className="w-7 h-7 text-white" />
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
-          <p className="text-slate-600 text-sm">IT Service Desk Attendance Management</p>
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+            Admin Dashboard
+          </h1>
+          <p className="text-slate-600 text-sm font-medium">IT Service Desk Attendance Management</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="text-right">
-          <div className="text-lg font-mono font-bold text-slate-900">{formatTime(currentTime)}</div>
-          <div className="text-sm text-slate-600">{formatDate(currentTime)}</div>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="text-center sm:text-right">
+          <div className="text-2xl font-mono font-bold text-slate-900 tracking-tight">
+            {formatTime(currentTime)}
+          </div>
+          <div className="text-sm text-slate-600 font-medium">{formatDate(currentTime)}</div>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="bg-white border-slate-200 hover:bg-slate-50">
-              <Settings className="w-4 h-4 mr-2" />
-              Admin Settings
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem>
-              <User className="w-4 h-4 mr-2" />
-              Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onManageTerms}>
-              <Calendar className="w-4 h-4 mr-2" />
-              Manage Terms
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onManageStudents}>
-              <Users className="w-4 h-4 mr-2" />
-              Manage Students
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onLogout} className="text-red-600">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="bg-white/50 border-slate-300 hover:bg-white/70"
+          >
+            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <span className="sr-only">Toggle theme</span>
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="bg-white/50 border-slate-300 hover:bg-white/70">
+                <Settings className="w-4 h-4 mr-2" />
+                Admin Settings
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem>
+                <User className="w-4 h-4 mr-2" />
+                Profile Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onManageTerms}>
+                <Calendar className="w-4 h-4 mr-2" />
+                Manage Terms
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onManageStudents}>
+                <Users className="w-4 h-4 mr-2" />
+                Manage Students
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onLogout} className="text-red-600 focus:text-red-600">
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </div>
   )

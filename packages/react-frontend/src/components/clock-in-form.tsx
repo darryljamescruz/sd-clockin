@@ -24,10 +24,13 @@ export function ClockInForm({ isOpen, onToggle, onClockIn, staffData }: ClockInF
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null)
   const [showDropdown, setShowDropdown] = useState(false)
 
-  // Disable card swipe when modal is open
+  // Disable card swipe when modal is open and handle escape key
   useEffect(() => {
     if (isOpen) {
       const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          handleClose()
+        }
         e.stopPropagation()
       }
       document.addEventListener("keydown", handleKeyDown, true)
@@ -64,6 +67,12 @@ export function ClockInForm({ isOpen, onToggle, onClockIn, staffData }: ClockInF
     onToggle()
   }
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleClose()
+    }
+  }
+
   const handleStaffSelect = (staff: Staff) => {
     setSelectedStaff(staff)
     setSearchTerm(staff.name)
@@ -80,8 +89,11 @@ export function ClockInForm({ isOpen, onToggle, onClockIn, staffData }: ClockInF
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="w-96 shadow-xl border-slate-200">
+    <div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+      onClick={handleBackdropClick}
+    >
+      <Card className="w-96 shadow-xl border-slate-200" onClick={(e) => e.stopPropagation()}>
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <User className="w-5 h-5" />

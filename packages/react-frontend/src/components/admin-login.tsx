@@ -20,11 +20,14 @@ export function AdminLogin({ isOpen, onToggle, onLogin }: AdminLoginProps) {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
 
-  // Disable card swipe when modal is open
+  // Disable card swipe when modal is open and handle escape key
   useEffect(() => {
     if (isOpen) {
-      // Add event listener to prevent card swipe interference
+      // Add event listener to prevent card swipe interference and handle escape
       const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          handleClose()
+        }
         e.stopPropagation()
       }
       document.addEventListener("keydown", handleKeyDown, true)
@@ -66,9 +69,18 @@ export function AdminLogin({ isOpen, onToggle, onLogin }: AdminLoginProps) {
     )
   }
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleClose()
+    }
+  }
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="w-96 shadow-xl border-slate-200">
+    <div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+      onClick={handleBackdropClick}
+    >
+      <Card className="w-96 shadow-xl border-slate-200" onClick={(e) => e.stopPropagation()}>
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <Shield className="w-5 h-5" />

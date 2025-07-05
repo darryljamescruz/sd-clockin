@@ -1,19 +1,8 @@
-// packages/react-frontend/src/app/components/attendance-tables.tsx
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Shield, UserCheck } from "lucide-react"
-
-interface Staff {
-  id: number
-  name: string
-  role: string
-  currentStatus: string
-  todayActual: string | null
-  weeklySchedule: {
-    [key: string]: string[]
-  }
-}
+import { Staff } from "@/hooks/use-staff-data"
 
 interface AttendanceTablesProps {
   staffData: Staff[]
@@ -42,9 +31,9 @@ export function AttendanceTables({ staffData }: AttendanceTablesProps) {
   }
 
   const getTodaySchedule = (staff: Staff, date = new Date()) => {
-    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday",]
     const dayName = dayNames[date.getDay()]
-    return staff.weeklySchedule?.[dayName] || []
+    return (staff.weeklySchedule as any)?.[dayName] || []
   }
 
   return (
@@ -110,7 +99,7 @@ export function AttendanceTables({ staffData }: AttendanceTablesProps) {
                   <TableCell className="font-mono text-slate-900">
                     {getTodaySchedule(user).length > 0 ? (
                       <div className="space-y-1">
-                        {getTodaySchedule(user).map((block, index) => (
+                        {getTodaySchedule(user).map((block: string, index: number) => (
                           <div key={index} className="text-xs bg-slate-100 px-2 py-1 rounded">
                             {block}
                           </div>
@@ -128,4 +117,4 @@ export function AttendanceTables({ staffData }: AttendanceTablesProps) {
       </Card>
     </div>
   )
-}
+} 
