@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Clock, Calendar, Car as CardIcon } from "lucide-react"
+import { Clock, Calendar, CreditCard as CardIcon } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 
 import { ClockInForm } from "@/components/clock-in-form"
