@@ -113,37 +113,37 @@ export default function StudentsPage() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/admin" className="text-slate-600 hover:text-slate-900">
-                  <Home className="w-4 h-4 mr-1" />
-                  Admin Dashboard
+                <BreadcrumbLink href="/admin" className="text-muted-foreground hover:text-foreground flex items-center gap-2">
+                  <Home className="w-4 h-4" />
+                  <span>Admin Dashboard</span>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage className="text-slate-900 font-medium">Student Management</BreadcrumbPage>
+                <BreadcrumbPage className="text-foreground font-medium">Student Management</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <h1 className="text-3xl font-bold text-slate-900">Student Management</h1>
-          <p className="text-slate-600">Manage student assistants and student leads</p>
+          <h1 className="text-3xl font-bold text-foreground">Student Management</h1>
+          <p className="text-muted-foreground">Manage student assistants and student leads</p>
         </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card backdrop-blur-sm border-border shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-700">Total Students</CardTitle>
-            <Users className="w-8 h-8 text-slate-600" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Students</CardTitle>
+            <Users className="w-8 h-8 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900">{stats.totalStaff}</div>
+            <div className="text-2xl font-bold text-foreground">{stats.totalStaff}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card backdrop-blur-sm border-border shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-700">Present Today</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Present Today</CardTitle>
             <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
               <UserCheck className="w-5 h-5 text-green-600" />
             </div>
@@ -153,9 +153,9 @@ export default function StudentsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card backdrop-blur-sm border-border shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-700">Student Leads</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Student Leads</CardTitle>
             <Shield className="w-8 h-8 text-blue-600" />
           </CardHeader>
           <CardContent>
@@ -165,11 +165,11 @@ export default function StudentsPage() {
       </div>
 
       {/* Students Table */}
-      <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+      <Card className="bg-card backdrop-blur-sm border-border shadow-lg">
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <CardTitle>Current Students & Staff ({staffData.length})</CardTitle>
-            <Button onClick={handleAddStudent} className="bg-slate-900 hover:bg-slate-800">
+            <Button onClick={handleAddStudent} className="bg-primary hover:bg-primary/90">
               <Plus className="w-4 h-4 mr-2" />
               Add Student/Staff
             </Button>
@@ -177,7 +177,7 @@ export default function StudentsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-slate-600">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-muted-foreground">
               <span>
                 Showing {startIndex + 1} to {Math.min(endIndex, staffData.length)} of {staffData.length} students
               </span>
@@ -214,7 +214,7 @@ export default function StudentsPage() {
                           ),
                       )}
                       {Object.values(staff.weeklySchedule || {}).every((blocks) => !blocks || blocks.length === 0) && (
-                        <span className="text-slate-400 italic text-xs">No schedule set</span>
+                        <span className="text-muted-foreground italic text-xs">No schedule set</span>
                       )}
                     </div>
                   </TableCell>

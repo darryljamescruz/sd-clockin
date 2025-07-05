@@ -24,8 +24,6 @@ interface Staff {
     wednesday?: string[]
     thursday?: string[]
     friday?: string[]
-    saturday?: string[]
-    sunday?: string[]
   }
 }
 
@@ -49,7 +47,7 @@ export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndD
   }
 
   const getExpectedStartTimeForDate = (staff: Staff, date: Date) => {
-    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+    const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday"]
     const dayName = dayNames[date.getDay()]
     const daySchedule = staff.weeklySchedule?.[dayName] || []
 

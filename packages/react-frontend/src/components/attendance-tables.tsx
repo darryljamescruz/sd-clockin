@@ -100,7 +100,7 @@ export function AttendanceTables({ staffData }: AttendanceTablesProps) {
                     {getTodaySchedule(user).length > 0 ? (
                       <div className="space-y-1">
                         {getTodaySchedule(user).map((block: string, index: number) => (
-                          <div key={index} className="text-xs bg-slate-100 px-2 py-1 rounded">
+                          <div key={index} className="text-sm px-2 py-1 rounded">
                             {block}
                           </div>
                         ))}
