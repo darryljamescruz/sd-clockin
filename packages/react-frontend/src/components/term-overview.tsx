@@ -25,8 +25,6 @@ interface Staff {
     wednesday?: string[]
     thursday?: string[]
     friday?: string[]
-    saturday?: string[]
-    sunday?: string[]
   }
 }
 

@@ -16,7 +16,7 @@ interface Staff {
   id: number
   name: string
   role: string
-  cardId: string
+  iso: string
   clockEntries: ClockEntry[]
 }
 
@@ -101,7 +101,7 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
                 <div className="text-slate-900">{selectedStaff.name}</div>
                 <div className="flex items-center gap-2 mt-1">{getRoleBadge(selectedStaff.role)}</div>
                 <div className="text-sm text-slate-500 mt-1">
-                  Card ID: {selectedStaff.cardId} • Term: {selectedTerm}
+                  ISO: {selectedStaff.iso} • Term: {selectedTerm}
                 </div>
               </div>
             </CardTitle>
