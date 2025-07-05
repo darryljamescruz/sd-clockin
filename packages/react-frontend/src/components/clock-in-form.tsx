@@ -105,9 +105,9 @@ export function ClockInForm({ isOpen, onToggle, onClockIn, staffData }: ClockInF
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Warning Banner */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-yellow-800">
+          <div className="status-warning rounded-lg p-3 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-warning mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-warning-foreground">
               <strong>Manual Entry:</strong> This clock-in will be flagged as manually entered for audit purposes.
             </div>
           </div>
@@ -155,12 +155,12 @@ export function ClockInForm({ isOpen, onToggle, onClockIn, staffData }: ClockInF
 
           {/* Selected Staff Display */}
           {selectedStaff && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div className="status-success rounded-lg p-3">
               <div className="flex items-center gap-2">
-                <User className="w-4 h-4 text-green-600" />
+                <User className="w-4 h-4 text-success" />
                 <div>
-                  <div className="font-medium text-green-900">{selectedStaff.name}</div>
-                  <div className="text-sm text-green-700">{selectedStaff.role}</div>
+                  <div className="font-medium text-success-foreground">{selectedStaff.name}</div>
+                  <div className="text-sm text-success-foreground">{selectedStaff.role}</div>
                 </div>
               </div>
             </div>

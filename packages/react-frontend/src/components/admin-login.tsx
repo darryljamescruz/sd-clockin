@@ -114,7 +114,7 @@ export function AdminLogin({ isOpen, onToggle, onLogin }: AdminLoginProps) {
                 required
               />
             </div>
-            {error && <div className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</div>}
+            {error && <div className="text-sm text-error-foreground status-error p-2 rounded">{error}</div>}
             <div className="flex gap-2">
               <Button type="submit" className="flex-1 bg-slate-900 hover:bg-slate-800">
                 Login
@@ -129,7 +129,7 @@ export function AdminLogin({ isOpen, onToggle, onLogin }: AdminLoginProps) {
               </Button>
             </div>
           </form>
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+          <div className="mt-4 p-3 status-info rounded-lg">
             <p className="text-xs text-blue-700">
               <strong>Demo:</strong> Username: admin, Password: admin123
             </p>

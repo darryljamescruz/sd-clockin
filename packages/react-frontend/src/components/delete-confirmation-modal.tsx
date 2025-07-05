@@ -51,7 +51,7 @@ export function DeleteConfirmationModal({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="status-error rounded-lg p-4">
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
               <div className="space-y-2">
@@ -70,7 +70,7 @@ export function DeleteConfirmationModal({
           </div>
 
           <div className="flex gap-3">
-            <Button onClick={onConfirm} className="flex-1 bg-red-600 hover:bg-red-700 text-white">
+            <Button onClick={onConfirm} className="flex-1 bg-error hover:bg-error/90 text-error-foreground">
               <Trash2 className="w-4 h-4 mr-2" />
               Delete
             </Button>

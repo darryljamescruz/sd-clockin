@@ -68,7 +68,7 @@ function DeleteConfirmationModal({ isOpen, student, onConfirm, onCancel }: Delet
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="status-error rounded-lg p-4">
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
               <div className="space-y-2">
@@ -92,7 +92,7 @@ function DeleteConfirmationModal({ isOpen, student, onConfirm, onCancel }: Delet
           </div>
 
           <div className="flex gap-3">
-            <Button onClick={onConfirm} className="flex-1 bg-red-600 hover:bg-red-700 text-white">
+                          <Button onClick={onConfirm} className="flex-1 bg-error hover:bg-error/90 text-error-foreground">
               <Trash2 className="w-4 h-4 mr-2" />
               Delete Student
             </Button>
@@ -291,7 +291,7 @@ export function StudentManager({
   const getRoleBadge = (role: string) => {
     if (role === "Student Lead") {
       return (
-        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                        <Badge className="badge-info">
           <Shield className="w-3 h-3 mr-1" />
           Student Lead
         </Badge>
@@ -308,9 +308,9 @@ export function StudentManager({
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      present: { color: "bg-green-100 text-green-800", label: "Present", icon: "●" },
-      expected: { color: "bg-yellow-100 text-yellow-800", label: "Expected", icon: "○" },
-      absent: { color: "bg-red-100 text-red-800", label: "Absent", icon: "×" },
+              present: { color: "badge-success", label: "Present", icon: "●" },
+        expected: { color: "badge-warning", label: "Expected", icon: "○" },
+        absent: { color: "badge-error", label: "Absent", icon: "×" },
     }
 
     const config = (statusConfig as any)[status] || statusConfig["expected"]

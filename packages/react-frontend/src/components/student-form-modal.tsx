@@ -275,7 +275,7 @@ export function StudentFormModal({ isOpen, editingStudent, staffData, onSubmit, 
                           <Badge
                             key={index}
                             variant="secondary"
-                            className="bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer"
+                            className="badge-info hover:bg-info-light cursor-pointer"
                             onClick={() => removeScheduleBlock(day, index)}
                           >
                             {block} ×

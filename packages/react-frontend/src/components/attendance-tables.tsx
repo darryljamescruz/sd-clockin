@@ -15,7 +15,7 @@ export function AttendanceTables({ staffData }: AttendanceTablesProps) {
   const getRoleBadge = (role: string) => {
     if (role === "Student Lead") {
       return (
-        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                      <Badge className="badge-info">
           <Shield className="w-3 h-3 mr-1" />
           Student Lead
         </Badge>
@@ -42,9 +42,9 @@ export function AttendanceTables({ staffData }: AttendanceTablesProps) {
       <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-slate-900">
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                            <div className="w-3 h-3 indicator-success rounded-full"></div>
             Currently Clocked In
-            <Badge variant="secondary" className="ml-auto bg-green-100 text-green-800">
+                            <Badge variant="secondary" className="ml-auto badge-success">
               {clockedInUsers.length} Active
             </Badge>
           </CardTitle>
@@ -75,9 +75,9 @@ export function AttendanceTables({ staffData }: AttendanceTablesProps) {
       <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-slate-900">
-            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                            <div className="w-3 h-3 indicator-info rounded-full"></div>
             Expected Arrivals
-            <Badge variant="secondary" className="ml-auto bg-blue-100 text-blue-800">
+                            <Badge variant="secondary" className="ml-auto badge-info">
               {expectedArrivals.length} Pending
             </Badge>
           </CardTitle>

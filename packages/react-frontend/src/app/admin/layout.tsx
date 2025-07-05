@@ -45,8 +45,8 @@ export default function AdminLayout({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="text-slate-600">Loading...</div>
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     )
   }
@@ -56,7 +56,7 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 lg:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted p-4 lg:p-6">
       <div className="max-w-[1600px] mx-auto">
         <AdminHeader 
           currentTime={currentTime} // Now using the live updating time

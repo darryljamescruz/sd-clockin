@@ -47,9 +47,12 @@ export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndD
   }
 
   const getExpectedStartTimeForDate = (staff: Staff, date: Date) => {
-    const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday"]
-    const dayName = dayNames[date.getDay()]
-    const daySchedule = staff.weeklySchedule?.[dayName] || []
+    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const
+    const dayOfWeek = date.getDay()
+    if (dayOfWeek === 0 || dayOfWeek === 6) return null // Weekend
+    
+    const dayName = dayNames[dayOfWeek] as keyof typeof staff.weeklySchedule
+    const daySchedule: string[] = staff.weeklySchedule?.[dayName] || []
 
     if (daySchedule.length === 0) return null
 
@@ -285,7 +288,7 @@ export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndD
                     <TableCell>
                       <Badge
                         className={
-                          staff.role === "Student Lead" ? "bg-blue-100 text-blue-800" : "bg-slate-100 text-slate-800"
+                          staff.role === "Student Lead" ? "badge-info" : "badge-neutral"
                         }
                       >
                         {staff.role}
@@ -313,7 +316,7 @@ export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndD
                     <TableCell className="font-mono text-slate-900">{analytics.avgArrivalTime}</TableCell>
                     <TableCell>
                       {analytics.manualEntries > 0 ? (
-                        <Badge className="bg-yellow-100 text-yellow-800">{analytics.manualEntries}</Badge>
+                        <Badge className="badge-warning">{analytics.manualEntries}</Badge>
                       ) : (
                         <span className="text-slate-500">0</span>
                       )}

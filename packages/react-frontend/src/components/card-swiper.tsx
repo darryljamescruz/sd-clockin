@@ -51,7 +51,7 @@ export function CardSwiper({
     <>
       {/* Card Swiper Status */}
       {isCardSwiping && (
-        <Card className="mb-6 bg-blue-50 border-blue-200 shadow-lg">
+        <Card className="mb-6 status-info shadow-lg">
           <CardContent className="p-4 flex items-center gap-3">
             <CreditCard className="w-5 h-5 text-blue-600 animate-pulse" />
             <span className="text-blue-800 font-medium">Card detected... Please wait</span>
@@ -61,7 +61,7 @@ export function CardSwiper({
 
       {/* Clock In Success Message */}
       {showClockInSuccess && (
-        <Card className="mb-6 bg-green-50 border-green-200 shadow-lg">
+        <Card className="mb-6 status-success shadow-lg">
           <CardContent className="p-4 flex items-center gap-3">
             <CheckCircle className="w-5 h-5 text-green-600" />
             <span className="text-green-800 font-medium">{clockInMessage}</span>
