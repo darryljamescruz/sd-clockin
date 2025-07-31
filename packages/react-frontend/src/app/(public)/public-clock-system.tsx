@@ -105,7 +105,7 @@ export default function PublicClockSystem() {
   }, [cardSwipeData, isCardSwipeDisabled, isLoginOpen, isAdminLoginOpen]);
 
   const handleCardSwipe = (cardData: string) => {
-    const staff = staffData.find((s) => s.cardId === cardData.toUpperCase());
+    const staff = staffData.find((s) => s.iso === cardData.toUpperCase());
 
     if (staff) {
       const isCurrentlyPresent = staff.currentStatus === 'present';

@@ -44,7 +44,7 @@ export const initialStaffData = [
   {
     id: 1,
     name: 'Alex Chen',
-    cardId: 'CARD001',
+    iso: 'ISO001',
     role: 'Student Lead',
     currentStatus: 'present',
     assignedLocation: 'Help Desk - Main', // Assigned location
@@ -68,7 +68,7 @@ export const initialStaffData = [
   {
     id: 2,
     name: 'Sarah Johnson',
-    cardId: 'CARD002',
+    iso: 'ISO002',
     role: 'Assistant',
     currentStatus: 'present',
     assignedLocation: 'Lab Support - A', // Assigned location
@@ -87,7 +87,7 @@ export const initialStaffData = [
   {
     id: 3,
     name: 'Mike Rodriguez',
-    cardId: 'CARD003',
+    iso: 'ISO003',
     role: 'Student Lead',
     currentStatus: 'present',
     assignedLocation: undefined, // Pending assignment
@@ -110,7 +110,7 @@ export const initialStaffData = [
   {
     id: 4,
     name: 'Emma Wilson',
-    cardId: 'CARD004',
+    iso: 'ISO004',
     role: 'Assistant',
     currentStatus: 'expected',
     assignedLocation: undefined, // Not clocked in yet
@@ -129,7 +129,7 @@ export const initialStaffData = [
   {
     id: 5,
     name: 'David Park',
-    cardId: 'CARD005',
+    iso: 'ISO005',
     role: 'Assistant',
     currentStatus: 'expected',
     assignedLocation: undefined, // Not clocked in yet
@@ -148,7 +148,7 @@ export const initialStaffData = [
   {
     id: 6,
     name: 'Lisa Zhang',
-    cardId: 'CARD006',
+    iso: 'ISO006',
     role: 'Student Lead',
     currentStatus: 'present',
     assignedLocation: 'Network Operations', // Assigned location
