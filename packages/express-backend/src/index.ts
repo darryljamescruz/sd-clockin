@@ -13,20 +13,20 @@ dotenv.config();
 const app: Application = express();
 
 try {
-    // frontend build directory
-    // const staticDir = path.join(__dirname, "../frontend-build"); 
-    // console.log("Index.js will serve static files from:", staticDir);
+  // frontend build directory
+  // const staticDir = path.join(__dirname, "../frontend-build");
+  // console.log("Index.js will serve static files from:", staticDir);
 
-    app.use(cors());
-    app.use(express.json());
+  app.use(cors());
+  app.use(express.json());
 
-    await connectDB();
+  await connectDB();
 
-    const PORT: number = parseInt(process.env.PORT || '8000', 10);
-    app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
-    });
+  const PORT: number = parseInt(process.env.PORT || '8000', 10);
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
 } catch (error) {
-    console.error("Error starting the server:", (error as Error).message);
-    process.exit(1);
-} 
+  console.error('Error starting the server:', (error as Error).message);
+  process.exit(1);
+}

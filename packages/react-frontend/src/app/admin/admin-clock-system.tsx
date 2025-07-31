@@ -1,150 +1,164 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { AlertTriangle } from "lucide-react"
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { AlertTriangle } from 'lucide-react';
 
-import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Navbar } from "./components/navbar"
-import { DashboardHeader } from "./components/dashboard-header"
-import { TermManager } from "./components/term-manager"
-import { StatsCards } from "./components/stats-cards"
-import { IndividualRecords } from "./components/individual-records"
-import { StudentManager } from "./components/student-manager"
-import { TermAnalytics } from "./components/term-analytics"
-import { TermOverview } from "./components/term-overview"
-import { initialTerms, initialStaffData } from "./data/initialData"
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Navbar } from '../../components/navbar';
+import { DashboardHeader } from '../../components/dashboard-header';
+import { TermManager } from '../../components/term-manager';
+import { StatsCards } from '../../components/stats-cards';
+import { IndividualRecords } from '../../components/individual-records';
+import { StudentManager } from '../../components/student-manager';
+import { TermAnalytics } from '../../components/term-analytics';
+import { TermOverview } from '../../components/term-overview';
+import { initialTerms, initialStaffData } from '../../data/initialData';
 import {
   getCurrentTerm,
   getTermStatus,
   getTermWeekdays,
   getWeeklyStats,
-} from "./utils/clockUtils"
+} from '../../utils/clockUtils';
 
 export default function AdminClockSystem() {
-  const router = useRouter()
-  const [showStudentManager, setShowStudentManager] = useState(false)
-  const [selectedDate, setSelectedDate] = useState(new Date())
-  const [dateError, setDateError] = useState("")
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const [showTermManager, setShowTermManager] = useState(false)
-  const [terms, setTerms] = useState(initialTerms)
-  const [staffData, setStaffData] = useState(initialStaffData)
-  const [selectedTerm, setSelectedTerm] = useState("Fall 2025")
-  const [selectedStaff, setSelectedStaff] = useState(null)
+  const router = useRouter();
+  const [showStudentManager, setShowStudentManager] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [dateError, setDateError] = useState('');
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [showTermManager, setShowTermManager] = useState(false);
+  const [terms, setTerms] = useState(initialTerms);
+  const [staffData, setStaffData] = useState(initialStaffData);
+  const [selectedTerm, setSelectedTerm] = useState('Fall 2025');
+  const [selectedStaff, setSelectedStaff] = useState(null);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000)
-    return () => clearInterval(timer)
-  }, [])
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleLogout = () => {
-    router.push("/")
-  }
+    router.push('/');
+  };
 
   const handleAddTerm = (term) => {
     const newTerm = {
       ...term,
       id: Date.now().toString(),
-    }
-    setTerms((prev) => [...prev, newTerm])
-  }
+    };
+    setTerms((prev) => [...prev, newTerm]);
+  };
 
   const handleEditTerm = (id: string, updatedTerm) => {
-    setTerms((prev) => prev.map((term) => (term.id === id ? { ...updatedTerm, id } : term)))
-  }
+    setTerms((prev) =>
+      prev.map((term) => (term.id === id ? { ...updatedTerm, id } : term))
+    );
+  };
 
   const handleDeleteTerm = (id: string) => {
-    setTerms((prev) => prev.filter((term) => term.id !== id))
-  }
+    setTerms((prev) => prev.filter((term) => term.id !== id));
+  };
 
   const handleAddStudent = (studentData) => {
     const newStudent = {
       ...studentData,
       id: Math.max(...staffData.map((s) => s.id)) + 1,
-      currentStatus: "expected",
+      currentStatus: 'expected',
       todayActual: null,
       clockEntries: [],
       assignedLocation: undefined,
-    }
-    setStaffData((prev) => [...prev, newStudent])
-  }
+    };
+    setStaffData((prev) => [...prev, newStudent]);
+  };
 
   const handleEditStudent = (id: number, studentData) => {
-    setStaffData((prev) => prev.map((staff) => (staff.id === id ? { ...staff, ...studentData } : staff)))
-  }
+    setStaffData((prev) =>
+      prev.map((staff) =>
+        staff.id === id ? { ...staff, ...studentData } : staff
+      )
+    );
+  };
 
   const handleDeleteStudent = (id: number) => {
-    setStaffData((prev) => prev.filter((staff) => staff.id !== id))
+    setStaffData((prev) => prev.filter((staff) => staff.id !== id));
     if (selectedStaff?.id === id) {
-      setSelectedStaff(null)
+      setSelectedStaff(null);
     }
-  }
+  };
 
-  const currentTerm = getCurrentTerm(terms, selectedTerm)
-  const termWeekdays = getTermWeekdays(currentTerm)
-  const currentDateIndex = termWeekdays.findIndex((date) => date.toDateString() === selectedDate.toDateString())
+  const currentTerm = getCurrentTerm(terms, selectedTerm);
+  const termWeekdays = getTermWeekdays(currentTerm);
+  const currentDateIndex = termWeekdays.findIndex(
+    (date) => date.toDateString() === selectedDate.toDateString()
+  );
 
   const goToPreviousDay = () => {
     if (currentDateIndex > 0) {
-      setSelectedDate(termWeekdays[currentDateIndex - 1])
+      setSelectedDate(termWeekdays[currentDateIndex - 1]);
     }
-  }
+  };
 
   const goToNextDay = () => {
     if (currentDateIndex < termWeekdays.length - 1) {
-      setSelectedDate(termWeekdays[currentDateIndex + 1])
+      setSelectedDate(termWeekdays[currentDateIndex + 1]);
     }
-  }
+  };
 
   const goToToday = () => {
-    const today = new Date()
-    const termStatus = getTermStatus(currentTerm)
+    const today = new Date();
+    const termStatus = getTermStatus(currentTerm);
 
-    if (termStatus.status === "future") {
-      setDateError("Cannot view today's attendance for a future term. This term hasn't started yet.")
-      setTimeout(() => setDateError(""), 5000)
-      return
+    if (termStatus.status === 'future') {
+      setDateError(
+        "Cannot view today's attendance for a future term. This term hasn't started yet."
+      );
+      setTimeout(() => setDateError(''), 5000);
+      return;
     }
 
-    const todayInTerm = termWeekdays.find((date) => date.toDateString() === today.toDateString())
+    const todayInTerm = termWeekdays.find(
+      (date) => date.toDateString() === today.toDateString()
+    );
     if (todayInTerm) {
-      setSelectedDate(todayInTerm)
-      setDateError("")
+      setSelectedDate(todayInTerm);
+      setDateError('');
     } else {
-      if (termStatus.status === "past") {
-        setSelectedDate(termWeekdays[termWeekdays.length - 1])
-        setDateError("")
+      if (termStatus.status === 'past') {
+        setSelectedDate(termWeekdays[termWeekdays.length - 1]);
+        setDateError('');
       } else {
-        setDateError("Today is not within the selected term period.")
-        setTimeout(() => setDateError(""), 5000)
+        setDateError('Today is not within the selected term period.');
+        setTimeout(() => setDateError(''), 5000);
       }
     }
-  }
+  };
 
   const getDefaultDateForTerm = () => {
-    const today = new Date()
-    const termStatus = getTermStatus(currentTerm)
+    const today = new Date();
+    const termStatus = getTermStatus(currentTerm);
 
-    if (termStatus.status === "current") {
-      const todayInTerm = termWeekdays.find((date) => date.toDateString() === today.toDateString())
-      return todayInTerm || termWeekdays[0]
-    } else if (termStatus.status === "past") {
-      return termWeekdays[termWeekdays.length - 1]
+    if (termStatus.status === 'current') {
+      const todayInTerm = termWeekdays.find(
+        (date) => date.toDateString() === today.toDateString()
+      );
+      return todayInTerm || termWeekdays[0];
+    } else if (termStatus.status === 'past') {
+      return termWeekdays[termWeekdays.length - 1];
     } else {
-      return termWeekdays[0]
+      return termWeekdays[0];
     }
-  }
+  };
 
   useEffect(() => {
     if (termWeekdays.length > 0) {
-      setSelectedDate(getDefaultDateForTerm())
-      setDateError("")
+      setSelectedDate(getDefaultDateForTerm());
+      setDateError('');
     }
-  }, [selectedTerm])
+  }, [selectedTerm]);
 
-  const stats = getWeeklyStats(staffData)
+  const stats = getWeeklyStats(staffData);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -242,6 +256,5 @@ export default function AdminClockSystem() {
         )}
       </div>
     </div>
-  )
+  );
 }
-

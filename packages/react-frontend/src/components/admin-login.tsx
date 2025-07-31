@@ -1,66 +1,70 @@
-"use client"
+'use client';
 
-import type React from "react"
+import type React from 'react';
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Shield, X } from "lucide-react"
-import { useState, useEffect } from "react"
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Shield, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface AdminLoginProps {
-  isOpen: boolean
-  onToggle: () => void
-  onLogin: (username: string, password: string) => boolean
+  isOpen: boolean;
+  onToggle: () => void;
+  onLogin: (username: string, password: string) => boolean;
 }
 
 export function AdminLogin({ isOpen, onToggle, onLogin }: AdminLoginProps) {
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   // Disable card swipe when modal is open
   useEffect(() => {
     if (isOpen) {
       // Add event listener to prevent card swipe interference
       const handleKeyDown = (e: KeyboardEvent) => {
-        e.stopPropagation()
-      }
-      document.addEventListener("keydown", handleKeyDown, true)
-      document.addEventListener("keypress", handleKeyDown, true)
+        e.stopPropagation();
+      };
+      document.addEventListener('keydown', handleKeyDown, true);
+      document.addEventListener('keypress', handleKeyDown, true);
 
       return () => {
-        document.removeEventListener("keydown", handleKeyDown, true)
-        document.removeEventListener("keypress", handleKeyDown, true)
-      }
+        document.removeEventListener('keydown', handleKeyDown, true);
+        document.removeEventListener('keypress', handleKeyDown, true);
+      };
     }
-  }, [isOpen])
+  }, [isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const success = onLogin(username, password)
+    e.preventDefault();
+    const success = onLogin(username, password);
     if (!success) {
-      setError("Invalid credentials")
-      setPassword("")
+      setError('Invalid credentials');
+      setPassword('');
     } else {
-      setUsername("")
-      setPassword("")
-      setError("")
+      setUsername('');
+      setPassword('');
+      setError('');
     }
-  }
+  };
 
   const handleClose = () => {
-    setUsername("")
-    setPassword("")
-    setError("")
-    onToggle()
-  }
+    setUsername('');
+    setPassword('');
+    setError('');
+    onToggle();
+  };
 
   return (
     <>
       {/* Always render the button */}
-      <Button onClick={onToggle} variant="ghost" className="text-slate-600 hover:text-slate-900">
+      <Button
+        onClick={onToggle}
+        variant="ghost"
+        className="text-slate-600 hover:text-slate-900"
+      >
         <Shield className="w-4 h-4 mr-2" />
         Admin Login
       </Button>
@@ -102,9 +106,16 @@ export function AdminLogin({ isOpen, onToggle, onLogin }: AdminLoginProps) {
                     required
                   />
                 </div>
-                {error && <div className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</div>}
+                {error && (
+                  <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                    {error}
+                  </div>
+                )}
                 <div className="flex gap-2">
-                  <Button type="submit" className="flex-1 bg-slate-900 hover:bg-slate-800">
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-slate-900 hover:bg-slate-800"
+                  >
                     Login
                   </Button>
                   <Button
@@ -127,5 +138,5 @@ export function AdminLogin({ isOpen, onToggle, onLogin }: AdminLoginProps) {
         </div>
       )}
     </>
-  )
+  );
 }

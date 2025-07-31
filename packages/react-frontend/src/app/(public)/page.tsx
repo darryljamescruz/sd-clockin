@@ -1,7 +1,7 @@
-"use client"
+'use client';
 
-import PublicClockSystem from "../../public-clock-system"
+import PublicClockSystem from './public-clock-system';
 
 export default function Page() {
-  return <PublicClockSystem />
+  return <PublicClockSystem />;
 }

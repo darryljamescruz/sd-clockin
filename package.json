@@ -10,7 +10,7 @@
     "type": "git",
     "url": "git+https://github.com/darryljamescruz/its-checkin.git"
   },
-  "workspaces":[
+  "workspaces": [
     "packages/*"
   ],
   "license": "ISC",
@@ -19,9 +19,18 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "concurrently \"npm --workspace packages/react-frontend run dev\" \"npm --workspace packages/express-backend run dev\""
+    "dev": "concurrently \"npm --workspace packages/react-frontend run dev\" \"npm --workspace packages/express-backend run dev\"",
+    "lint": "npm --workspace packages/react-frontend run lint && npm --workspace packages/express-backend run lint",
+    "lint:fix": "npm --workspace packages/react-frontend run lint:fix && npm --workspace packages/express-backend run lint:fix",
+    "format": "prettier --write \"packages/*/src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"packages/*/src/**/*.{ts,tsx,js,jsx,json,css,md}\""
   },
   "dependencies": {
     "concurrently": "^9.1.2"
+  },
+  "devDependencies": {
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.3",
+    "prettier": "^3.6.2"
   }
 }
