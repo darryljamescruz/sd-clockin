@@ -59,7 +59,7 @@ export default function PublicClockSystem() {
             type,
             isManual,
           };
-          const updatedStaff: any = {
+          const updatedStaff = {
             ...staff,
             clockEntries: [...staff.clockEntries, newEntry],
             currentStatus: type === 'in' ? 'present' : 'absent',
@@ -102,7 +102,7 @@ export default function PublicClockSystem() {
 
     window.addEventListener('keypress', handleKeyPress);
     return () => window.removeEventListener('keypress', handleKeyPress);
-  }, [cardSwipeData, isCardSwipeDisabled, isLoginOpen, isAdminLoginOpen]);
+  }, [cardSwipeData, isCardSwipeDisabled, isLoginOpen, isAdminLoginOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCardSwipe = (cardData: string) => {
     const staff = staffData.find((s) => s.cardId === cardData.toUpperCase());

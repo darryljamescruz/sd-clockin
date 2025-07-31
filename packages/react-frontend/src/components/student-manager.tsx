@@ -49,7 +49,13 @@ interface Staff {
     saturday: string[];
     sunday: string[];
   };
-  clockEntries: any[];
+  clockEntries: ClockEntry[];
+}
+
+interface ClockEntry {
+  timestamp: string;
+  type: 'in' | 'out';
+  isManual?: boolean;
 }
 
 interface StudentManagerProps {
