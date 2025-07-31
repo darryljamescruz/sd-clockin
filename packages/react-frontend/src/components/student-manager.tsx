@@ -58,6 +58,12 @@ interface Staff {
   clockEntries: ClockEntry[];
 }
 
+interface ClockEntry {
+  timestamp: string;
+  type: 'in' | 'out';
+  isManual?: boolean;
+}
+
 interface StudentManagerProps {
   staffData: Staff[];
   onAddStudent: (

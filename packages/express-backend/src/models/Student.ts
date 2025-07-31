@@ -4,7 +4,7 @@ export interface IStudent extends Document {
   name: string;
   role: string;
   iso: string;
-  isActive: boolean;
+  status: 'incoming' | 'active' | 'inactive';
 }
 
 const studentSchema: Schema<IStudent> = new mongoose.Schema({
@@ -19,14 +19,15 @@ const studentSchema: Schema<IStudent> = new mongoose.Schema({
     required: true,
     unique: true,
   },
-  isActive: {
-    type: Boolean,
-    default: true,
+  status: {
+    type: String,
+    enum: ['incoming', 'active', 'inactive'],
+    default: 'incoming',
   },
 });
 
 // Index for efficient queries
 studentSchema.index({ iso: 1 });
-studentSchema.index({ isActive: 1 });
+studentSchema.index({ status: 1 });
 
 export default mongoose.model<IStudent>('Student', studentSchema);
