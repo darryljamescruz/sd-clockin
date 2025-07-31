@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { PublicDashboard } from "./components/public-dashboard"
 import { availableLocations, initialStaffData } from "./data/initialData"
 import { formatTime } from "./utils/clockUtils"
+import { parsePolycardNumber } from "./utils/polycard"
 
 export default function PublicClockSystem() {
   const router = useRouter()
@@ -97,7 +98,8 @@ export default function PublicClockSystem() {
   }, [cardSwipeData, isCardSwipeDisabled, isLoginOpen, isAdminLoginOpen])
 
   const handleCardSwipe = (cardData: string) => {
-    const staff = staffData.find((s) => s.cardId === cardData.toUpperCase())
+    const cardNumber = parsePolycardNumber(cardData) || cardData.toUpperCase()
+    const staff = staffData.find((s) => s.cardId === cardNumber)
 
     if (staff) {
       const isCurrentlyPresent = staff.currentStatus === "present"
