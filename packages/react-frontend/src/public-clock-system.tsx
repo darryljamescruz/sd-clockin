@@ -115,7 +115,7 @@ export default function PublicClockSystem() {
         setClockInMessage("")
       }, 5000)
     } else {
-      setClockInMessage("Card not recognized. Please try again or contact admin.")
+      setClockInMessage("Card not recognized. Please swipe your card again or manually clock in.")
       setShowClockInSuccess(true)
 
       setTimeout(() => {
