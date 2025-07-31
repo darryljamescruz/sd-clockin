@@ -1,53 +1,66 @@
-"use client"
+'use client';
 
-import type React from "react"
+import type React from 'react';
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Calendar, Plus, Edit, Trash2 } from "lucide-react"
-import { useState } from "react"
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Calendar, Plus, Edit, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 interface Term {
-  id: string
-  name: string
-  startDate: string
-  endDate: string
-  isActive: boolean
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
 }
 
 interface TermManagerProps {
-  terms: Term[]
-  onAddTerm: (term: Omit<Term, "id">) => void
-  onEditTerm: (id: string, term: Omit<Term, "id">) => void
-  onDeleteTerm: (id: string) => void
-  onClose: () => void
+  terms: Term[];
+  onAddTerm: (term: Omit<Term, 'id'>) => void;
+  onEditTerm: (id: string, term: Omit<Term, 'id'>) => void;
+  onDeleteTerm: (id: string) => void;
+  onClose: () => void;
 }
 
-export function TermManager({ terms, onAddTerm, onEditTerm, onDeleteTerm, onClose }: TermManagerProps) {
-  const [isAdding, setIsAdding] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
+export function TermManager({
+  terms,
+  onAddTerm,
+  onEditTerm,
+  onDeleteTerm,
+  onClose,
+}: TermManagerProps) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: "",
-    startDate: "",
-    endDate: "",
+    name: '',
+    startDate: '',
+    endDate: '',
     isActive: false,
-  })
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (editingId) {
-      onEditTerm(editingId, formData)
-      setEditingId(null)
+      onEditTerm(editingId, formData);
+      setEditingId(null);
     } else {
-      onAddTerm(formData)
-      setIsAdding(false)
+      onAddTerm(formData);
+      setIsAdding(false);
     }
-    setFormData({ name: "", startDate: "", endDate: "", isActive: false })
-  }
+    setFormData({ name: '', startDate: '', endDate: '', isActive: false });
+  };
 
   const handleEdit = (term: Term) => {
     setFormData({
@@ -55,16 +68,16 @@ export function TermManager({ terms, onAddTerm, onEditTerm, onDeleteTerm, onClos
       startDate: term.startDate,
       endDate: term.endDate,
       isActive: term.isActive,
-    })
-    setEditingId(term.id)
-    setIsAdding(true)
-  }
+    });
+    setEditingId(term.id);
+    setIsAdding(true);
+  };
 
   const handleCancel = () => {
-    setIsAdding(false)
-    setEditingId(null)
-    setFormData({ name: "", startDate: "", endDate: "", isActive: false })
-  }
+    setIsAdding(false);
+    setEditingId(null);
+    setFormData({ name: '', startDate: '', endDate: '', isActive: false });
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -80,7 +93,9 @@ export function TermManager({ terms, onAddTerm, onEditTerm, onDeleteTerm, onClos
           {isAdding && (
             <Card className="border-2 border-blue-200">
               <CardHeader>
-                <CardTitle className="text-lg">{editingId ? "Edit Term" : "Add New Term"}</CardTitle>
+                <CardTitle className="text-lg">
+                  {editingId ? 'Edit Term' : 'Add New Term'}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -90,7 +105,9 @@ export function TermManager({ terms, onAddTerm, onEditTerm, onDeleteTerm, onClos
                       <Input
                         id="name"
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
                         placeholder="e.g., Fall 2025"
                         required
                       />
@@ -100,7 +117,12 @@ export function TermManager({ terms, onAddTerm, onEditTerm, onDeleteTerm, onClos
                         type="checkbox"
                         id="isActive"
                         checked={formData.isActive}
-                        onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            isActive: e.target.checked,
+                          })
+                        }
                         className="rounded"
                       />
                       <Label htmlFor="isActive">Active Term</Label>
@@ -113,7 +135,12 @@ export function TermManager({ terms, onAddTerm, onEditTerm, onDeleteTerm, onClos
                         id="startDate"
                         type="date"
                         value={formData.startDate}
-                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            startDate: e.target.value,
+                          })
+                        }
                         required
                       />
                     </div>
@@ -123,16 +150,25 @@ export function TermManager({ terms, onAddTerm, onEditTerm, onDeleteTerm, onClos
                         id="endDate"
                         type="date"
                         value={formData.endDate}
-                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, endDate: e.target.value })
+                        }
                         required
                       />
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button type="submit" className="bg-slate-900 hover:bg-slate-800">
-                      {editingId ? "Update Term" : "Add Term"}
+                    <Button
+                      type="submit"
+                      className="bg-slate-900 hover:bg-slate-800"
+                    >
+                      {editingId ? 'Update Term' : 'Add Term'}
                     </Button>
-                    <Button type="button" variant="outline" onClick={handleCancel}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleCancel}
+                    >
                       Cancel
                     </Button>
                   </div>
@@ -143,7 +179,10 @@ export function TermManager({ terms, onAddTerm, onEditTerm, onDeleteTerm, onClos
 
           {/* Add Button */}
           {!isAdding && (
-            <Button onClick={() => setIsAdding(true)} className="bg-slate-900 hover:bg-slate-800">
+            <Button
+              onClick={() => setIsAdding(true)}
+              className="bg-slate-900 hover:bg-slate-800"
+            >
               <Plus className="w-4 h-4 mr-2" />
               Add New Term
             </Button>
@@ -169,18 +208,30 @@ export function TermManager({ terms, onAddTerm, onEditTerm, onDeleteTerm, onClos
                   {terms.map((term) => (
                     <TableRow key={term.id}>
                       <TableCell className="font-medium">{term.name}</TableCell>
-                      <TableCell>{new Date(term.startDate).toLocaleDateString()}</TableCell>
-                      <TableCell>{new Date(term.endDate).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {new Date(term.startDate).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(term.endDate).toLocaleDateString()}
+                      </TableCell>
                       <TableCell>
                         {term.isActive ? (
-                          <Badge className="bg-green-100 text-green-800">Active</Badge>
+                          <Badge className="bg-green-100 text-green-800">
+                            Active
+                          </Badge>
                         ) : (
-                          <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>
+                          <Badge className="bg-gray-100 text-gray-800">
+                            Inactive
+                          </Badge>
                         )}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEdit(term)}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(term)}
+                          >
                             <Edit className="w-3 h-3" />
                           </Button>
                           <Button
@@ -209,5 +260,5 @@ export function TermManager({ terms, onAddTerm, onEditTerm, onDeleteTerm, onClos
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
