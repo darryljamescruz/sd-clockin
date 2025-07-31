@@ -2,16 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -33,48 +23,9 @@ body {
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
     --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
     --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-    
-    /* Semantic Colors for Consistent Status Indicators - Light Mode Optimized */
-    --success: 142 76% 36%; /* Dark green for good contrast on light backgrounds */
-    --success-foreground: 0 0% 98%;
-    --success-light: 142 76% 91%; /* Light green background */
-    --success-border: 142 76% 58%; /* Medium green border */
-    
-    --warning: 32 95% 44%; /* Dark amber for good contrast on light backgrounds */
-    --warning-foreground: 0 0% 9%;
-    --warning-light: 54 92% 95%; /* Light yellow background */
-    --warning-border: 48 96% 53%; /* Medium yellow border */
-    
-    --error: 0 84% 51%; /* Dark red for good contrast on light backgrounds */
-    --error-foreground: 0 0% 98%;
-    --error-light: 0 93% 94%; /* Light red background */
-    --error-border: 0 91% 71%; /* Medium red border */
-    
-    --info: 221 83% 53%; /* Dark blue for good contrast on light backgrounds */
-    --info-foreground: 0 0% 98%;
-    --info-light: 214 95% 93%; /* Light blue background */
-    --info-border: 221 91% 68%; /* Medium blue border */
-    
-    --neutral: 0 0% 96.1%;
-    --neutral-foreground: 0 0% 9%;
-    --neutral-light: 0 0% 98%;
-    --neutral-border: 0 0% 89.8%;
   }
-  
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -95,45 +46,6 @@ body {
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
     --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-    
-    /* Dark Mode Semantic Colors */
-    --success: 142 76% 36%;
-    --success-foreground: 0 0% 98%;
-    --success-light: 142 76% 8%;
-    --success-border: 142 76% 20%;
-    
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 9%;
-    --warning-light: 38 92% 8%;
-    --warning-border: 38 92% 20%;
-    
-    --error: 0 84% 50%;
-    --error-foreground: 0 0% 98%;
-    --error-light: 0 84% 8%;
-    --error-border: 0 84% 20%;
-    
-    --info: 221 83% 53%;
-    --info-foreground: 0 0% 98%;
-    --info-light: 221 83% 8%;
-    --info-border: 221 83% 20%;
-    
-    --neutral: 0 0% 14.9%;
-    --neutral-foreground: 0 0% 98%;
-    --neutral-light: 0 0% 8%;
-    --neutral-border: 0 0% 20%;
   }
 }
 
@@ -144,69 +56,4 @@ body {
   body {
     @apply bg-background text-foreground;
   }
-}
-
-/* Semantic Color Utility Classes */
-@layer utilities {
-  .status-success {
-    @apply bg-success-light text-success-foreground border-success-border;
-  }
-  
-  .status-warning {
-    @apply bg-warning-light text-warning-foreground border-warning-border;
-  }
-  
-  .status-error {
-    @apply bg-error-light text-error-foreground border-error-border;
-  }
-  
-  .status-info {
-    @apply bg-info-light text-info-foreground border-info-border;
-  }
-  
-  .status-neutral {
-    @apply bg-neutral-light text-neutral-foreground border-neutral-border;
-  }
-  
-  /* Badge Variants */
-  .badge-success {
-    @apply bg-success-light text-success border-success-border;
-  }
-  
-  .badge-warning {
-    @apply bg-warning-light text-warning border-warning-border;
-  }
-  
-  .badge-error {
-    @apply bg-error-light text-error border-error-border;
-  }
-  
-  .badge-info {
-    @apply bg-info-light text-info border-info-border;
-  }
-  
-  .badge-neutral {
-    @apply bg-neutral-light text-neutral border-neutral-border;
-  }
-  
-  /* Status Indicators */
-  .indicator-success {
-    @apply bg-success;
-  }
-  
-  .indicator-warning {
-    @apply bg-warning;
-  }
-  
-  .indicator-error {
-    @apply bg-error;
-  }
-  
-  .indicator-info {
-    @apply bg-info;
-  }
-  
-  .indicator-neutral {
-    @apply bg-neutral;
-  }
-}
+} 

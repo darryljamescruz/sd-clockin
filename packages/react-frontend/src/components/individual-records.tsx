@@ -16,7 +16,7 @@ interface Staff {
   id: number
   name: string
   role: string
-  iso: string
+  cardId: string
   clockEntries: ClockEntry[]
 }
 
@@ -31,7 +31,7 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
   const getRoleBadge = (role: string) => {
     if (role === "Student Lead") {
       return (
-        <Badge className="badge-info">
+        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
           <Shield className="w-3 h-3 mr-1" />
           Student Lead
         </Badge>
@@ -47,14 +47,14 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
   }
 
   const getEntryTypeBadge = (entry: { type: "in" | "out"; isManual?: boolean }) => {
-          const baseClass = entry.type === "in" ? "badge-success" : "badge-error"
+    const baseClass = entry.type === "in" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
     const label = entry.type === "in" ? "Clock In" : "Clock Out"
     const manualFlag = entry.isManual ? " (Manual)" : ""
 
     return (
       <div className="flex items-center gap-1">
         <Badge className={baseClass}>{label}</Badge>
-        {entry.isManual && <Badge className="badge-warning text-xs">Manual</Badge>}
+        {entry.isManual && <Badge className="bg-yellow-100 text-yellow-800 text-xs">Manual</Badge>}
       </div>
     )
   }
@@ -101,7 +101,7 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
                 <div className="text-slate-900">{selectedStaff.name}</div>
                 <div className="flex items-center gap-2 mt-1">{getRoleBadge(selectedStaff.role)}</div>
                 <div className="text-sm text-slate-500 mt-1">
-                  ISO: {selectedStaff.iso} • Term: {selectedTerm}
+                  Card ID: {selectedStaff.cardId} • Term: {selectedTerm}
                 </div>
               </div>
             </CardTitle>

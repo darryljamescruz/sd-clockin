@@ -32,7 +32,7 @@ export function StatsCards({ totalStaff, presentStaff, studentLeads, lateToday }
               <div className="text-2xl font-bold text-green-700">{presentStaff}</div>
               <div className="text-slate-600">Present Today</div>
             </div>
-                          <div className="w-8 h-8 status-success rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
               <span className="text-green-600 font-bold">●</span>
             </div>
           </div>
