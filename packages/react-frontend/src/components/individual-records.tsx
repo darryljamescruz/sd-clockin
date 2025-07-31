@@ -23,7 +23,7 @@ interface Staff {
   id: number;
   name: string;
   role: string;
-  cardId: string;
+  iso: string;
   clockEntries: ClockEntry[];
 }
 
@@ -67,6 +67,7 @@ export function IndividualRecords({
         ? 'bg-green-100 text-green-800'
         : 'bg-red-100 text-red-800';
     const label = entry.type === 'in' ? 'Clock In' : 'Clock Out';
+    
     return (
       <div className="flex items-center gap-1">
         <Badge className={baseClass}>{label}</Badge>
@@ -123,7 +124,7 @@ export function IndividualRecords({
                   {getRoleBadge(selectedStaff.role)}
                 </div>
                 <div className="text-sm text-slate-500 mt-1">
-                  Card ID: {selectedStaff.cardId} • Term: {selectedTerm}
+                  ISO: {selectedStaff.iso} • Term: {selectedTerm}
                 </div>
               </div>
             </CardTitle>

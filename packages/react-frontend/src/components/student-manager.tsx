@@ -34,10 +34,16 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+interface ClockEntry {
+  timestamp: string;
+  type: 'in' | 'out';
+  isManual?: boolean;
+}
+
 interface Staff {
   id: number;
   name: string;
-  cardId: string;
+  iso: string;
   role: string;
   currentStatus: string;
   weeklySchedule: {
@@ -107,7 +113,7 @@ function DeleteConfirmationModal({
                 <div className="text-sm text-red-700 space-y-1">
                   <p>• All clock-in history will be permanently removed</p>
                   <p>• This action cannot be undone</p>
-                  <p>• Card ID: {student.cardId}</p>
+          <p>• ISO: {student.iso}</p>
                   <p>• Role: {student.role}</p>
                 </div>
               </div>
@@ -165,7 +171,7 @@ export function StudentManager({
   });
   const [formData, setFormData] = useState({
     name: '',
-    cardId: '',
+    iso: '',
     role: 'Assistant',
     weeklySchedule: {
       monday: [],
@@ -186,17 +192,17 @@ export function StudentManager({
       newErrors.name = 'Name is required';
     }
 
-    if (!formData.cardId.trim()) {
-      newErrors.cardId = 'Card ID is required';
+    if (!formData.iso.trim()) {
+      newErrors.iso = 'ISO is required';
     } else {
-      // Check for duplicate card ID (excluding current editing item)
-      const existingCard = staffData.find(
+      // Check for duplicate ISO (excluding current editing item)
+      const existingIso = staffData.find(
         (staff) =>
-          staff.cardId.toUpperCase() === formData.cardId.toUpperCase() &&
+          staff.iso.toUpperCase() === formData.iso.toUpperCase() &&
           staff.id !== editingId
       );
-      if (existingCard) {
-        newErrors.cardId = 'Card ID already exists';
+      if (existingIso) {
+        newErrors.iso = 'ISO already exists';
       }
     }
 
@@ -240,7 +246,7 @@ export function StudentManager({
 
     const studentData = {
       name: formData.name.trim(),
-      cardId: formData.cardId.toUpperCase().trim(),
+      iso: formData.iso.toUpperCase().trim(),
       role: formData.role,
       weeklySchedule: formData.weeklySchedule,
     };
@@ -255,7 +261,7 @@ export function StudentManager({
 
     setFormData({
       name: '',
-      cardId: '',
+      iso: '',
       role: 'Assistant',
       weeklySchedule: {
         monday: [],
@@ -273,7 +279,7 @@ export function StudentManager({
   const handleEdit = (staff: Staff) => {
     setFormData({
       name: staff.name,
-      cardId: staff.cardId,
+      iso: staff.iso,
       role: staff.role,
       weeklySchedule: staff.weeklySchedule || {
         monday: [],
@@ -295,7 +301,7 @@ export function StudentManager({
     setEditingId(null);
     setFormData({
       name: '',
-      cardId: '',
+      iso: '',
       role: 'Assistant',
       weeklySchedule: {
         monday: [],
@@ -412,22 +418,22 @@ export function StudentManager({
                         )}
                       </div>
                       <div>
-                        <Label htmlFor="cardId">Card ID</Label>
+                        <Label htmlFor="iso">ISO</Label>
                         <Input
-                          id="cardId"
-                          value={formData.cardId}
+                          id="iso"
+                          value={formData.iso}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              cardId: e.target.value.toUpperCase(),
+                              iso: e.target.value.toUpperCase(),
                             })
                           }
-                          placeholder="e.g., CARD007"
-                          className={errors.cardId ? 'border-red-500' : ''}
+                          placeholder="e.g., ISO007"
+                          className={errors.iso ? 'border-red-500' : ''}
                         />
-                        {errors.cardId && (
+                        {errors.iso && (
                           <p className="text-sm text-red-600 mt-1">
-                            {errors.cardId}
+                            {errors.iso}
                           </p>
                         )}
                       </div>
@@ -584,7 +590,7 @@ export function StudentManager({
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
-                      <TableHead>Card ID</TableHead>
+                      <TableHead>ISO</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Current Week Schedule</TableHead>
                       <TableHead>Current Status</TableHead>
@@ -598,7 +604,7 @@ export function StudentManager({
                           {staff.name}
                         </TableCell>
                         <TableCell className="font-mono text-sm">
-                          {staff.cardId}
+                          {staff.iso}
                         </TableCell>
                         <TableCell>{getRoleBadge(staff.role)}</TableCell>
                         <TableCell>
