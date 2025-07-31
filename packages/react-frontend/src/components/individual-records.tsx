@@ -67,8 +67,6 @@ export function IndividualRecords({
         ? 'bg-green-100 text-green-800'
         : 'bg-red-100 text-red-800';
     const label = entry.type === 'in' ? 'Clock In' : 'Clock Out';
-    const manualFlag = entry.isManual ? ' (Manual)' : '';
-
     return (
       <div className="flex items-center gap-1">
         <Badge className={baseClass}>{label}</Badge>
