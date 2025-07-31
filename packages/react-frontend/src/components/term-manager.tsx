@@ -31,7 +31,8 @@ interface TermManagerProps {
   onAddTerm: (term: Omit<Term, 'id'>) => void;
   onEditTerm: (id: string, term: Omit<Term, 'id'>) => void;
   onDeleteTerm: (id: string) => void;
-  onClose: () => void;
+  onClose?: () => void;
+  mode?: 'modal' | 'page';
 }
 
 export function TermManager({
@@ -40,6 +41,7 @@ export function TermManager({
   onEditTerm,
   onDeleteTerm,
   onClose,
+  mode = 'modal',
 }: TermManagerProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -80,8 +82,8 @@ export function TermManager({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-auto">
+    <div className={mode === 'modal' ? 'fixed inset-0 bg-black/50 flex items-center justify-center z-50' : ''}>
+      <Card className={mode === 'modal' ? 'w-full max-w-4xl max-h[90vh] overflow-auto' : 'w-full'}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5" />
@@ -251,12 +253,13 @@ export function TermManager({
             </CardContent>
           </Card>
 
-          {/* Close Button */}
-          <div className="flex justify-end">
-            <Button onClick={onClose} variant="outline">
-              Close
-            </Button>
-          </div>
+          {mode === 'modal' && onClose && (
+            <div className="flex justify-end">
+              <Button onClick={onClose} variant="outline">
+                Close
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

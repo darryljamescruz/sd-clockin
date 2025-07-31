@@ -74,7 +74,8 @@ interface StudentManagerProps {
     student: Omit<Staff, 'id' | 'clockEntries' | 'currentStatus'>
   ) => void;
   onDeleteStudent: (id: number) => void;
-  onClose: () => void;
+  onClose?: () => void;
+  mode?: 'modal' | 'page';
 }
 
 interface DeleteConfirmationModalProps {
@@ -159,6 +160,7 @@ export function StudentManager({
   onEditStudent,
   onDeleteStudent,
   onClose,
+  mode = 'modal',
 }: StudentManagerProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -375,17 +377,19 @@ export function StudentManager({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <Card className="w-full max-w-6xl max-h-[90vh] overflow-auto">
+    <div className={mode === 'modal' ? 'fixed inset-0 bg-black/50 flex items-center justify-center z-50' : ''}>
+        <Card className={mode === 'modal' ? 'w-full max-w-6xl max-h[90vh] overflow-auto' : 'w-full'}>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
                 Manage Students & Staff
               </div>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <X className="w-4 h-4" />
-              </Button>
+              {mode === 'modal' && onClose && (
+                <Button variant="ghost" size="sm" onClick={onClose}>
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
