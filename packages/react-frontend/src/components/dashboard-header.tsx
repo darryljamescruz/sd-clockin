@@ -3,14 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { TermSelector } from './term-selector';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-
-interface Term {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  isActive: boolean;
-}
+import { Term } from '@/types';
 
 interface DashboardHeaderProps {
   terms: Term[];

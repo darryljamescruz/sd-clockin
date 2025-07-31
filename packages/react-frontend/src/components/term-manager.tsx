@@ -17,21 +17,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Plus, Edit, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-
-interface Term {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  isActive: boolean;
-}
+import { Term } from '@/types';
 
 interface TermManagerProps {
   terms: Term[];
   onAddTerm: (term: Omit<Term, 'id'>) => void;
   onEditTerm: (id: string, term: Omit<Term, 'id'>) => void;
   onDeleteTerm: (id: string) => void;
-  onClose: () => void;
 }
 
 export function TermManager({
@@ -39,7 +31,6 @@ export function TermManager({
   onAddTerm,
   onEditTerm,
   onDeleteTerm,
-  onClose,
 }: TermManagerProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -80,15 +71,14 @@ export function TermManager({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Manage Work Schedule Terms
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Calendar className="w-5 h-5" />
+          Manage Work Schedule Terms
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
           {/* Add/Edit Form */}
           {isAdding && (
             <Card className="border-2 border-blue-200">
@@ -250,15 +240,7 @@ export function TermManager({
               </Table>
             </CardContent>
           </Card>
-
-          {/* Close Button */}
-          <div className="flex justify-end">
-            <Button onClick={onClose} variant="outline">
-              Close
-            </Button>
-          </div>
         </CardContent>
       </Card>
-    </div>
   );
 }

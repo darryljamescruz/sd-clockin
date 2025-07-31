@@ -29,52 +29,21 @@ import {
   Trash2,
   Shield,
   UserCheck,
-  X,
   AlertTriangle,
 } from 'lucide-react';
 import { useState } from 'react';
-
-interface ClockEntry {
-  timestamp: string;
-  type: 'in' | 'out';
-  isManual?: boolean;
-}
-
-interface Staff {
-  id: number;
-  name: string;
-  iso: string;
-  role: string;
-  currentStatus: string;
-  weeklySchedule: {
-    monday: string[];
-    tuesday: string[];
-    wednesday: string[];
-    thursday: string[];
-    friday: string[];
-    saturday: string[];
-    sunday: string[];
-  };
-  clockEntries: ClockEntry[];
-}
-
-interface ClockEntry {
-  timestamp: string;
-  type: 'in' | 'out';
-  isManual?: boolean;
-}
+import { Staff } from '@/types';
 
 interface StudentManagerProps {
   staffData: Staff[];
   onAddStudent: (
-    student: Omit<Staff, 'id' | 'clockEntries' | 'currentStatus'>
+    student: Omit<Staff, 'id' | 'clockEntries' | 'currentStatus' | 'assignedLocation' | 'todayActual'>
   ) => void;
   onEditStudent: (
     id: number,
-    student: Omit<Staff, 'id' | 'clockEntries' | 'currentStatus'>
+    student: Omit<Staff, 'id' | 'clockEntries' | 'currentStatus' | 'assignedLocation' | 'todayActual'>
   ) => void;
   onDeleteStudent: (id: number) => void;
-  onClose: () => void;
 }
 
 interface DeleteConfirmationModalProps {
@@ -158,7 +127,6 @@ export function StudentManager({
   onAddStudent,
   onEditStudent,
   onDeleteStudent,
-  onClose,
 }: StudentManagerProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -375,17 +343,12 @@ export function StudentManager({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <Card className="w-full max-w-6xl max-h-[90vh] overflow-auto">
+      <div className="max-w-6xl mx-auto">
+        <Card className="w-full max-h-[90vh] overflow-auto">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Manage Students & Staff
-              </div>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <X className="w-4 h-4" />
-              </Button>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Manage Students & Staff
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">

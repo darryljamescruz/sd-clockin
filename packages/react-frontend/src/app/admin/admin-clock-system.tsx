@@ -1,92 +1,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { AlertTriangle } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Navbar } from '../../components/navbar';
 import { DashboardHeader } from '../../components/dashboard-header';
-import { TermManager } from '../../components/term-manager';
 import { StatsCards } from '../../components/stats-cards';
 import { IndividualRecords } from '../../components/individual-records';
-import { StudentManager } from '../../components/student-manager';
 import { TermAnalytics } from '../../components/term-analytics';
 import { TermOverview } from '../../components/term-overview';
-import { initialTerms, initialStaffData } from '../../data/initialData';
 import {
   getCurrentTerm,
   getTermStatus,
   getTermWeekdays,
   getWeeklyStats,
 } from '../../utils/clockUtils';
+import { useAdminData } from './admin-data-context';
 
 export default function AdminClockSystem() {
-  const router = useRouter();
-  const [showStudentManager, setShowStudentManager] = useState(false);
+  const { terms, staffData } = useAdminData();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dateError, setDateError] = useState('');
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [showTermManager, setShowTermManager] = useState(false);
-  const [terms, setTerms] = useState(initialTerms);
-  const [staffData, setStaffData] = useState(initialStaffData);
   const [selectedTerm, setSelectedTerm] = useState('Fall 2025');
   const [selectedStaff, setSelectedStaff] = useState(null);
 
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const handleLogout = () => {
-    router.push('/');
-  };
-
-  const handleAddTerm = (term) => {
-    const newTerm = {
-      ...term,
-      id: Date.now().toString(),
-    };
-    setTerms((prev) => [...prev, newTerm]);
-  };
-
-  const handleEditTerm = (id: string, updatedTerm) => {
-    setTerms((prev) =>
-      prev.map((term) => (term.id === id ? { ...updatedTerm, id } : term))
-    );
-  };
-
-  const handleDeleteTerm = (id: string) => {
-    setTerms((prev) => prev.filter((term) => term.id !== id));
-  };
-
-  const handleAddStudent = (studentData) => {
-    const newStudent = {
-      ...studentData,
-      id: Math.max(...staffData.map((s) => s.id)) + 1,
-      currentStatus: 'expected',
-      todayActual: null,
-      clockEntries: [],
-      assignedLocation: undefined,
-    };
-    setStaffData((prev) => [...prev, newStudent]);
-  };
-
-  const handleEditStudent = (id: number, studentData) => {
-    setStaffData((prev) =>
-      prev.map((staff) =>
-        staff.id === id ? { ...staff, ...studentData } : staff
-      )
-    );
-  };
-
-  const handleDeleteStudent = (id: number) => {
-    setStaffData((prev) => prev.filter((staff) => staff.id !== id));
-    if (selectedStaff?.id === id) {
-      setSelectedStaff(null);
-    }
-  };
 
   const currentTerm = getCurrentTerm(terms, selectedTerm);
   const termWeekdays = getTermWeekdays(currentTerm);
@@ -161,14 +99,6 @@ export default function AdminClockSystem() {
   const stats = getWeeklyStats(staffData);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <Navbar
-        currentTime={currentTime}
-        onLogout={handleLogout}
-        onManageTerms={() => setShowTermManager(true)}
-        onManageStudents={() => setShowStudentManager(true)}
-      />
-
       <div className="max-w-7xl mx-auto px-6">
         <StatsCards
           totalStaff={stats.totalStaff}
@@ -235,26 +165,6 @@ export default function AdminClockSystem() {
           </TabsContent>
         </Tabs>
 
-        {showTermManager && (
-          <TermManager
-            terms={terms}
-            onAddTerm={handleAddTerm}
-            onEditTerm={handleEditTerm}
-            onDeleteTerm={handleDeleteTerm}
-            onClose={() => setShowTermManager(false)}
-          />
-        )}
-
-        {showStudentManager && (
-          <StudentManager
-            staffData={staffData}
-            onAddStudent={handleAddStudent}
-            onEditStudent={handleEditStudent}
-            onDeleteStudent={handleDeleteStudent}
-            onClose={() => setShowStudentManager(false)}
-          />
-        )}
       </div>
-    </div>
   );
 }

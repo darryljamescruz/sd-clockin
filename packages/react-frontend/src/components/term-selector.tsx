@@ -8,14 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Calendar, ChevronDown } from 'lucide-react';
-
-interface Term {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  isActive: boolean;
-}
+import { Term } from '@/types';
 
 interface TermSelectorProps {
   terms: Term[];
