@@ -113,7 +113,7 @@ function DeleteConfirmationModal({
                 <div className="text-sm text-red-700 space-y-1">
                   <p>• All clock-in history will be permanently removed</p>
                   <p>• This action cannot be undone</p>
-          <p>• ISO: {student.iso}</p>
+                  <p>• ISO: {student.iso}</p>
                   <p>• Role: {student.role}</p>
                 </div>
               </div>
