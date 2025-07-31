@@ -10,7 +10,8 @@
     "prefer-const": "error",
     "no-var": "error",
     "react-hooks/exhaustive-deps": "warn",
-    "@next/next/no-img-element": "warn"
+    "@next/next/no-img-element": "warn",
+    "react/no-unescaped-entities": "off"
   },
   "ignorePatterns": [
     ".next/",
