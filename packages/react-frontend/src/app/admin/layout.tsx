@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Clock, Calendar, Users, LogOut, LayoutDashboard } from 'lucide-react';
 import {
   SidebarProvider,
@@ -9,6 +10,9 @@ import {
   SidebarContent,
   SidebarHeader,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -23,6 +27,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const pathname = usePathname();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -41,7 +46,7 @@ export default function AdminLayout({
     <AdminDataProvider>
       <SidebarProvider>
         <div className="flex min-h-screen bg-slate-50">
-          <Sidebar>
+          <Sidebar className="border-r">
             <SidebarHeader>
               <Link href="/admin" className="flex items-center gap-2 font-semibold">
                 <Clock className="w-5 h-5" />
@@ -49,32 +54,37 @@ export default function AdminLayout({
               </Link>
             </SidebarHeader>
             <SidebarContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link href="/admin" className="flex items-center gap-2">
-                      <LayoutDashboard className="w-4 h-4" />
-                      <span>Dashboard</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link href="/admin/terms" className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      <span>Terms</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link href="/admin/students" className="flex items-center gap-2">
-                      <Users className="w-4 h-4" />
-                      <span>Students</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
+              <SidebarGroup>
+                <SidebarGroupLabel>Manage</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={pathname === '/admin'}>
+                        <Link href="/admin" className="flex items-center gap-2">
+                          <LayoutDashboard className="w-4 h-4" />
+                          <span>Dashboard</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={pathname === '/admin/terms'}>
+                        <Link href="/admin/terms" className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          <span>Terms</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={pathname === '/admin/students'}>
+                        <Link href="/admin/students" className="flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          <span>Students</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
             </SidebarContent>
             <SidebarFooter>
               <SidebarMenu>
@@ -95,7 +105,9 @@ export default function AdminLayout({
               <div className="font-mono text-sm">{formatTime(currentTime)}</div>
               <div />
             </header>
-            <main className="flex-1 p-6">{children}</main>
+            <main className="flex-1 p-6">
+              <div className="w-full max-w-7xl mx-auto">{children}</div>
+            </main>
           </SidebarInset>
         </div>
       </SidebarProvider>
