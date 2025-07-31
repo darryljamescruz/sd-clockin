@@ -43,9 +43,15 @@ checkInSchema.index({ timestamp: 1 });
 // Middleware to update student status based on check-in type
 checkInSchema.post('save', async function (doc) {
   if (doc.type === 'in') {
-    await Student.updateOne({ _id: doc.studentId }, { status: 'active' }).exec();
+    await Student.updateOne(
+      { _id: doc.studentId },
+      { status: 'active' }
+    ).exec();
   } else if (doc.type === 'out') {
-    await Student.updateOne({ _id: doc.studentId }, { status: 'inactive' }).exec();
+    await Student.updateOne(
+      { _id: doc.studentId },
+      { status: 'inactive' }
+    ).exec();
   }
 });
 
