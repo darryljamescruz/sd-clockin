@@ -4,11 +4,8 @@ import { useState, useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DashboardHeader } from '../../components/dashboard-header';
 import { StatsCards } from '../../components/stats-cards';
-import { IndividualRecords } from '../../components/individual-records';
-import { TermAnalytics } from '../../components/term-analytics';
 import { TermOverview } from '../../components/term-overview';
 import { ActivityFeed } from '../../components/activity-feed';
 import { useAdminData } from './admin-data-context';
@@ -24,7 +21,7 @@ export default function AdminClockSystem() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dateError, setDateError] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('Fall 2025');
-  const [selectedStaff, setSelectedStaff] = useState<any>(null);
+  // Overview-only page: no per-staff selection here
 
   const currentTerm = getCurrentTerm(terms, selectedTerm);
   const termWeekdays = getTermWeekdays(currentTerm);
@@ -137,41 +134,15 @@ export default function AdminClockSystem() {
         getTermStatus={() => getTermStatus(currentTerm)}
       />
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="bg-white/70 backdrop-blur-sm border-slate-200">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="analytics">Term Analytics</TabsTrigger>
-          <TabsTrigger value="individual">Individual Records</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview">
-          <TermOverview
-            staffData={staffData}
-            selectedTerm={selectedTerm}
-            currentTerm={currentTerm}
-            selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
-          />
-        </TabsContent>
-
-        <TabsContent value="analytics">
-          <TermAnalytics
-            staffData={staffData}
-            selectedTerm={selectedTerm}
-            termStartDate={currentTerm.startDate}
-            termEndDate={currentTerm.endDate}
-          />
-        </TabsContent>
-
-        <TabsContent value="individual">
-          <IndividualRecords
-            staffData={staffData}
-            selectedStaff={selectedStaff}
-            onSelectStaff={setSelectedStaff}
-            selectedTerm={selectedTerm}
-          />
-        </TabsContent>
-      </Tabs>
+      <div className="space-y-6">
+        <TermOverview
+          staffData={staffData}
+          selectedTerm={selectedTerm}
+          currentTerm={currentTerm}
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+        />
+      </div>
     </div>
   );
 }

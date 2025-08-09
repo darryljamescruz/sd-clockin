@@ -28,7 +28,9 @@ html {
       </head>
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
+          <div className="min-h-screen overscroll-none">
+            {children}
+          </div>
         </ThemeProvider>
       </body>
     </html>

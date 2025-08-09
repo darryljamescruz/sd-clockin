@@ -2,8 +2,9 @@ import mongoose from 'mongoose';
 
 export default async function connectDB(): Promise<void> {
   const mongoURI: string | undefined = process.env.MONGO_URI;
+  console.log(mongoURI);
   if (!mongoURI) {
-    console.log('MongoDB URI is not defined in environment variables');
+    console.log('Mongo URI is not defined in environment variables');
     process.exit(1);
   }
 

@@ -15,6 +15,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
   SidebarSeparator,
@@ -22,7 +25,15 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const items = [
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+  {
+    href: '/admin',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    children: [
+      { href: '/admin', label: 'Overview' },
+      { href: '/admin/records', label: 'Individual Records' },
+    ],
+  },
   { href: '/admin/students', label: 'Manage Students', icon: Users },
   { href: '/admin/terms', label: 'Manage Terms', icon: Calendar },
 ];
@@ -62,6 +73,25 @@ export function AdminSidebar({ children }: { children: React.ReactNode }) {
                           <span>{item.label}</span>
                         </Link>
                       </SidebarMenuButton>
+                      {item.children?.length ? (
+                        <SidebarMenuSub>
+                          {item.children.map((child) => {
+                            const isChildActive = pathname === child.href;
+                            return (
+                              <SidebarMenuSubItem key={child.href}>
+                                <SidebarMenuSubButton asChild isActive={isChildActive}>
+                                  <Link
+                                    href={child.href}
+                                    aria-current={isChildActive ? 'page' : undefined}
+                                  >
+                                    <span>{child.label}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
+                        </SidebarMenuSub>
+                      ) : null}
                     </SidebarMenuItem>
                   );
                 })}

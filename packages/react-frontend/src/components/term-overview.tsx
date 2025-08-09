@@ -24,7 +24,7 @@ interface Staff {
   id: number;
   name: string;
   role: string;
-  todayExpected: string;
+  todayExpected?: string;
   clockEntries: ClockEntry[];
   weeklySchedule?: {
     monday?: string[];
