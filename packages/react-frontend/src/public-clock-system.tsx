@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { PublicDashboard } from '../../components/public-dashboard';
-import { availableLocations, initialStaffData } from '../../data/initialData';
-import { formatTime } from '../../utils/clockUtils';
+import { PublicDashboard } from './components/public-dashboard';
+import { availableLocations, initialStaffData } from './data/initialData';
+import { formatTime } from './utils/clockUtils';
+import { parsePolycardNumber } from './utils/polycard';
 
 export default function PublicClockSystem() {
   const router = useRouter();
@@ -59,7 +60,7 @@ export default function PublicClockSystem() {
             type,
             isManual,
           };
-          const updatedStaff = {
+          const updatedStaff: any = {
             ...staff,
             clockEntries: [...staff.clockEntries, newEntry],
             currentStatus: type === 'in' ? 'present' : 'absent',
@@ -102,10 +103,11 @@ export default function PublicClockSystem() {
 
     window.addEventListener('keypress', handleKeyPress);
     return () => window.removeEventListener('keypress', handleKeyPress);
-  }, [cardSwipeData, isCardSwipeDisabled, isLoginOpen, isAdminLoginOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cardSwipeData, isCardSwipeDisabled, isLoginOpen, isAdminLoginOpen]);
 
   const handleCardSwipe = (cardData: string) => {
-    const staff = staffData.find((s) => s.iso === cardData.toUpperCase());
+    const cardNumber = parsePolycardNumber(cardData) || cardData.toUpperCase();
+    const staff = staffData.find((s) => s.iso === cardNumber);
 
     if (staff) {
       const isCurrentlyPresent = staff.currentStatus === 'present';
@@ -124,7 +126,7 @@ export default function PublicClockSystem() {
       }, 5000);
     } else {
       setClockInMessage(
-        'Card not recognized. Please try again or contact admin.'
+        'Card not recognized. Please swipe your card again or manually clock in.'
       );
       setShowClockInSuccess(true);
 

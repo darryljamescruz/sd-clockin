@@ -24,7 +24,7 @@ interface Staff {
   id: number;
   name: string;
   role: string;
-  todayExpected: string;
+  todayExpected?: string;
   clockEntries: ClockEntry[];
   weeklySchedule?: {
     monday?: string[];
@@ -302,21 +302,6 @@ export function TermOverview({
 
   // Navigation functions
   const termWeekdays = useMemo(() => getTermWeekdays(), [currentTerm]);
-  const currentDateIndex = termWeekdays.findIndex(
-    (date) => date.toDateString() === selectedDate.toDateString()
-  );
-
-  const goToPreviousDay = () => {
-    if (currentDateIndex > 0) {
-      onDateChange(termWeekdays[currentDateIndex - 1]);
-    }
-  };
-
-  const goToNextDay = () => {
-    if (currentDateIndex < termWeekdays.length - 1) {
-      onDateChange(termWeekdays[currentDateIndex + 1]);
-    }
-  };
 
   const goToToday = () => {
     const today = new Date();

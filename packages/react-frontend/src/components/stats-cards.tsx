@@ -1,13 +1,14 @@
 'use client';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, AlertCircle, Shield } from 'lucide-react';
+import { Users, AlertCircle, Shield, Calendar } from 'lucide-react';
 
 interface StatsCardsProps {
   totalStaff: number;
   presentStaff: number;
   studentLeads: number;
   lateToday: number;
+  currentTerm: string;
 }
 
 export function StatsCards({
@@ -15,9 +16,10 @@ export function StatsCards({
   presentStaff,
   studentLeads,
   lateToday,
+  currentTerm,
 }: StatsCardsProps) {
   return (
-    <div className="grid md:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
       <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
@@ -70,6 +72,18 @@ export function StatsCards({
               <div className="text-slate-600">Late Today</div>
             </div>
             <AlertCircle className="w-8 h-8 text-red-600" />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-2xl font-bold text-slate-900">{currentTerm}</div>
+              <div className="text-slate-600">Current Term</div>
+            </div>
+            <Calendar className="w-8 h-8 text-slate-600" />
           </div>
         </CardContent>
       </Card>

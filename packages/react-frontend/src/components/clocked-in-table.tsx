@@ -24,8 +24,6 @@ interface Staff {
     wednesday?: string[];
     thursday?: string[];
     friday?: string[];
-    saturday?: string[];
-    sunday?: string[];
   };
 }
 
@@ -35,15 +33,7 @@ interface ClockedInTableProps {
 
 export function ClockedInTable({ clockedInUsers }: ClockedInTableProps) {
   const getTodaySchedule = (staff: Staff, date = new Date()) => {
-    const dayNames = [
-      'sunday',
-      'monday',
-      'tuesday',
-      'wednesday',
-      'thursday',
-      'friday',
-      'saturday',
-    ];
+    const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
     const dayName = dayNames[date.getDay()];
     return staff.weeklySchedule?.[dayName] || [];
   };
@@ -169,9 +159,9 @@ export function ClockedInTable({ clockedInUsers }: ClockedInTableProps) {
               <TableHead className="text-slate-700">Role</TableHead>
               <TableHead className="text-slate-700">Clock In</TableHead>
               <TableHead className="text-slate-700">Shift End</TableHead>
-              <TableHead className="text-slate-700">
+              {/* <TableHead className="text-slate-700">
                 Assigned Location
-              </TableHead>
+              </TableHead> */}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -187,7 +177,7 @@ export function ClockedInTable({ clockedInUsers }: ClockedInTableProps) {
                 <TableCell className="font-mono text-slate-900">
                   {getShiftEndTime(user)}
                 </TableCell>
-                <TableCell>{getLocationBadge(user.assignedLocation)}</TableCell>
+                {/* <TableCell>{getLocationBadge(user.assignedLocation)}</TableCell> */}
               </TableRow>
             ))}
           </TableBody>
