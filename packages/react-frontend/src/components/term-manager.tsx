@@ -15,6 +15,23 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 import { Calendar, Plus, Edit, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -31,7 +48,8 @@ interface TermManagerProps {
   onAddTerm: (term: Omit<Term, 'id'>) => void;
   onEditTerm: (id: string, term: Omit<Term, 'id'>) => void;
   onDeleteTerm: (id: string) => void;
-  onClose: () => void;
+  onClose?: () => void;
+  mode?: 'modal' | 'page';
 }
 
 export function TermManager({
@@ -40,6 +58,7 @@ export function TermManager({
   onEditTerm,
   onDeleteTerm,
   onClose,
+  mode = 'modal',
 }: TermManagerProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -48,6 +67,10 @@ export function TermManager({
     startDate: '',
     endDate: '',
     isActive: false,
+  });
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null }>({
+    isOpen: false,
+    id: null,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -79,9 +102,25 @@ export function TermManager({
     setFormData({ name: '', startDate: '', endDate: '', isActive: false });
   };
 
+  const handleDeleteClick = (id: string) => {
+    setDeleteModal({ isOpen: true, id });
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteModal.id) {
+      onDeleteTerm(deleteModal.id);
+      setDeleteModal({ isOpen: false, id: null });
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModal({ isOpen: false, id: null });
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-auto">
+    <>
+      <div className={mode === 'modal' ? 'fixed inset-0 bg-black/50 flex items-center justify-center z-50' : ''}>
+        <Card className={mode === 'modal' ? 'w-full max-w-4xl max-h[90vh] overflow-auto' : 'w-full'}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5" />
@@ -89,104 +128,94 @@ export function TermManager({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Add/Edit Form */}
-          {isAdding && (
-            <Card className="border-2 border-blue-200">
-              <CardHeader>
-                <CardTitle className="text-lg">
+          <Dialog open={isAdding} onOpenChange={(open) => !open && handleCancel()}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>
                   {editingId ? 'Edit Term' : 'Add New Term'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">Term Name</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
-                        placeholder="e.g., Fall 2025"
-                        required
-                      />
-                    </div>
-                    <div className="flex items-center space-x-2 pt-6">
-                      <input
-                        type="checkbox"
-                        id="isActive"
-                        checked={formData.isActive}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            isActive: e.target.checked,
-                          })
-                        }
-                        className="rounded"
-                      />
-                      <Label htmlFor="isActive">Active Term</Label>
-                    </div>
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Term Name</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      placeholder="e.g., Fall 2025"
+                      required
+                    />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="startDate">Start Date</Label>
-                      <Input
-                        id="startDate"
-                        type="date"
-                        value={formData.startDate}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            startDate: e.target.value,
-                          })
-                        }
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="endDate">End Date</Label>
-                      <Input
-                        id="endDate"
-                        type="date"
-                        value={formData.endDate}
-                        onChange={(e) =>
-                          setFormData({ ...formData, endDate: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
+                  <div className="flex items-center space-x-2 pt-6">
+                    <input
+                      type="checkbox"
+                      id="isActive"
+                      checked={formData.isActive}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          isActive: e.target.checked,
+                        })
+                      }
+                      className="rounded"
+                    />
+                    <Label htmlFor="isActive">Active Term</Label>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      type="submit"
-                      className="bg-slate-900 hover:bg-slate-800"
-                    >
-                      {editingId ? 'Update Term' : 'Add Term'}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleCancel}
-                    >
-                      Cancel
-                    </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="startDate">Start Date</Label>
+                    <Input
+                      id="startDate"
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          startDate: e.target.value,
+                        })
+                      }
+                      required
+                    />
                   </div>
-                </form>
-              </CardContent>
-            </Card>
-          )}
+                  <div>
+                    <Label htmlFor="endDate">End Date</Label>
+                    <Input
+                      id="endDate"
+                      type="date"
+                      value={formData.endDate}
+                      onChange={(e) =>
+                        setFormData({ ...formData, endDate: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit" className="bg-slate-900 hover:bg-slate-800">
+                    {editingId ? 'Update Term' : 'Add Term'}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={handleCancel}>
+                    Cancel
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
 
           {/* Add Button */}
-          {!isAdding && (
             <Button
               onClick={() => setIsAdding(true)}
               className="bg-slate-900 hover:bg-slate-800"
+              disabled={isAdding}
+              size="lg"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-5 h-5 mr-2" />
               Add New Term
             </Button>
-          )}
 
           {/* Terms Table */}
           <Card>
@@ -237,7 +266,7 @@ export function TermManager({
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => onDeleteTerm(term.id)}
+                            onClick={() => handleDeleteClick(term.id)}
                             className="text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -251,14 +280,42 @@ export function TermManager({
             </CardContent>
           </Card>
 
-          {/* Close Button */}
-          <div className="flex justify-end">
-            <Button onClick={onClose} variant="outline">
-              Close
-            </Button>
-          </div>
+          {mode === 'modal' && onClose && (
+            <div className="flex justify-end">
+              <Button onClick={onClose} variant="outline">
+                Close
+              </Button>
+            </div>
+          )}
         </CardContent>
-      </Card>
-    </div>
+        </Card>
+      </div>
+
+      <AlertDialog
+        open={deleteModal.isOpen}
+        onOpenChange={(open) => !open && handleDeleteCancel()}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this term? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDeleteCancel}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
