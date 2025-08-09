@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { PublicDashboard } from '../../components/public-dashboard';
 import { availableLocations, initialStaffData } from '../../data/initialData';
 import { formatTime } from '../../utils/clockUtils';
+import { parsePolycardNumber } from '../../utils/polycard';
 
 export default function PublicClockSystem() {
   const router = useRouter();
@@ -105,8 +106,9 @@ export default function PublicClockSystem() {
   }, [cardSwipeData, isCardSwipeDisabled, isLoginOpen, isAdminLoginOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCardSwipe = (cardData: string) => {
-    const staff = staffData.find((s) => s.iso === cardData.toUpperCase());
-
+    const polycardNumber = parsePolycardNumber(cardData);
+    console.log(polycardNumber);
+    const staff = staffData.find((s) => s.iso === polycardNumber);
     if (staff) {
       const isCurrentlyPresent = staff.currentStatus === 'present';
       const action = isCurrentlyPresent ? 'out' : 'in';
