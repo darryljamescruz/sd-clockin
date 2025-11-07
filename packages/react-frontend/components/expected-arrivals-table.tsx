@@ -4,24 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Shield, UserCheck } from "lucide-react"
-
-interface Staff {
-  id: number
-  name: string
-  role: string
-  weeklySchedule?: {
-    monday?: string[]
-    tuesday?: string[]
-    wednesday?: string[]
-    thursday?: string[]
-    friday?: string[]
-    saturday?: string[]
-    sunday?: string[]
-  }
-}
+import { type Student } from "@/lib/api"
 
 interface ExpectedArrivalsTableProps {
-  expectedArrivals: Staff[]
+  expectedArrivals: Student[]
 }
 
 export function ExpectedArrivalsTable({ expectedArrivals }: ExpectedArrivalsTableProps) {

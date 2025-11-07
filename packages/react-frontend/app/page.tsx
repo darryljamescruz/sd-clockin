@@ -1,13 +1,14 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Clock, Calendar, CreditCard, CheckCircle } from "lucide-react"
+import { Clock, Calendar, CreditCard, CheckCircle, AlertTriangle } from "lucide-react"
 import { ClockInForm } from "@/components/clock-in-form"
 import { AdminLogin } from "@/components/admin-login"
 import { ClockedInTable } from "@/components/clocked-in-table"
 import { ExpectedArrivalsTable } from "@/components/expected-arrivals-table"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { api, type Student, type Term } from "@/lib/api"
 
 export default function HomePage() {
   const router = useRouter()
@@ -21,130 +22,47 @@ export default function HomePage() {
   const [cardSwipeData, setCardSwipeData] = useState("")
   const [isCardSwipeDisabled, setIsCardSwipeDisabled] = useState(false)
 
-  // Sample staff data - removed assignedLocation
-  const [staffData, setStaffData] = useState([
-    {
-      id: 1,
-      name: "Alex Chen",
-      cardId: "CARD001",
-      role: "Student Lead",
-      currentStatus: "present",
-      weeklySchedule: {
-        monday: ["8:30-12:00", "1:00-5:00"],
-        tuesday: ["9:00-1:00"],
-        wednesday: ["8:30-12:00", "1:00-5:00"],
-        thursday: ["9:00-1:00"],
-        friday: ["8:30-12:00"],
-        saturday: [],
-        sunday: [],
-      },
-      todayActual: "08:25 AM",
-      clockEntries: [
-        { timestamp: "2025-01-20T08:25:00", type: "in" },
-        { timestamp: "2025-01-20T12:30:00", type: "out" },
-        { timestamp: "2025-01-20T13:15:00", type: "in" },
-        { timestamp: "2025-01-20T17:05:00", type: "out" },
-      ],
-    },
-    {
-      id: 2,
-      name: "Sarah Johnson",
-      cardId: "CARD002",
-      role: "Assistant",
-      currentStatus: "present",
-      weeklySchedule: {
-        monday: ["9:15-5:00"],
-        tuesday: ["9:15-5:00"],
-        wednesday: ["9:15-5:00"],
-        thursday: ["9:15-5:00"],
-        friday: ["9:15-1:00"],
-        saturday: [],
-        sunday: [],
-      },
-      todayActual: "09:10 AM",
-      clockEntries: [{ timestamp: "2025-01-20T09:10:00", type: "in" }],
-    },
-    {
-      id: 3,
-      name: "Mike Rodriguez",
-      cardId: "CARD003",
-      role: "Student Lead",
-      currentStatus: "present",
-      weeklySchedule: {
-        monday: ["8:45-12:00", "1:00-4:00"],
-        tuesday: ["10:00-2:00"],
-        wednesday: ["8:45-12:00", "1:00-4:00"],
-        thursday: ["10:00-2:00"],
-        friday: ["8:45-12:00"],
-        saturday: [],
-        sunday: [],
-      },
-      todayActual: "08:45 AM",
-      clockEntries: [
-        { timestamp: "2025-01-20T08:45:00", type: "in" },
-        { timestamp: "2025-01-20T12:15:00", type: "out" },
-        { timestamp: "2025-01-20T13:10:00", type: "in" },
-      ],
-    },
-    {
-      id: 4,
-      name: "Emma Wilson",
-      cardId: "CARD004",
-      role: "Assistant",
-      currentStatus: "expected",
-      weeklySchedule: {
-        monday: ["9:00-5:00"],
-        tuesday: ["9:00-5:00"],
-        wednesday: ["9:00-1:00"],
-        thursday: ["9:00-5:00"],
-        friday: ["9:00-5:00"],
-        saturday: [],
-        sunday: [],
-      },
-      todayActual: null,
-      clockEntries: [],
-    },
-    {
-      id: 5,
-      name: "David Park",
-      cardId: "CARD005",
-      role: "Assistant",
-      currentStatus: "expected",
-      weeklySchedule: {
-        monday: [],
-        tuesday: ["10:30-2:30"],
-        wednesday: ["10:30-2:30"],
-        thursday: ["10:30-2:30"],
-        friday: [],
-        saturday: [],
-        sunday: [],
-      },
-      todayActual: null,
-      clockEntries: [],
-    },
-    {
-      id: 6,
-      name: "Lisa Zhang",
-      cardId: "CARD006",
-      role: "Student Lead",
-      currentStatus: "present",
-      weeklySchedule: {
-        monday: ["8:00-12:00", "1:00-5:00"],
-        tuesday: ["8:00-12:00", "1:00-5:00"],
-        wednesday: ["8:00-12:00", "1:00-5:00"],
-        thursday: ["8:00-12:00", "1:00-5:00"],
-        friday: ["8:00-12:00"],
-        saturday: [],
-        sunday: [],
-      },
-      todayActual: "07:58 AM",
-      clockEntries: [
-        { timestamp: "2025-01-20T07:58:00", type: "in" },
-        { timestamp: "2025-01-20T12:05:00", type: "out" },
-      ],
-    },
-  ])
+  // Data state
+  const [staffData, setStaffData] = useState<Student[]>([])
+  const [currentTerm, setCurrentTerm] = useState<Term | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
 
+  // Fetch initial data (terms and students)
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        setError("")
+        
+        // Fetch terms
+        const terms = await api.terms.getAll()
+        const activeTerm = terms.find((t) => t.isActive) || terms[0]
+        
+        if (!activeTerm) {
+          setError("No term found. Please contact administrator.")
+          setIsLoading(false)
+          return
+        }
+        
+        setCurrentTerm(activeTerm)
+        
+        // Fetch students for the active term
+        const students = await api.students.getAll(activeTerm.id)
+        setStaffData(students)
+        
+      } catch (err) {
+        console.error("Error fetching data:", err)
+        setError("Failed to load data. Please refresh the page.")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  // Update clock every second
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date())
@@ -203,35 +121,56 @@ export default function HomePage() {
     return false
   }
 
-  const addClockEntry = (staffId: number, type: "in" | "out", isManual = false) => {
-    setStaffData((prev) =>
-      prev.map((staff) => {
-        if (staff.id === staffId) {
-          const newEntry = {
-            timestamp: new Date().toISOString(),
-            type,
-            isManual,
+  const addClockEntry = async (staffId: string, type: "in" | "out", isManual = false) => {
+    if (!currentTerm) return
+
+    try {
+      // Create check-in via API
+      await api.checkins.create({
+        studentId: staffId,
+        termId: currentTerm.id,
+        type,
+        isManual,
+      })
+
+      // Update local state
+      setStaffData((prev) =>
+        prev.map((staff) => {
+          if (staff.id === staffId) {
+            const newEntry = {
+              timestamp: new Date().toISOString(),
+              type,
+              isManual,
+            }
+            return {
+              ...staff,
+              clockEntries: [...(staff.clockEntries || []), newEntry],
+              currentStatus: type === "in" ? "present" : "absent",
+            }
           }
-          return {
-            ...staff,
-            clockEntries: [...staff.clockEntries, newEntry],
-            currentStatus: type === "in" ? "present" : "absent",
-            todayActual: type === "in" ? formatTime(new Date()) : staff.todayActual,
-          }
-        }
-        return staff
-      }),
-    )
+          return staff
+        }),
+      )
+    } catch (err) {
+      console.error("Error recording clock entry:", err)
+      setClockInMessage("Failed to record check-in. Please try again.")
+      setShowClockInSuccess(true)
+      
+      setTimeout(() => {
+        setShowClockInSuccess(false)
+        setClockInMessage("")
+      }, 3000)
+    }
   }
 
-  const handleCardSwipe = (cardData) => {
+  const handleCardSwipe = async (cardData: string) => {
     const staff = staffData.find((s) => s.cardId === cardData.toUpperCase())
 
     if (staff) {
       const isCurrentlyPresent = staff.currentStatus === "present"
       const action = isCurrentlyPresent ? "out" : "in"
 
-      addClockEntry(staff.id, action)
+      await addClockEntry(staff.id, action, false)
 
       setClockInMessage(`${staff.name} clocked ${action} at ${formatTime(new Date())}`)
       setShowClockInSuccess(true)
@@ -251,14 +190,14 @@ export default function HomePage() {
     }
   }
 
-  const handleManualClockIn = (staffId: number, isManual: boolean) => {
+  const handleManualClockIn = async (staffId: string, isManual: boolean) => {
     const staff = staffData.find((s) => s.id === staffId)
 
     if (staff) {
       const isCurrentlyPresent = staff.currentStatus === "present"
       const action = isCurrentlyPresent ? "out" : "in"
 
-      addClockEntry(staff.id, action, isManual)
+      await addClockEntry(staff.id, action, isManual)
 
       const manualFlag = isManual ? " (Manual Entry)" : ""
       setClockInMessage(`${staff.name} clocked ${action} at ${formatTime(new Date())}${manualFlag}`)
@@ -272,11 +211,11 @@ export default function HomePage() {
     }
   }
 
-  const handleManualClockOut = (staffId: number, isManual: boolean) => {
+  const handleManualClockOut = async (staffId: string, isManual: boolean) => {
     const staff = staffData.find((s) => s.id === staffId)
 
     if (staff) {
-      addClockEntry(staff.id, "out", isManual)
+      await addClockEntry(staff.id, "out", isManual)
 
       const manualFlag = isManual ? " (Manual Entry)" : ""
       setClockInMessage(`${staff.name} clocked out at ${formatTime(new Date())}${manualFlag}`)
@@ -310,31 +249,35 @@ export default function HomePage() {
 
           {/* Login Area */}
           <div className="flex items-center gap-4">
-            <ClockInForm
-              isOpen={isLoginOpen}
-              onToggle={() => {
-                setIsLoginOpen(!isLoginOpen)
-                setIsCardSwipeDisabled(!isLoginOpen)
-              }}
-              onClockIn={handleManualClockIn}
-              staffData={staffData}
-              mode="in"
-              title="Manual Clock In"
-              buttonText="Manual Clock In"
-            />
+            {!isLoading && (
+              <>
+                <ClockInForm
+                  isOpen={isLoginOpen}
+                  onToggle={() => {
+                    setIsLoginOpen(!isLoginOpen)
+                    setIsCardSwipeDisabled(!isLoginOpen)
+                  }}
+                  onClockIn={handleManualClockIn}
+                  staffData={staffData}
+                  mode="in"
+                  title="Manual Clock In"
+                  buttonText="Manual Clock In"
+                />
 
-            <ClockInForm
-              isOpen={isClockOutOpen}
-              onToggle={() => {
-                setIsClockOutOpen(!isClockOutOpen)
-                setIsCardSwipeDisabled(!isClockOutOpen)
-              }}
-              onClockIn={handleManualClockOut}
-              staffData={staffData}
-              mode="out"
-              title="Manual Clock Out"
-              buttonText="Manual Clock Out"
-            />
+                <ClockInForm
+                  isOpen={isClockOutOpen}
+                  onToggle={() => {
+                    setIsClockOutOpen(!isClockOutOpen)
+                    setIsCardSwipeDisabled(!isClockOutOpen)
+                  }}
+                  onClockIn={handleManualClockOut}
+                  staffData={staffData}
+                  mode="out"
+                  title="Manual Clock Out"
+                  buttonText="Manual Clock Out"
+                />
+              </>
+            )}
 
             <AdminLogin
               isOpen={isAdminLoginOpen}
@@ -347,77 +290,86 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Card Swiper Status */}
-        {isCardSwiping && (
+        {/* Error Message */}
+        {error && (
+          <Card className="mb-6 bg-red-50 border-red-200 shadow-lg">
+            <CardContent className="p-4 flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              <span className="text-red-800 font-medium">{error}</span>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Loading State */}
+        {isLoading && (
           <Card className="mb-6 bg-blue-50 border-blue-200 shadow-lg">
             <CardContent className="p-4 flex items-center gap-3">
-              <CreditCard className="w-5 h-5 text-blue-600 animate-pulse" />
-              <span className="text-blue-800 font-medium">Card detected... Please wait</span>
+              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <span className="text-blue-800 font-medium">Loading data...</span>
             </CardContent>
           </Card>
         )}
 
-        {/* Clock In Success Message */}
-        {showClockInSuccess && (
-          <Card className="mb-6 bg-green-50 border-green-200 shadow-lg">
-            <CardContent className="p-4 flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <span className="text-green-800 font-medium">{clockInMessage}</span>
-            </CardContent>
-          </Card>
+        {!isLoading && !error && (
+          <>
+            {/* Card Swiper Status */}
+            {isCardSwiping && (
+              <Card className="mb-6 bg-blue-50 border-blue-200 shadow-lg">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <CreditCard className="w-5 h-5 text-blue-600 animate-pulse" />
+                  <span className="text-blue-800 font-medium">Card detected... Please wait</span>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Clock In Success Message */}
+            {showClockInSuccess && (
+              <Card className="mb-6 bg-green-50 border-green-200 shadow-lg">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="text-green-800 font-medium">{clockInMessage}</span>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Card Swiper Instructions */}
+            <Card className="mb-8 bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center">
+                    <CreditCard className="w-8 h-8 text-slate-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-1">Quick Clock In/Out</h3>
+                    <p className="text-slate-600">Swipe your ID card to clock in or out automatically</p>
+                    <p className="text-sm text-slate-500 mt-1">Or use manual clock in for backup</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Current Time Display */}
+            <Card className="mb-8 bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+              <CardContent className="p-8 text-center">
+                <div className="space-y-2">
+                  <div className="text-6xl font-mono font-bold text-slate-900 tracking-tight">
+                    {formatTime(currentTime)}
+                  </div>
+                  <div className="text-xl text-slate-600 flex items-center justify-center gap-2">
+                    <Calendar className="w-5 h-5" />
+                    {formatDate(currentTime)}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tables Grid */}
+            <div className="grid lg:grid-cols-2 gap-8">
+              <ClockedInTable clockedInUsers={clockedInUsers} />
+              <ExpectedArrivalsTable expectedArrivals={expectedArrivals} />
+            </div>
+          </>
         )}
-
-        {/* Card Swiper Instructions */}
-        <Card className="mb-8 bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center">
-                <CreditCard className="w-8 h-8 text-slate-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-1">Quick Clock In/Out</h3>
-                <p className="text-slate-600">Swipe your ID card to clock in or out automatically</p>
-                <p className="text-sm text-slate-500 mt-1">Or use manual clock in for backup</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Current Time Display */}
-        <Card className="mb-8 bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
-          <CardContent className="p-8 text-center">
-            <div className="space-y-2">
-              <div className="text-6xl font-mono font-bold text-slate-900 tracking-tight">
-                {formatTime(currentTime)}
-              </div>
-              <div className="text-xl text-slate-600 flex items-center justify-center gap-2">
-                <Calendar className="w-5 h-5" />
-                {formatDate(currentTime)}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Tables Grid */}
-        <div className="grid lg:grid-cols-2 gap-8">
-          <ClockedInTable clockedInUsers={clockedInUsers} />
-          <ExpectedArrivalsTable expectedArrivals={expectedArrivals} />
-        </div>
-
-        {/* Demo Instructions */}
-        <Card className="mt-8 bg-slate-50 border-slate-200">
-          <CardContent className="p-4">
-            <h4 className="font-semibold text-slate-900 mb-2">Demo Instructions:</h4>
-            <div className="text-sm text-slate-600 space-y-1">
-              <p>
-                • Type "CARD001", "CARD002", "CARD003", "CARD004", "CARD005", or "CARD006" and press Enter to simulate
-                card swipe
-              </p>
-              <p>• Use Manual Clock In for backup entry</p>
-              <p>• Admin Login: username "admin", password "admin123"</p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   )

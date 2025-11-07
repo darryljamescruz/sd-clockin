@@ -6,40 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Calendar, Users, TrendingUp, AlertCircle } from "lucide-react"
 import { useMemo } from "react"
 import { Button } from "@/components/ui/button"
-
-interface ClockEntry {
-  timestamp: string
-  type: "in" | "out"
-  isManual?: boolean
-}
-
-interface Staff {
-  id: number
-  name: string
-  role: string
-  todayExpected: string
-  clockEntries: ClockEntry[]
-  weeklySchedule?: {
-    monday?: string[]
-    tuesday?: string[]
-    wednesday?: string[]
-    thursday?: string[]
-    friday?: string[]
-    saturday?: string[]
-    sunday?: string[]
-  }
-}
-
-interface Term {
-  id: string
-  name: string
-  startDate: string
-  endDate: string
-  isActive: boolean
-}
+import { type Student, type Term } from "@/lib/api"
 
 interface TermOverviewProps {
-  staffData: Staff[]
+  staffData: Student[]
   selectedTerm: string
   currentTerm: Term
   selectedDate: Date
