@@ -1,5 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import Student from './Student.js';
+import Student from './Student';
 
 export interface ICheckIn extends Document {
   studentId: mongoose.Types.ObjectId;
