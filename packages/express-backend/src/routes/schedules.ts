@@ -6,7 +6,8 @@ import Term from '../models/Term';
 const router = express.Router();
 
 // GET schedule for a student in a specific term
-router.get('/', async (req: Request, res: Response) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+router.get('/', async (req: Request, res: Response): Promise<any> => {
   try {
     const { studentId, termId } = req.query;
 
@@ -43,7 +44,8 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // POST - Create or update a schedule
-router.post('/', async (req: Request, res: Response) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+router.post('/', async (req: Request, res: Response): Promise<any> => {
   try {
     const { studentId, termId, availability } = req.body;
 
@@ -93,7 +95,8 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // DELETE - Delete a schedule
-router.delete('/', async (req: Request, res: Response) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+router.delete('/', async (req: Request, res: Response): Promise<any> => {
   try {
     const { studentId, termId } = req.query;
 

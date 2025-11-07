@@ -3,32 +3,37 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { StudentsPage } from "@/components/students-page"
-import { api, type Student } from "@/lib/api"
+import { api, type Student, type Term } from "@/lib/api"
 import { Card, CardContent } from "@/components/ui/card"
 import { AlertTriangle, Loader2 } from "lucide-react"
 
 export default function StudentsManagement() {
   const router = useRouter()
   const [staffData, setStaffData] = useState<Student[]>([])
+  const [terms, setTerms] = useState<Term[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
-  // Fetch students on mount
+  // Fetch students and terms on mount
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true)
-        const students = await api.students.getAll()
+        const [students, fetchedTerms] = await Promise.all([
+          api.students.getAll(),
+          api.terms.getAll(),
+        ])
         setStaffData(students)
+        setTerms(fetchedTerms)
       } catch (err) {
-        console.error("Error fetching students:", err)
-        setError("Failed to load students. Please refresh the page.")
+        console.error("Error fetching data:", err)
+        setError("Failed to load data. Please refresh the page.")
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchStudents()
+    fetchData()
   }, [])
 
   const handleAddStudent = async (studentData: any) => {
@@ -108,6 +113,7 @@ export default function StudentsManagement() {
       <div className="max-w-7xl mx-auto">
         <StudentsPage
           staffData={staffData}
+          terms={terms}
           onAddStudent={handleAddStudent}
           onEditStudent={handleEditStudent}
           onDeleteStudent={handleDeleteStudent}

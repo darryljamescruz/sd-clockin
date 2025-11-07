@@ -12,7 +12,7 @@ import { Users, Trash2, Shield, UserCheck, X, AlertTriangle } from "lucide-react
 import { useState, useEffect } from "react"
 
 interface Staff {
-  id: number
+  id: string
   name: string
   cardId: string
   role: string
@@ -32,8 +32,8 @@ interface Staff {
 interface StudentManagerProps {
   staffData: Staff[]
   onAddStudent: (student: Omit<Staff, "id" | "clockEntries" | "currentStatus">) => void
-  onEditStudent: (id: number, student: Omit<Staff, "id" | "clockEntries" | "currentStatus">) => void
-  onDeleteStudent: (id: number) => void
+  onEditStudent: (id: string, student: Omit<Staff, "id" | "clockEntries" | "currentStatus">) => void
+  onDeleteStudent: (id: string) => void
   onClose: () => void
   editingStudent?: Staff | null
   isAddMode?: boolean

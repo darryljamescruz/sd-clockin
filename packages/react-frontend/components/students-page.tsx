@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Users, Plus, Edit, Trash2, ArrowLeft, Shield, UserCheck } from "lucide-react"
+import { Users, Plus, Edit, Trash2, ArrowLeft, Shield, UserCheck, Calendar } from "lucide-react"
 import { useState } from "react"
 import { StudentManager } from "./student-manager"
+import { StudentScheduleManager } from "./student-schedule-manager"
+import type { Term, Student } from "@/lib/api"
 
 interface Staff {
-  id: number
+  id: string
   name: string
   cardId: string
   role: string
@@ -28,15 +30,17 @@ interface Staff {
 
 interface StudentsPageProps {
   staffData: Staff[]
+  terms: Term[]
   onAddStudent: (student: Omit<Staff, "id" | "clockEntries" | "currentStatus">) => void
-  onEditStudent: (id: number, student: Omit<Staff, "id" | "clockEntries" | "currentStatus">) => void
-  onDeleteStudent: (id: number) => void
+  onEditStudent: (id: string, student: Omit<Staff, "id" | "clockEntries" | "currentStatus">) => void
+  onDeleteStudent: (id: string) => void
   onBack: () => void
 }
 
-export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteStudent, onBack }: StudentsPageProps) {
+export function StudentsPage({ staffData, terms, onAddStudent, onEditStudent, onDeleteStudent, onBack }: StudentsPageProps) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingStudent, setEditingStudent] = useState<Staff | null>(null)
+  const [schedulingStudent, setSchedulingStudent] = useState<Staff | null>(null)
 
   const handleEdit = (student: Staff) => {
     setEditingStudent(student)
@@ -47,7 +51,7 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
     setShowAddModal(false)
   }
 
-  const handleEditStudent = (id: number, studentData: Omit<Staff, "id" | "clockEntries" | "currentStatus">) => {
+  const handleEditStudent = (id: string, studentData: Omit<Staff, "id" | "clockEntries" | "currentStatus">) => {
     onEditStudent(id, studentData)
     setEditingStudent(null)
   }
@@ -55,6 +59,14 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
   const handleCloseModal = () => {
     setShowAddModal(false)
     setEditingStudent(null)
+  }
+
+  const handleManageSchedule = (staff: Staff) => {
+    setSchedulingStudent(staff)
+  }
+
+  const handleCloseScheduleModal = () => {
+    setSchedulingStudent(null)
   }
 
   const getRoleBadge = (role: string) => {
@@ -76,7 +88,7 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
   }
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
+    const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
       present: { color: "bg-green-100 text-green-800", label: "Present", icon: "●" },
       expected: { color: "bg-yellow-100 text-yellow-800", label: "Expected", icon: "○" },
       absent: { color: "bg-red-100 text-red-800", label: "Absent", icon: "×" },
@@ -180,8 +192,7 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
                 <TableHead>Card ID</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Current Status</TableHead>
-                <TableHead>Total Clock-ins</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -191,9 +202,17 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
                   <TableCell className="font-mono text-sm">{staff.cardId}</TableCell>
                   <TableCell>{getRoleBadge(staff.role)}</TableCell>
                   <TableCell>{getStatusBadge(staff.currentStatus)}</TableCell>
-                  {/* <TableCell>{staff.clockEntries.length}</TableCell> */}
                   <TableCell>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleManageSchedule(staff)}
+                        title="Manage term-specific schedule"
+                      >
+                        <Calendar className="w-3 h-3 mr-1" />
+                        Schedule
+                      </Button>
                       <Button size="sm" variant="outline" onClick={() => handleEdit(staff)}>
                         <Edit className="w-3 h-3" />
                       </Button>
@@ -224,6 +243,15 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
           onClose={handleCloseModal}
           editingStudent={editingStudent}
           isAddMode={showAddModal}
+        />
+      )}
+
+      {/* Schedule Manager Modal */}
+      {schedulingStudent && (
+        <StudentScheduleManager
+          student={schedulingStudent as unknown as Student}
+          terms={terms}
+          onClose={handleCloseScheduleModal}
         />
       )}
     </div>
