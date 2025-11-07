@@ -27,6 +27,7 @@ const corsOptions: cors.CorsOptions = {
     
     // Get allowed origins from environment variable
     const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || [];
+    console.log('allowedOrigins', allowedOrigins);
     
     // Log CORS configuration on first request (for debugging)
     if (allowedOrigins.length === 0) {
@@ -35,6 +36,7 @@ const corsOptions: cors.CorsOptions = {
     
     // Check if origin is in the allowed list
     if (allowedOrigins.includes(origin)) {
+      console.log(`✅ CORS allowed: ${origin} (in allowed list)`);
       callback(null, true);
     } else if (process.env.NODE_ENV === 'development') {
       // In development, allow localhost
