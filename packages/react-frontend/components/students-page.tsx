@@ -191,7 +191,7 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
                   <TableCell className="font-mono text-sm">{staff.cardId}</TableCell>
                   <TableCell>{getRoleBadge(staff.role)}</TableCell>
                   <TableCell>{getStatusBadge(staff.currentStatus)}</TableCell>
-                  <TableCell>{staff.clockEntries.length}</TableCell>
+                  {/* <TableCell>{staff.clockEntries.length}</TableCell> */}
                   <TableCell>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" onClick={() => handleEdit(staff)}>

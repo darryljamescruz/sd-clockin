@@ -5,25 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Shield, UserCheck } from "lucide-react"
-
-interface ClockEntry {
-  timestamp: string
-  type: "in" | "out"
-  isManual?: boolean
-}
-
-interface Staff {
-  id: number
-  name: string
-  role: string
-  cardId: string
-  clockEntries: ClockEntry[]
-}
+import { type Student } from "@/lib/api"
 
 interface IndividualRecordsProps {
-  staffData: Staff[]
-  selectedStaff: Staff | null
-  onSelectStaff: (staff: Staff) => void
+  staffData: Student[]
+  selectedStaff: Student | null
+  onSelectStaff: (staff: Student) => void
   selectedTerm: string
 }
 

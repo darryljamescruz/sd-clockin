@@ -5,32 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { BarChart3, TrendingUp, Clock, Calendar } from "lucide-react"
-
-interface ClockEntry {
-  timestamp: string
-  type: "in" | "out"
-  isManual?: boolean
-}
-
-interface Staff {
-  id: number
-  name: string
-  role: string
-  clockEntries: ClockEntry[]
-  todayExpected?: string
-  weeklySchedule?: {
-    monday?: string[]
-    tuesday?: string[]
-    wednesday?: string[]
-    thursday?: string[]
-    friday?: string[]
-    saturday?: string[]
-    sunday?: string[]
-  }
-}
+import { type Student } from "@/lib/api"
 
 interface TermAnalyticsProps {
-  staffData: Staff[]
+  staffData: Student[]
   selectedTerm: string
   termStartDate: string
   termEndDate: string
@@ -38,7 +16,7 @@ interface TermAnalyticsProps {
 
 export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndDate }: TermAnalyticsProps) {
   // Filter clock entries by term date range
-  const getTermClockEntries = (staff: Staff) => {
+  const getTermClockEntries = (staff: Student) => {
     const startDate = new Date(termStartDate)
     const endDate = new Date(termEndDate)
 

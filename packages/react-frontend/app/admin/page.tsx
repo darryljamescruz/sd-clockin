@@ -19,7 +19,7 @@ export default function AdminDashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [dateError, setDateError] = useState("")
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [selectedStaff, setSelectedStaff] = useState(null)
+  const [selectedStaff, setSelectedStaff] = useState<Student | null>(null)
 
   // Data state
   const [terms, setTerms] = useState<Term[]>([])
@@ -119,13 +119,13 @@ export default function AdminDashboard() {
     return terms.find((term) => term.name === selectedTerm) || terms[0]
   }
 
-  const getTodaySchedule = (staff, date = new Date()) => {
-    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
-    const dayName = dayNames[date.getDay()]
+  const getTodaySchedule = (staff: Student, date = new Date()) => {
+    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const
+    const dayName = dayNames[date.getDay()] as keyof NonNullable<Student["weeklySchedule"]>
     return staff.weeklySchedule?.[dayName] || []
   }
 
-  const getExpectedStartTime = (staff, date = new Date()) => {
+  const getExpectedStartTime = (staff: Student, date = new Date()) => {
     const todaySchedule = getTodaySchedule(staff, date)
     if (todaySchedule.length === 0) return null
 
@@ -146,6 +146,12 @@ export default function AdminDashboard() {
   const getTermWeekdays = () => {
     const weekdays = []
     const currentTerm = getCurrentTerm()
+    
+    // Return empty array if no term is available yet
+    if (!currentTerm || !currentTerm.startDate || !currentTerm.endDate) {
+      return []
+    }
+    
     const start = new Date(currentTerm.startDate)
     const end = new Date(currentTerm.endDate)
     const current = new Date(start)

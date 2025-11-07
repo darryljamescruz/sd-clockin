@@ -18,6 +18,8 @@ export interface Student {
     sunday: string[];
   };
   clockEntries?: ClockEntry[];
+  todayActual?: string | null; // Computed field for display
+  todayExpected?: string; // Computed field for display
 }
 
 export interface Term {
