@@ -5,19 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { LogIn, User, Search, AlertTriangle, X } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
-
-interface Staff {
-  id: number
-  name: string
-  role: string
-  currentStatus?: string // Optional property to indicate current status
-}
+import { type Student } from "@/lib/api"
 
 interface ClockInFormProps {
   isOpen: boolean
   onToggle: () => void
-  onClockIn: (staffId: number, isManual: boolean) => void
-  staffData: Staff[]
+  onClockIn: (staffId: string, isManual: boolean) => void
+  staffData: Student[]
   mode: "in" | "out"
   title: string
   buttonText: string
@@ -25,7 +19,7 @@ interface ClockInFormProps {
 
 export function ClockInForm({ isOpen, onToggle, onClockIn, staffData, mode, title, buttonText }: ClockInFormProps) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null)
+  const [selectedStaff, setSelectedStaff] = useState<Student | null>(null)
   const [showDropdown, setShowDropdown] = useState(false)
 
   // Disable card swipe when modal is open

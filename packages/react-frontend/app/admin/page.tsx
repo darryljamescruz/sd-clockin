@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle, Loader2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
@@ -12,68 +12,75 @@ import { StatsCards } from "@/components/stats-cards"
 import { IndividualRecords } from "@/components/individual-records"
 import { TermAnalytics } from "@/components/term-analytics"
 import { TermOverview } from "@/components/term-overview"
+import { api, type Student, type Term } from "@/lib/api"
 
 export default function AdminDashboard() {
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [dateError, setDateError] = useState("")
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [selectedStaff, setSelectedStaff] = useState(null)
+  const [selectedStaff, setSelectedStaff] = useState<Student | null>(null)
 
-  const initialTerms = [
-    {
-      id: "1",
-      name: "Fall 2025",
-      startDate: "2025-08-25",
-      endDate: "2025-12-15",
-      isActive: true,
-    },
-    {
-      id: "2",
-      name: "Summer 2025",
-      startDate: "2025-05-15",
-      endDate: "2025-08-15",
-      isActive: false,
-    },
-    {
-      id: "3",
-      name: "Spring 2025",
-      startDate: "2025-01-15",
-      endDate: "2025-05-10",
-      isActive: false,
-    },
-  ]
+  // Data state
+  const [terms, setTerms] = useState<Term[]>([])
+  const [staffData, setStaffData] = useState<Student[]>([])
+  const [selectedTerm, setSelectedTerm] = useState("")
 
-  const initialStaffData = [
-    {
-      id: 1,
-      name: "Alex Chen",
-      cardId: "CARD001",
-      role: "Student Lead",
-      currentStatus: "present",
-      weeklySchedule: {
-        monday: ["8:30-12:00", "1:00-5:00"],
-        tuesday: ["9:00-1:00"],
-        wednesday: ["8:30-12:00", "1:00-5:00"],
-        thursday: ["9:00-1:00"],
-        friday: ["8:30-12:00"],
-        saturday: [],
-        sunday: [],
-      },
-      todayActual: "08:25 AM",
-      clockEntries: [
-        { timestamp: "2025-01-20T08:25:00", type: "in" },
-        { timestamp: "2025-01-20T12:30:00", type: "out" },
-        { timestamp: "2025-01-20T13:15:00", type: "in" },
-        { timestamp: "2025-01-20T17:05:00", type: "out" },
-      ],
-    },
-  ]
+  // Loading and error states
+  const [isLoadingTerms, setIsLoadingTerms] = useState(true)
+  const [isLoadingStudents, setIsLoadingStudents] = useState(true)
+  const [error, setError] = useState("")
 
-  const [terms, setTerms] = useState(initialTerms)
-  const [staffData, setStaffData] = useState(initialStaffData)
-  const [selectedTerm, setSelectedTerm] = useState("Fall 2025")
+  // Fetch terms on component mount
+  useEffect(() => {
+    const fetchTerms = async () => {
+      try {
+        setIsLoadingTerms(true)
+        const fetchedTerms = await api.terms.getAll()
+        setTerms(fetchedTerms)
 
+        // Set the first active term or the first term as selected
+        const activeTerm = fetchedTerms.find((t) => t.isActive)
+        if (activeTerm) {
+          setSelectedTerm(activeTerm.name)
+        } else if (fetchedTerms.length > 0) {
+          setSelectedTerm(fetchedTerms[0].name)
+        }
+      } catch (err) {
+        console.error("Error fetching terms:", err)
+        setError("Failed to load terms. Please refresh the page.")
+      } finally {
+        setIsLoadingTerms(false)
+      }
+    }
+
+    fetchTerms()
+  }, [])
+
+  // Fetch students when selected term changes
+  useEffect(() => {
+    const fetchStudents = async () => {
+      if (!selectedTerm) return
+
+      try {
+        setIsLoadingStudents(true)
+        const currentTerm = terms.find((t) => t.name === selectedTerm)
+        if (currentTerm) {
+          const fetchedStudents = await api.students.getAll(currentTerm.id)
+          setStaffData(fetchedStudents)
+        }
+      } catch (err) {
+        console.error("Error fetching students:", err)
+        setError("Failed to load student data. Please refresh the page.")
+      } finally {
+        setIsLoadingStudents(false)
+      }
+    }
+
+    fetchStudents()
+  }, [selectedTerm, terms])
+
+  // Update clock every second
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date())
@@ -112,13 +119,13 @@ export default function AdminDashboard() {
     return terms.find((term) => term.name === selectedTerm) || terms[0]
   }
 
-  const getTodaySchedule = (staff, date = new Date()) => {
-    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
-    const dayName = dayNames[date.getDay()]
+  const getTodaySchedule = (staff: Student, date = new Date()) => {
+    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const
+    const dayName = dayNames[date.getDay()] as keyof NonNullable<Student["weeklySchedule"]>
     return staff.weeklySchedule?.[dayName] || []
   }
 
-  const getExpectedStartTime = (staff, date = new Date()) => {
+  const getExpectedStartTime = (staff: Student, date = new Date()) => {
     const todaySchedule = getTodaySchedule(staff, date)
     if (todaySchedule.length === 0) return null
 
@@ -139,6 +146,12 @@ export default function AdminDashboard() {
   const getTermWeekdays = () => {
     const weekdays = []
     const currentTerm = getCurrentTerm()
+    
+    // Return empty array if no term is available yet
+    if (!currentTerm || !currentTerm.startDate || !currentTerm.endDate) {
+      return []
+    }
+    
     const start = new Date(currentTerm.startDate)
     const end = new Date(currentTerm.endDate)
     const current = new Date(start)
@@ -209,6 +222,7 @@ export default function AdminDashboard() {
   }
 
   const stats = getWeeklyStats()
+  const isLoading = isLoadingTerms || isLoadingStudents
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -220,70 +234,94 @@ export default function AdminDashboard() {
       />
 
       <div className="max-w-7xl mx-auto px-6">
-        <StatsCards
-          totalStaff={stats.totalStaff}
-          presentStaff={stats.presentStaff}
-          studentLeads={stats.studentLeads}
-          lateToday={stats.lateToday}
-        />
-
-        {dateError && (
-          <Card className="mb-6 bg-red-50 border-red-200 shadow-lg">
+        {/* Loading State */}
+        {isLoading && (
+          <Card className="mb-6 bg-blue-50 border-blue-200 shadow-lg">
             <CardContent className="p-4 flex items-center gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-              <span className="text-red-800 font-medium">{dateError}</span>
+              <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+              <span className="text-blue-800 font-medium">Loading data...</span>
             </CardContent>
           </Card>
         )}
 
-        <DashboardHeader
-          terms={terms}
-          selectedTerm={selectedTerm}
-          onTermChange={setSelectedTerm}
-          selectedDate={selectedDate}
-          currentDateIndex={currentDateIndex}
-          termWeekdays={termWeekdays}
-          onPreviousDay={goToPreviousDay}
-          onNextDay={goToNextDay}
-          onToday={goToToday}
-          getTermStatus={getTermStatus}
-        />
+        {/* Error State */}
+        {error && !isLoading && (
+          <Card className="mb-6 bg-red-50 border-red-200 shadow-lg">
+            <CardContent className="p-4 flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              <span className="text-red-800 font-medium">{error}</span>
+            </CardContent>
+          </Card>
+        )}
 
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="bg-white/70 backdrop-blur-sm border-slate-200">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="analytics">Term Analytics</TabsTrigger>
-            <TabsTrigger value="individual">Individual Records</TabsTrigger>
-          </TabsList>
+        {!isLoading && !error && (
+          <>
+            <StatsCards
+              totalStaff={stats.totalStaff}
+              presentStaff={stats.presentStaff}
+              studentLeads={stats.studentLeads}
+              lateToday={stats.lateToday}
+            />
 
-          <TabsContent value="overview">
-            <TermOverview
-              staffData={staffData}
+            {dateError && (
+              <Card className="mb-6 bg-red-50 border-red-200 shadow-lg">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                  <span className="text-red-800 font-medium">{dateError}</span>
+                </CardContent>
+              </Card>
+            )}
+
+            <DashboardHeader
+              terms={terms}
               selectedTerm={selectedTerm}
-              currentTerm={getCurrentTerm()}
+              onTermChange={setSelectedTerm}
               selectedDate={selectedDate}
-              onDateChange={setSelectedDate}
+              currentDateIndex={currentDateIndex}
+              termWeekdays={termWeekdays}
+              onPreviousDay={goToPreviousDay}
+              onNextDay={goToNextDay}
+              onToday={goToToday}
+              getTermStatus={getTermStatus}
             />
-          </TabsContent>
 
-          <TabsContent value="analytics">
-            <TermAnalytics
-              staffData={staffData}
-              selectedTerm={selectedTerm}
-              termStartDate={getCurrentTerm().startDate}
-              termEndDate={getCurrentTerm().endDate}
-            />
-          </TabsContent>
+            <Tabs defaultValue="overview" className="space-y-6">
+              <TabsList className="bg-white/70 backdrop-blur-sm border-slate-200">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="analytics">Term Analytics</TabsTrigger>
+                <TabsTrigger value="individual">Individual Records</TabsTrigger>
+              </TabsList>
 
-          <TabsContent value="individual">
-            <IndividualRecords
-              staffData={staffData}
-              selectedStaff={selectedStaff}
-              onSelectStaff={setSelectedStaff}
-              selectedTerm={selectedTerm}
-            />
-          </TabsContent>
-        </Tabs>
+              <TabsContent value="overview">
+                <TermOverview
+                  staffData={staffData}
+                  selectedTerm={selectedTerm}
+                  currentTerm={getCurrentTerm()}
+                  selectedDate={selectedDate}
+                  onDateChange={setSelectedDate}
+                />
+              </TabsContent>
+
+              <TabsContent value="analytics">
+                <TermAnalytics
+                  staffData={staffData}
+                  selectedTerm={selectedTerm}
+                  termStartDate={getCurrentTerm().startDate}
+                  termEndDate={getCurrentTerm().endDate}
+                />
+              </TabsContent>
+
+              <TabsContent value="individual">
+                <IndividualRecords
+                  staffData={staffData}
+                  selectedStaff={selectedStaff}
+                  onSelectStaff={setSelectedStaff}
+                  selectedTerm={selectedTerm}
+                />
+              </TabsContent>
+            </Tabs>
+          </>
+        )}
       </div>
     </div>
   )

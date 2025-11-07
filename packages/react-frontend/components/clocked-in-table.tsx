@@ -4,35 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Shield, UserCheck } from "lucide-react"
-
-interface Staff {
-  id: number
-  name: string
-  role: string
-  todayActual: string
-  weeklySchedule?: {
-    monday?: string[]
-    tuesday?: string[]
-    wednesday?: string[]
-    thursday?: string[]
-    friday?: string[]
-    saturday?: string[]
-    sunday?: string[]
-  }
-}
+import { type Student } from "@/lib/api"
 
 interface ClockedInTableProps {
-  clockedInUsers: Staff[]
+  clockedInUsers: Student[]
 }
 
 export function ClockedInTable({ clockedInUsers }: ClockedInTableProps) {
-  const getTodaySchedule = (staff: Staff, date = new Date()) => {
+  const getTodaySchedule = (staff: Student, date = new Date()) => {
     const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
     const dayName = dayNames[date.getDay()]
     return staff.weeklySchedule?.[dayName] || []
   }
 
-  const getShiftEndTime = (staff: Staff) => {
+  const getShiftEndTime = (staff: Student) => {
     const todaySchedule = getTodaySchedule(staff)
     if (todaySchedule.length === 0) return "No schedule"
 

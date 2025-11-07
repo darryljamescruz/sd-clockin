@@ -8,7 +8,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon --ext ts --exec \"node --loader ts-node/esm src/index.ts\"",
+    "dev": "node --loader ts-node/esm --no-warnings src/index.ts",
+    "dev:watch": "nodemon --ext ts --exec \"node --loader ts-node/esm --no-warnings src/index.ts\"",
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint src/**/*.ts",
