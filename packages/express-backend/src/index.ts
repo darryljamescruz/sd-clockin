@@ -2,13 +2,13 @@ import express, { Application } from 'express';
 import cors from 'cors';
 // import path from 'path';
 import dotenv from 'dotenv';
-import connectDB from './config/db';
+import connectDB from './config/db.js';
 
 // Import routes
-import studentsRouter from './routes/students';
-import termsRouter from './routes/terms';
-import schedulesRouter from './routes/schedules';
-import checkinsRouter from './routes/checkins';
+import studentsRouter from './routes/students.js';
+import termsRouter from './routes/terms.js';
+import schedulesRouter from './routes/schedules.js';
+import checkinsRouter from './routes/checkins.js';
 
 // later implementation for backend build
 // import { fileURLToPath } from "url";
@@ -28,6 +28,11 @@ const corsOptions: cors.CorsOptions = {
     // Get allowed origins from environment variable
     const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || [];
     
+    // Log CORS configuration on first request (for debugging)
+    if (allowedOrigins.length === 0) {
+      console.warn('⚠️  ALLOWED_ORIGINS not set - no origins will be allowed in production');
+    }
+    
     // Check if origin is in the allowed list
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -36,10 +41,12 @@ const corsOptions: cors.CorsOptions = {
       if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
         callback(null, true);
       } else {
-        callback(new Error(`Origin ${origin} not allowed by CORS`));
+        console.log(`🚫 CORS blocked: ${origin} (not in allowed list)`);
+        callback(null, false);
       }
     } else {
-      callback(new Error(`Origin ${origin} not allowed by CORS`));
+      console.log(`🚫 CORS blocked: ${origin} (not in allowed list: ${allowedOrigins.join(', ')})`);
+      callback(null, false);
     }
   },
   credentials: true,
