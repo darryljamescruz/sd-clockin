@@ -42,7 +42,6 @@ export default function StudentsManagement() {
         name: studentData.name,
         cardId: studentData.cardId,
         role: studentData.role,
-        weeklySchedule: studentData.weeklySchedule,
       })
       setStaffData((prev) => [...prev, newStudent])
     } catch (err) {
@@ -107,7 +106,6 @@ export default function StudentsManagement() {
   return (
     <StudentsPage
       staffData={staffData}
-      terms={terms}
       onAddStudent={handleAddStudent}
       onEditStudent={handleEditStudent}
       onDeleteStudent={handleDeleteStudent}

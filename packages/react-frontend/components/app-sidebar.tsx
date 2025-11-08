@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Users,
   Calendar,
+  ClipboardList,
   Settings,
   LogOut,
   ChevronUp,
@@ -44,6 +45,11 @@ const navItems = [
     title: "Students",
     url: "/admin/students",
     icon: Users,
+  },
+  {
+    title: "Schedules",
+    url: "/admin/schedules",
+    icon: ClipboardList,
   },
   {
     title: "Terms",

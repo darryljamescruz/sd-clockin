@@ -4,11 +4,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Users, Plus, Edit, Trash2, ArrowLeft, Shield, UserCheck, Calendar } from "lucide-react"
+import { Users, Plus, Edit, Trash2, ArrowLeft, Shield, UserCheck } from "lucide-react"
 import { useState } from "react"
 import { StudentManager } from "./student-manager"
-import { StudentScheduleManager } from "./student-schedule-manager"
-import type { Term, Student } from "@/lib/api"
 
 interface Staff {
   id: string
@@ -16,31 +14,20 @@ interface Staff {
   cardId: string
   role: string
   currentStatus: string
-  weeklySchedule: {
-    monday: string[]
-    tuesday: string[]
-    wednesday: string[]
-    thursday: string[]
-    friday: string[]
-    saturday: string[]
-    sunday: string[]
-  }
   clockEntries: any[]
 }
 
 interface StudentsPageProps {
   staffData: Staff[]
-  terms: Term[]
   onAddStudent: (student: Omit<Staff, "id" | "clockEntries" | "currentStatus">) => void
   onEditStudent: (id: string, student: Omit<Staff, "id" | "clockEntries" | "currentStatus">) => void
   onDeleteStudent: (id: string) => void
   onBack: () => void
 }
 
-export function StudentsPage({ staffData, terms, onAddStudent, onEditStudent, onDeleteStudent, onBack }: StudentsPageProps) {
+export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteStudent, onBack }: StudentsPageProps) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingStudent, setEditingStudent] = useState<Staff | null>(null)
-  const [schedulingStudent, setSchedulingStudent] = useState<Staff | null>(null)
 
   const handleEdit = (student: Staff) => {
     setEditingStudent(student)
@@ -59,14 +46,6 @@ export function StudentsPage({ staffData, terms, onAddStudent, onEditStudent, on
   const handleCloseModal = () => {
     setShowAddModal(false)
     setEditingStudent(null)
-  }
-
-  const handleManageSchedule = (staff: Staff) => {
-    setSchedulingStudent(staff)
-  }
-
-  const handleCloseScheduleModal = () => {
-    setSchedulingStudent(null)
   }
 
   const getRoleBadge = (role: string) => {
@@ -204,15 +183,6 @@ export function StudentsPage({ staffData, terms, onAddStudent, onEditStudent, on
                   <TableCell>{getStatusBadge(staff.currentStatus)}</TableCell>
                   <TableCell>
                     <div className="flex gap-2 justify-end">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleManageSchedule(staff)}
-                        title="Manage term-specific schedule"
-                      >
-                        <Calendar className="w-3 h-3 mr-1" />
-                        Schedule
-                      </Button>
                       <Button size="sm" variant="outline" onClick={() => handleEdit(staff)}>
                         <Edit className="w-3 h-3" />
                       </Button>
@@ -243,15 +213,6 @@ export function StudentsPage({ staffData, terms, onAddStudent, onEditStudent, on
           onClose={handleCloseModal}
           editingStudent={editingStudent}
           isAddMode={showAddModal}
-        />
-      )}
-
-      {/* Schedule Manager Modal */}
-      {schedulingStudent && (
-        <StudentScheduleManager
-          student={schedulingStudent as unknown as Student}
-          terms={terms}
-          onClose={handleCloseScheduleModal}
         />
       )}
     </div>
