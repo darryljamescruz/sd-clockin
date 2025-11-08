@@ -80,41 +80,33 @@ export default function TermsManagement() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-        <Card className="max-w-7xl mx-auto bg-blue-50 border-blue-200 shadow-lg">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-            <span className="text-blue-800 font-medium">Loading terms...</span>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="p-4 flex items-center gap-3">
+          <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+          <span className="text-blue-800 font-medium">Loading terms...</span>
+        </CardContent>
+      </Card>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-        <Card className="max-w-7xl mx-auto bg-red-50 border-red-200 shadow-lg">
-          <CardContent className="p-4 flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
-            <span className="text-red-800 font-medium">{error}</span>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="bg-red-50 border-red-200">
+        <CardContent className="p-4 flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-600" />
+          <span className="text-red-800 font-medium">{error}</span>
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        <TermsPage
-          terms={terms}
-          onAddTerm={handleAddTerm}
-          onEditTerm={handleEditTerm}
-          onDeleteTerm={handleDeleteTerm}
-          onBack={handleBack}
-        />
-      </div>
-    </div>
+    <TermsPage
+      terms={terms}
+      onAddTerm={handleAddTerm}
+      onEditTerm={handleEditTerm}
+      onDeleteTerm={handleDeleteTerm}
+      onBack={handleBack}
+    />
   )
 }
