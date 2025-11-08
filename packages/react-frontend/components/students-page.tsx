@@ -66,25 +66,8 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
-      present: { color: "bg-green-100 text-green-800", label: "Present", icon: "●" },
-      expected: { color: "bg-yellow-100 text-yellow-800", label: "Expected", icon: "○" },
-      absent: { color: "bg-red-100 text-red-800", label: "Absent", icon: "×" },
-    }
-
-    const config = statusConfig[status] || statusConfig["expected"]
-    return (
-      <Badge className={`${config.color} hover:${config.color}`}>
-        <span className="mr-1">{config.icon}</span>
-        {config.label}
-      </Badge>
-    )
-  }
-
   const studentLeads = staffData.filter((s) => s.role === "Student Lead").length
   const assistants = staffData.filter((s) => s.role === "Assistant").length
-  const presentToday = staffData.filter((s) => s.currentStatus === "present").length
 
   return (
     <div className="space-y-6">
@@ -106,7 +89,7 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
       </div>
 
       {/* Staff Overview */}
-      <div className="grid md:grid-cols-4 gap-6">
+      <div className="grid md:grid-cols-3 gap-6">
         <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -142,20 +125,6 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
             </div>
           </CardContent>
         </Card>
-
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-green-700">{presentToday}</div>
-                <div className="text-slate-600">Present Today</div>
-              </div>
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 font-bold">●</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Students Table */}
@@ -170,7 +139,6 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
                 <TableHead>Name</TableHead>
                 <TableHead>Card ID</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Current Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -180,7 +148,6 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
                   <TableCell className="font-medium">{staff.name}</TableCell>
                   <TableCell className="font-mono text-sm">{staff.cardId}</TableCell>
                   <TableCell>{getRoleBadge(staff.role)}</TableCell>
-                  <TableCell>{getStatusBadge(staff.currentStatus)}</TableCell>
                   <TableCell>
                     <div className="flex gap-2 justify-end">
                       <Button size="sm" variant="outline" onClick={() => handleEdit(staff)}>

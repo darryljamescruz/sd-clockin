@@ -96,19 +96,6 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
   }
 
   const selectedTerm = terms.find((t) => t.id === selectedTermId)
-  const studentsWithSchedules = students.filter((s) => schedules[s.id])
-  const studentsWithoutSchedules = students.filter((s) => !schedules[s.id])
-
-  const formatAvailability = (availability?: { [key: string]: string[] }) => {
-    if (!availability) return "Not set"
-
-    const days = Object.entries(availability).filter(([_, blocks]) => blocks.length > 0)
-    if (days.length === 0) return "Not set"
-
-    return days
-      .map(([day, blocks]) => `${day.charAt(0).toUpperCase()}${day.slice(1)}: ${blocks.join(", ")}`)
-      .join(" • ")
-  }
 
   return (
     <div className="space-y-6">
@@ -156,45 +143,17 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
       </Card>
 
       {/* Overview Stats */}
-      <div className="grid md:grid-cols-3 gap-6">
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-slate-900">{students.length}</div>
-                <div className="text-slate-600">Total Students</div>
-              </div>
-              <Users className="w-8 h-8 text-slate-600" />
+      <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-2xl font-bold text-slate-900">{students.length}</div>
+              <div className="text-slate-600">Total Students</div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-green-700">{studentsWithSchedules.length}</div>
-                <div className="text-slate-600">Schedules Set</div>
-              </div>
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 font-bold">✓</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-orange-700">{studentsWithoutSchedules.length}</div>
-                <div className="text-slate-600">Pending Schedules</div>
-              </div>
-              <Clock className="w-8 h-8 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            <Users className="w-8 h-8 text-slate-600" />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Students Table */}
       {!selectedTermId ? (
@@ -225,15 +184,13 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="min-w-[300px]">Weekly Availability</TableHead>
+                  <TableHead className="min-w-[200px]">Weekly Availability</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {students.map((student) => {
                   const schedule = schedules[student.id]
-                  const hasSchedule = !!schedule
 
                   return (
                     <TableRow key={student.id}>
@@ -245,17 +202,23 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
                           <Badge className="bg-slate-100 text-slate-800 hover:bg-slate-100">Assistant</Badge>
                         )}
                       </TableCell>
-                      <TableCell>
-                        {hasSchedule ? (
-                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Set</Badge>
-                        ) : (
-                          <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">Pending</Badge>
-                        )}
-                      </TableCell>
                       <TableCell className="text-sm text-slate-600">
-                        <div className="max-w-md truncate" title={formatAvailability(schedule?.availability)}>
-                          {formatAvailability(schedule?.availability)}
-                        </div>
+                        {schedule?.availability ? (
+                          <div className="space-y-1">
+                            {Object.entries(schedule.availability).map(([day, blocks]) => 
+                              blocks.length > 0 ? (
+                                <div key={day}>
+                                  <span className="font-medium capitalize">{day}:</span> {blocks.join(", ")}
+                                </div>
+                              ) : null
+                            )}
+                            {Object.values(schedule.availability).every(blocks => blocks.length === 0) && (
+                              <span className="text-slate-400 italic">No schedule set</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 italic">No schedule set</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2 justify-end">
@@ -266,7 +229,7 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
                             className="hover:bg-slate-50"
                           >
                             <Edit className="w-3 h-3 mr-1" />
-                            {hasSchedule ? "Edit" : "Set"} Schedule
+                            Edit
                           </Button>
                         </div>
                       </TableCell>
