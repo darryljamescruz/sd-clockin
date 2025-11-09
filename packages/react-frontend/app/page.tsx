@@ -6,6 +6,7 @@ import { ClockInForm } from "@/components/clock-in-form"
 import { AdminLogin } from "@/components/admin-login"
 import { ClockedInTable } from "@/components/clocked-in-table"
 import { ExpectedArrivalsTable } from "@/components/expected-arrivals-table"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { api, type Student, type Term } from "@/lib/api"
@@ -278,6 +279,8 @@ export default function HomePage() {
                 />
               </>
             )}
+
+            <ThemeToggle />
 
             <AdminLogin
               isOpen={isAdminLoginOpen}

@@ -11,6 +11,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 
@@ -105,6 +106,7 @@ export default function AdminLayout({
               <div className="text-sm font-medium tabular-nums">{formatTime(currentTime)}</div>
               <div className="text-xs text-muted-foreground">{formatDate(currentTime)}</div>
             </div>
+            <ThemeToggle />
           </div>
         </header>
         <div className="relative flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
