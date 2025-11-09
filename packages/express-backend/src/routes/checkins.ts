@@ -94,8 +94,7 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
         studentId: savedCheckIn.studentId,
         termId: savedCheckIn.termId,
         date: shiftDate,
-        scheduledStart: checkInDate.toTimeString().slice(0, 5),
-        scheduledEnd: '23:59',
+        // Don't set scheduledStart/scheduledEnd for manual entries - they're not scheduled
         status: type === 'in' ? 'started' : 'scheduled',
         source: 'manual',
       });
