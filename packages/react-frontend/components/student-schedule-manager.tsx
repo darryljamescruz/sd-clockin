@@ -154,8 +154,14 @@ export function StudentScheduleManager({ student, terms, onClose, onSave }: Stud
   const days: (keyof typeof availability)[] = ["monday", "tuesday", "wednesday", "thursday", "friday"]
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-3xl max-h-[90vh] overflow-auto">
+    <div 
+      className="absolute inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <Card 
+        className="w-full max-w-3xl max-h-[90vh] overflow-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">

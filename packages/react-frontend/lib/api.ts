@@ -8,15 +8,6 @@ export interface Student {
   cardId: string;
   role: string;
   currentStatus: string;
-  weeklySchedule?: {
-    monday: string[];
-    tuesday: string[];
-    wednesday: string[];
-    thursday: string[];
-    friday: string[];
-    saturday: string[];
-    sunday: string[];
-  };
   clockEntries?: ClockEntry[];
   todayActual?: string | null; // Computed field for display
   todayExpected?: string; // Computed field for display
@@ -98,7 +89,7 @@ export const studentsAPI = {
   },
 
   // Create a new student
-  create: async (data: { name: string; cardId: string; role: string; weeklySchedule?: any }): Promise<Student> => {
+  create: async (data: { name: string; cardId: string; role: string }): Promise<Student> => {
     return fetchAPI<Student>('/students', {
       method: 'POST',
       body: JSON.stringify(data),

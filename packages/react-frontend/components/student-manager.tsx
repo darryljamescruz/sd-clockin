@@ -17,15 +17,6 @@ interface Staff {
   cardId: string
   role: string
   currentStatus: string
-  weeklySchedule: {
-    monday: string[]
-    tuesday: string[]
-    wednesday: string[]
-    thursday: string[]
-    friday: string[]
-    saturday: string[]
-    sunday: string[]
-  }
   clockEntries: any[]
 }
 
@@ -50,8 +41,14 @@ function DeleteConfirmationModal({ isOpen, student, onConfirm, onCancel }: Delet
   if (!isOpen || !student) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
-      <Card className="w-full max-w-md shadow-xl border-slate-200">
+    <div 
+      className="absolute inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-[60]"
+      onClick={onCancel}
+    >
+      <Card 
+        className="w-full max-w-md shadow-xl border-slate-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-red-700">
             <AlertTriangle className="w-5 h-5" />
@@ -122,15 +119,6 @@ export function StudentManager({
     name: editingStudent?.name || "",
     cardId: editingStudent?.cardId || "",
     role: editingStudent?.role || "Assistant",
-    weeklySchedule: editingStudent?.weeklySchedule || {
-      monday: [],
-      tuesday: [],
-      wednesday: [],
-      thursday: [],
-      friday: [],
-      saturday: [],
-      sunday: [],
-    },
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -140,15 +128,6 @@ export function StudentManager({
         name: editingStudent.name,
         cardId: editingStudent.cardId,
         role: editingStudent.role,
-        weeklySchedule: editingStudent.weeklySchedule || {
-          monday: [],
-          tuesday: [],
-          wednesday: [],
-          thursday: [],
-          friday: [],
-          saturday: [],
-          sunday: [],
-        },
       })
     }
   }, [editingStudent])
@@ -176,36 +155,6 @@ export function StudentManager({
     return Object.keys(newErrors).length === 0
   }
 
-  const addScheduleBlock = (day: string, timeBlock: string) => {
-    if (timeBlock.trim()) {
-      setFormData((prev) => ({
-        ...prev,
-        weeklySchedule: {
-          ...prev.weeklySchedule,
-          [day]: [...prev.weeklySchedule[day], timeBlock.trim()],
-        },
-      }))
-    }
-  }
-
-  const removeScheduleBlock = (day: string, index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      weeklySchedule: {
-        ...prev.weeklySchedule,
-        [day]: prev.weeklySchedule[day].filter((_, i) => i !== index),
-      },
-    }))
-  }
-
-  const parseScheduleInput = (input: string) => {
-    // Parse formats like "8-11, 12-5" or "9:00 AM - 5:00 PM"
-    return input
-      .split(",")
-      .map((block) => block.trim())
-      .filter((block) => block.length > 0)
-  }
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!validateForm()) return
@@ -214,7 +163,6 @@ export function StudentManager({
       name: formData.name.trim(),
       cardId: formData.cardId.toUpperCase().trim(),
       role: formData.role,
-      weeklySchedule: formData.weeklySchedule,
     }
 
     if (editingStudent) {
@@ -222,23 +170,6 @@ export function StudentManager({
     } else {
       onAddStudent(studentData)
     }
-  }
-
-  const handleEdit = (staff: Staff) => {
-    setFormData({
-      name: staff.name,
-      cardId: staff.cardId,
-      role: staff.role,
-      weeklySchedule: staff.weeklySchedule || {
-        monday: [],
-        tuesday: [],
-        wednesday: [],
-        thursday: [],
-        friday: [],
-        saturday: [],
-        sunday: [],
-      },
-    })
   }
 
   const handleDeleteClick = (staff: Staff) => {
@@ -275,7 +206,7 @@ export function StudentManager({
   }
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
+    const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
       present: { color: "bg-green-100 text-green-800", label: "Present", icon: "●" },
       expected: { color: "bg-yellow-100 text-yellow-800", label: "Expected", icon: "○" },
       absent: { color: "bg-red-100 text-red-800", label: "Absent", icon: "×" },
@@ -292,8 +223,14 @@ export function StudentManager({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <Card className="w-full max-w-4xl max-h-[90vh] overflow-auto">
+      <div 
+        className="absolute inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50"
+        onClick={onClose}
+      >
+        <Card 
+          className="w-full max-w-4xl max-h-[90vh] overflow-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -332,86 +269,17 @@ export function StudentManager({
                   {errors.cardId && <p className="text-sm text-red-600 mt-1">{errors.cardId}</p>}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="role">Role</Label>
-                  <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Assistant">Assistant</SelectItem>
-                      <SelectItem value="Student Lead">Student Lead</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {/* Weekly Schedule Section */}
-                <div className="col-span-2">
-                  <Label className="text-base font-semibold">Weekly Schedule</Label>
-                  <p className="text-sm text-slate-600 mb-4">
-                    Enter time blocks for each day. Examples: "8-11, 12-5" or "9:00 AM - 5:00 PM"
-                  </p>
-
-                  <div className="space-y-4 max-h-64 overflow-y-auto border rounded-lg p-4">
-                    {Object.entries(formData.weeklySchedule).map(([day, blocks]) => (
-                      <div key={day} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="capitalize font-medium">{day}</Label>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              placeholder="e.g., 8-11, 12-5"
-                              className="w-48 text-sm"
-                              onKeyPress={(e) => {
-                                if (e.key === "Enter") {
-                                  const input = e.target.value
-                                  const timeBlocks = parseScheduleInput(input)
-                                  timeBlocks.forEach((block) => addScheduleBlock(day, block))
-                                  e.target.value = ""
-                                }
-                              }}
-                            />
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                const input = e.target.previousElementSibling
-                                const timeBlocks = parseScheduleInput(input.value)
-                                timeBlocks.forEach((block) => addScheduleBlock(day, block))
-                                input.value = ""
-                              }}
-                            >
-                              Add
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 min-h-[2rem]">
-                          {blocks.length > 0 ? (
-                            blocks.map((block, index) => (
-                              <Badge
-                                key={index}
-                                variant="secondary"
-                                className="bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer"
-                                onClick={() => removeScheduleBlock(day, index)}
-                              >
-                                {block} ×
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-sm text-slate-400 italic">No schedule set</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-2 text-xs text-slate-500 bg-slate-50 p-2 rounded">
-                    <strong>Tips:</strong>• Enter multiple time blocks separated by commas (e.g., "8-11, 12-5") • Use
-                    24-hour format (8-17) or 12-hour format (8 AM - 5 PM) • Click on time blocks to remove them • Press
-                    Enter or click Add to save time blocks
-                  </div>
-                </div>
+              <div>
+                <Label htmlFor="role">Role</Label>
+                <Select value={formData.role} onValueChange={(value: string) => setFormData({ ...formData, role: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Assistant">Assistant</SelectItem>
+                    <SelectItem value="Student Lead">Student Lead</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex gap-2">
                 <Button type="submit" className="bg-slate-900 hover:bg-slate-800">

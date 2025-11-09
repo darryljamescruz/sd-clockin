@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
-import CheckIn from '../models/CheckIn';
-import Student from '../models/Student';
-import Term from '../models/Term';
+import CheckIn from '../models/CheckIn.js';
+import Student from '../models/Student.js';
+import Term from '../models/Term.js';
 
 const router = express.Router();
 

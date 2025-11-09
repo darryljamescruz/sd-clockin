@@ -64,8 +64,14 @@ export function TermManager({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-2xl">
+    <div 
+      className="absolute inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <Card 
+        className="w-full max-w-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5" />

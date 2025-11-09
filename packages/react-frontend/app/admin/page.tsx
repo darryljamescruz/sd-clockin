@@ -4,9 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AlertTriangle, Loader2 } from "lucide-react"
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 
-import { Navbar } from "@/components/navbar"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { StatsCards } from "@/components/stats-cards"
 import { IndividualRecords } from "@/components/individual-records"
@@ -15,10 +13,8 @@ import { TermOverview } from "@/components/term-overview"
 import { api, type Student, type Term } from "@/lib/api"
 
 export default function AdminDashboard() {
-  const router = useRouter()
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [dateError, setDateError] = useState("")
-  const [currentTime, setCurrentTime] = useState(new Date())
   const [selectedStaff, setSelectedStaff] = useState<Student | null>(null)
 
   // Data state
@@ -79,27 +75,6 @@ export default function AdminDashboard() {
 
     fetchStudents()
   }, [selectedTerm, terms])
-
-  // Update clock every second
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [])
-
-  const handleLogout = () => {
-    router.push("/")
-  }
-
-  const handleManageTerms = () => {
-    router.push("/admin/terms")
-  }
-
-  const handleManageStudents = () => {
-    router.push("/admin/students")
-  }
 
   const getWeeklyStats = () => {
     const totalStaff = staffData.length
@@ -225,104 +200,95 @@ export default function AdminDashboard() {
   const isLoading = isLoadingTerms || isLoadingStudents
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <Navbar
-        currentTime={currentTime}
-        onLogout={handleLogout}
-        onManageTerms={handleManageTerms}
-        onManageStudents={handleManageStudents}
-      />
+    <>
+      {/* Loading State */}
+      {isLoading && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-4 flex items-center gap-3">
+            <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+            <span className="text-blue-800 font-medium">Loading data...</span>
+          </CardContent>
+        </Card>
+      )}
 
-      <div className="max-w-7xl mx-auto px-6">
-        {/* Loading State */}
-        {isLoading && (
-          <Card className="mb-6 bg-blue-50 border-blue-200 shadow-lg">
-            <CardContent className="p-4 flex items-center gap-3">
-              <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-              <span className="text-blue-800 font-medium">Loading data...</span>
-            </CardContent>
-          </Card>
-        )}
+      {/* Error State */}
+      {error && !isLoading && (
+        <Card className="bg-red-50 border-red-200">
+          <CardContent className="p-4 flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-red-600" />
+            <span className="text-red-800 font-medium">{error}</span>
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Error State */}
-        {error && !isLoading && (
-          <Card className="mb-6 bg-red-50 border-red-200 shadow-lg">
-            <CardContent className="p-4 flex items-center gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-              <span className="text-red-800 font-medium">{error}</span>
-            </CardContent>
-          </Card>
-        )}
+      {!isLoading && !error && (
+        <>
+          <StatsCards
+            totalStaff={stats.totalStaff}
+            presentStaff={stats.presentStaff}
+            studentLeads={stats.studentLeads}
+            lateToday={stats.lateToday}
+          />
 
-        {!isLoading && !error && (
-          <>
-            <StatsCards
-              totalStaff={stats.totalStaff}
-              presentStaff={stats.presentStaff}
-              studentLeads={stats.studentLeads}
-              lateToday={stats.lateToday}
-            />
+          {dateError && (
+            <Card className="bg-red-50 border-red-200">
+              <CardContent className="p-4 flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <span className="text-red-800 font-medium">{dateError}</span>
+              </CardContent>
+            </Card>
+          )}
 
-            {dateError && (
-              <Card className="mb-6 bg-red-50 border-red-200 shadow-lg">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
-                  <span className="text-red-800 font-medium">{dateError}</span>
-                </CardContent>
-              </Card>
-            )}
+          <DashboardHeader
+            terms={terms}
+            selectedTerm={selectedTerm}
+            onTermChange={setSelectedTerm}
+            selectedDate={selectedDate}
+            currentDateIndex={currentDateIndex}
+            termWeekdays={termWeekdays}
+            onPreviousDay={goToPreviousDay}
+            onNextDay={goToNextDay}
+            onToday={goToToday}
+            getTermStatus={getTermStatus}
+          />
 
-            <DashboardHeader
-              terms={terms}
-              selectedTerm={selectedTerm}
-              onTermChange={setSelectedTerm}
-              selectedDate={selectedDate}
-              currentDateIndex={currentDateIndex}
-              termWeekdays={termWeekdays}
-              onPreviousDay={goToPreviousDay}
-              onNextDay={goToNextDay}
-              onToday={goToToday}
-              getTermStatus={getTermStatus}
-            />
+          <Tabs defaultValue="overview" className="space-y-4">
+            <TabsList className="bg-white/70 backdrop-blur-sm border-slate-200">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="analytics">Term Analytics</TabsTrigger>
+              <TabsTrigger value="individual">Individual Records</TabsTrigger>
+            </TabsList>
 
-            <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="bg-white/70 backdrop-blur-sm border-slate-200">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="analytics">Term Analytics</TabsTrigger>
-                <TabsTrigger value="individual">Individual Records</TabsTrigger>
-              </TabsList>
+            <TabsContent value="overview">
+              <TermOverview
+                staffData={staffData}
+                selectedTerm={selectedTerm}
+                currentTerm={getCurrentTerm()}
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+              />
+            </TabsContent>
 
-              <TabsContent value="overview">
-                <TermOverview
-                  staffData={staffData}
-                  selectedTerm={selectedTerm}
-                  currentTerm={getCurrentTerm()}
-                  selectedDate={selectedDate}
-                  onDateChange={setSelectedDate}
-                />
-              </TabsContent>
+            <TabsContent value="analytics">
+              <TermAnalytics
+                staffData={staffData}
+                selectedTerm={selectedTerm}
+                termStartDate={getCurrentTerm().startDate}
+                termEndDate={getCurrentTerm().endDate}
+              />
+            </TabsContent>
 
-              <TabsContent value="analytics">
-                <TermAnalytics
-                  staffData={staffData}
-                  selectedTerm={selectedTerm}
-                  termStartDate={getCurrentTerm().startDate}
-                  termEndDate={getCurrentTerm().endDate}
-                />
-              </TabsContent>
-
-              <TabsContent value="individual">
-                <IndividualRecords
-                  staffData={staffData}
-                  selectedStaff={selectedStaff}
-                  onSelectStaff={setSelectedStaff}
-                  selectedTerm={selectedTerm}
-                />
-              </TabsContent>
-            </Tabs>
-          </>
-        )}
-      </div>
-    </div>
+            <TabsContent value="individual">
+              <IndividualRecords
+                staffData={staffData}
+                selectedStaff={selectedStaff}
+                onSelectStaff={setSelectedStaff}
+                selectedTerm={selectedTerm}
+              />
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
+    </>
   )
 }

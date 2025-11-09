@@ -4,11 +4,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Users, Plus, Edit, Trash2, ArrowLeft, Shield, UserCheck, Calendar } from "lucide-react"
+import { Users, Plus, Edit, Trash2, ArrowLeft, Shield, UserCheck } from "lucide-react"
 import { useState } from "react"
 import { StudentManager } from "./student-manager"
-import { StudentScheduleManager } from "./student-schedule-manager"
-import type { Term, Student } from "@/lib/api"
 
 interface Staff {
   id: string
@@ -16,31 +14,20 @@ interface Staff {
   cardId: string
   role: string
   currentStatus: string
-  weeklySchedule: {
-    monday: string[]
-    tuesday: string[]
-    wednesday: string[]
-    thursday: string[]
-    friday: string[]
-    saturday: string[]
-    sunday: string[]
-  }
   clockEntries: any[]
 }
 
 interface StudentsPageProps {
   staffData: Staff[]
-  terms: Term[]
   onAddStudent: (student: Omit<Staff, "id" | "clockEntries" | "currentStatus">) => void
   onEditStudent: (id: string, student: Omit<Staff, "id" | "clockEntries" | "currentStatus">) => void
   onDeleteStudent: (id: string) => void
   onBack: () => void
 }
 
-export function StudentsPage({ staffData, terms, onAddStudent, onEditStudent, onDeleteStudent, onBack }: StudentsPageProps) {
+export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteStudent, onBack }: StudentsPageProps) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingStudent, setEditingStudent] = useState<Staff | null>(null)
-  const [schedulingStudent, setSchedulingStudent] = useState<Staff | null>(null)
 
   const handleEdit = (student: Staff) => {
     setEditingStudent(student)
@@ -61,14 +48,6 @@ export function StudentsPage({ staffData, terms, onAddStudent, onEditStudent, on
     setEditingStudent(null)
   }
 
-  const handleManageSchedule = (staff: Staff) => {
-    setSchedulingStudent(staff)
-  }
-
-  const handleCloseScheduleModal = () => {
-    setSchedulingStudent(null)
-  }
-
   const getRoleBadge = (role: string) => {
     if (role === "Student Lead") {
       return (
@@ -87,25 +66,8 @@ export function StudentsPage({ staffData, terms, onAddStudent, onEditStudent, on
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
-      present: { color: "bg-green-100 text-green-800", label: "Present", icon: "●" },
-      expected: { color: "bg-yellow-100 text-yellow-800", label: "Expected", icon: "○" },
-      absent: { color: "bg-red-100 text-red-800", label: "Absent", icon: "×" },
-    }
-
-    const config = statusConfig[status] || statusConfig["expected"]
-    return (
-      <Badge className={`${config.color} hover:${config.color}`}>
-        <span className="mr-1">{config.icon}</span>
-        {config.label}
-      </Badge>
-    )
-  }
-
   const studentLeads = staffData.filter((s) => s.role === "Student Lead").length
   const assistants = staffData.filter((s) => s.role === "Assistant").length
-  const presentToday = staffData.filter((s) => s.currentStatus === "present").length
 
   return (
     <div className="space-y-6">
@@ -127,7 +89,7 @@ export function StudentsPage({ staffData, terms, onAddStudent, onEditStudent, on
       </div>
 
       {/* Staff Overview */}
-      <div className="grid md:grid-cols-4 gap-6">
+      <div className="grid md:grid-cols-3 gap-6">
         <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -163,20 +125,6 @@ export function StudentsPage({ staffData, terms, onAddStudent, onEditStudent, on
             </div>
           </CardContent>
         </Card>
-
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-green-700">{presentToday}</div>
-                <div className="text-slate-600">Present Today</div>
-              </div>
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 font-bold">●</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Students Table */}
@@ -191,7 +139,6 @@ export function StudentsPage({ staffData, terms, onAddStudent, onEditStudent, on
                 <TableHead>Name</TableHead>
                 <TableHead>Card ID</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Current Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -201,18 +148,8 @@ export function StudentsPage({ staffData, terms, onAddStudent, onEditStudent, on
                   <TableCell className="font-medium">{staff.name}</TableCell>
                   <TableCell className="font-mono text-sm">{staff.cardId}</TableCell>
                   <TableCell>{getRoleBadge(staff.role)}</TableCell>
-                  <TableCell>{getStatusBadge(staff.currentStatus)}</TableCell>
                   <TableCell>
                     <div className="flex gap-2 justify-end">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleManageSchedule(staff)}
-                        title="Manage term-specific schedule"
-                      >
-                        <Calendar className="w-3 h-3 mr-1" />
-                        Schedule
-                      </Button>
                       <Button size="sm" variant="outline" onClick={() => handleEdit(staff)}>
                         <Edit className="w-3 h-3" />
                       </Button>
@@ -243,15 +180,6 @@ export function StudentsPage({ staffData, terms, onAddStudent, onEditStudent, on
           onClose={handleCloseModal}
           editingStudent={editingStudent}
           isAddMode={showAddModal}
-        />
-      )}
-
-      {/* Schedule Manager Modal */}
-      {schedulingStudent && (
-        <StudentScheduleManager
-          student={schedulingStudent as unknown as Student}
-          terms={terms}
-          onClose={handleCloseScheduleModal}
         />
       )}
     </div>

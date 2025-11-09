@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import Term from '../models/Term';
+import Term from '../models/Term.js';
 
 const router = express.Router();
 
