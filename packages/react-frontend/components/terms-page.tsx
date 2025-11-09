@@ -56,11 +56,11 @@ export function TermsPage({ terms, onAddTerm, onEditTerm, onDeleteTerm, onBack }
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Manage Terms</h2>
-            <p className="text-slate-600">Create and manage academic terms and work periods</p>
+            <h2 className="text-2xl font-bold">Manage Terms</h2>
+            <p className="text-muted-foreground">Create and manage academic terms and work periods</p>
           </div>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="bg-slate-900 hover:bg-slate-800">
+        <Button onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add New Term
         </Button>
@@ -68,43 +68,43 @@ export function TermsPage({ terms, onAddTerm, onEditTerm, onDeleteTerm, onBack }
 
       {/* Terms Overview */}
       <div className="grid md:grid-cols-3 gap-6">
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-slate-900">{terms.length}</div>
-                <div className="text-slate-600">Total Terms</div>
+                <div className="text-2xl font-bold">{terms.length}</div>
+                <div className="text-muted-foreground">Total Terms</div>
               </div>
-              <Calendar className="w-8 h-8 text-slate-600" />
+              <Calendar className="w-8 h-8 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-green-700">{terms.filter((t) => t.isActive).length}</div>
-                <div className="text-slate-600">Active Terms</div>
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{terms.filter((t) => t.isActive).length}</div>
+                <div className="text-muted-foreground">Active Terms</div>
               </div>
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 font-bold">●</span>
+              <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                <span className="text-green-600 dark:text-green-400 font-bold">●</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-blue-700">
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                   {terms.filter((t) => new Date(t.startDate) > new Date()).length}
                 </div>
-                <div className="text-slate-600">Upcoming Terms</div>
+                <div className="text-muted-foreground">Upcoming Terms</div>
               </div>
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-bold">→</span>
+              <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                <span className="text-blue-600 dark:text-blue-400 font-bold">→</span>
               </div>
             </div>
           </CardContent>
@@ -112,7 +112,7 @@ export function TermsPage({ terms, onAddTerm, onEditTerm, onDeleteTerm, onBack }
       </div>
 
       {/* Terms Table */}
-      <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
         <CardHeader>
           <CardTitle>All Terms</CardTitle>
         </CardHeader>
@@ -142,9 +142,9 @@ export function TermsPage({ terms, onAddTerm, onEditTerm, onDeleteTerm, onBack }
                     <TableCell>{duration} days</TableCell>
                     <TableCell>
                       {term.isActive ? (
-                        <Badge className="bg-green-100 text-green-800">Active</Badge>
+                        <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400">Active</Badge>
                       ) : (
-                        <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>
+                        <Badge className="bg-secondary text-secondary-foreground">Inactive</Badge>
                       )}
                     </TableCell>
                     <TableCell>
@@ -156,7 +156,7 @@ export function TermsPage({ terms, onAddTerm, onEditTerm, onDeleteTerm, onBack }
                           size="sm"
                           variant="outline"
                           onClick={() => onDeleteTerm(term.id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-destructive hover:text-destructive"
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>

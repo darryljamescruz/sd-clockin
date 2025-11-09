@@ -182,63 +182,63 @@ export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndD
     <div className="space-y-6">
       {/* Term Overview Stats */}
       <div className="grid md:grid-cols-4 gap-6">
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-slate-900">{termStats.totalStaff}</div>
-                <div className="text-slate-600">Total Staff</div>
+                <div className="text-2xl font-bold text-foreground">{termStats.totalStaff}</div>
+                <div className="text-muted-foreground">Total Staff</div>
               </div>
-              <BarChart3 className="w-8 h-8 text-slate-600" />
+              <BarChart3 className="w-8 h-8 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <div className={`text-2xl font-bold ${getAttendanceColor(termStats.avgAttendance)}`}>
                   {termStats.avgAttendance.toFixed(1)}%
                 </div>
-                <div className="text-slate-600">Avg Attendance</div>
+                <div className="text-muted-foreground">Avg Attendance</div>
               </div>
-              <TrendingUp className="w-8 h-8 text-slate-600" />
+              <TrendingUp className="w-8 h-8 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <div className={`text-2xl font-bold ${getPunctualityColor(termStats.avgPunctuality)}`}>
                   {termStats.avgPunctuality.toFixed(1)}%
                 </div>
-                <div className="text-slate-600">Avg Punctuality</div>
+                <div className="text-muted-foreground">Avg Punctuality</div>
               </div>
-              <Clock className="w-8 h-8 text-slate-600" />
+              <Clock className="w-8 h-8 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-yellow-700">{termStats.totalManualEntries}</div>
-                <div className="text-slate-600">Manual Entries</div>
+                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{termStats.totalManualEntries}</div>
+                <div className="text-muted-foreground">Manual Entries</div>
               </div>
-              <Calendar className="w-8 h-8 text-yellow-600" />
+              <Calendar className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Individual Analytics */}
-      <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-slate-900">
+          <CardTitle className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5" />
             Individual Performance Analytics - {selectedTerm}
           </CardTitle>
@@ -246,26 +246,26 @@ export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndD
         <CardContent>
           <Table>
             <TableHeader>
-              <TableRow className="border-slate-200">
-                <TableHead className="text-slate-700">Name</TableHead>
-                <TableHead className="text-slate-700">Role</TableHead>
-                <TableHead className="text-slate-700">Attendance</TableHead>
-                <TableHead className="text-slate-700">Punctuality</TableHead>
-                <TableHead className="text-slate-700">Avg Arrival</TableHead>
-                <TableHead className="text-slate-700">Manual Entries</TableHead>
-                <TableHead className="text-slate-700">Total Clock-ins</TableHead>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Attendance</TableHead>
+                <TableHead>Punctuality</TableHead>
+                <TableHead>Avg Arrival</TableHead>
+                <TableHead>Manual Entries</TableHead>
+                <TableHead>Total Clock-ins</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {staffData.map((staff) => {
                 const analytics = getStaffAnalytics(staff)
                 return (
-                  <TableRow key={staff.id} className="border-slate-100">
-                    <TableCell className="font-medium text-slate-900">{staff.name}</TableCell>
+                  <TableRow key={staff.id}>
+                    <TableCell className="font-medium">{staff.name}</TableCell>
                     <TableCell>
                       <Badge
                         className={
-                          staff.role === "Student Lead" ? "bg-blue-100 text-blue-800" : "bg-slate-100 text-slate-800"
+                          staff.role === "Student Lead" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400" : "bg-secondary text-secondary-foreground"
                         }
                       >
                         {staff.role}
@@ -277,7 +277,7 @@ export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndD
                           {analytics.attendanceRate.toFixed(1)}%
                         </div>
                         <Progress value={analytics.attendanceRate} className="h-2" />
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-muted-foreground">
                           {analytics.attendanceDays}/{analytics.totalWeekdays} days
                         </div>
                       </div>
@@ -290,12 +290,12 @@ export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndD
                         <Progress value={analytics.punctualityRate} className="h-2" />
                       </div>
                     </TableCell>
-                    <TableCell className="font-mono text-slate-900">{analytics.avgArrivalTime}</TableCell>
+                    <TableCell className="font-mono">{analytics.avgArrivalTime}</TableCell>
                     <TableCell>
                       {analytics.manualEntries > 0 ? (
-                        <Badge className="bg-yellow-100 text-yellow-800">{analytics.manualEntries}</Badge>
+                        <Badge className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400">{analytics.manualEntries}</Badge>
                       ) : (
-                        <span className="text-slate-500">0</span>
+                        <span className="text-muted-foreground">0</span>
                       )}
                     </TableCell>
                     <TableCell className="font-medium">{analytics.totalClockIns}</TableCell>

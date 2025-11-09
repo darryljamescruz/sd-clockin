@@ -155,7 +155,7 @@ export function StudentScheduleManager({ student, terms, onClose, onSave }: Stud
 
   return (
     <div 
-      className="absolute inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="absolute inset-0 bg-background/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <Card 
@@ -168,7 +168,7 @@ export function StudentScheduleManager({ student, terms, onClose, onSave }: Stud
               <Calendar className="w-5 h-5" />
               <div>
                 <div>Manage Schedule: {student.name}</div>
-                <div className="text-sm font-normal text-slate-600 mt-1">
+                <div className="text-sm font-normal text-muted-foreground mt-1">
                   Set availability for specific term
                 </div>
               </div>
@@ -215,13 +215,13 @@ export function StudentScheduleManager({ student, terms, onClose, onSave }: Stud
             {/* Schedule Input */}
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-                <span className="ml-2 text-slate-600">Loading schedule...</span>
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-muted-foreground">Loading schedule...</span>
               </div>
             ) : (
               <div>
                 <Label className="text-base font-semibold">Weekly Availability</Label>
-                <p className="text-sm text-slate-600 mb-4">
+                <p className="text-sm text-muted-foreground mb-4">
                   Enter time blocks for each day. Examples: "8-11, 12-5" or "9:00 AM - 5:00 PM"
                 </p>
 
@@ -268,21 +268,21 @@ export function StudentScheduleManager({ student, terms, onClose, onSave }: Stud
                             <Badge
                               key={index}
                               variant="secondary"
-                              className="bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer"
+                              className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-200 cursor-pointer"
                               onClick={() => removeScheduleBlock(day, index)}
                             >
                               {block} ×
                             </Badge>
                           ))
                         ) : (
-                          <span className="text-sm text-slate-400 italic">No schedule set</span>
+                          <span className="text-sm text-muted-foreground italic">No schedule set</span>
                         )}
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-2 text-xs text-slate-500 bg-slate-50 p-3 rounded">
+                <div className="mt-2 text-xs text-muted-foreground bg-slate-50 p-3 rounded">
                   <strong>Tips:</strong> Enter multiple time blocks separated by commas (e.g., "8-11, 12-5") •
                   Use 24-hour format (8-17) or 12-hour format (8 AM - 5 PM) • Click on time blocks to remove them •
                   Press Enter or click Add to save time blocks
@@ -294,7 +294,7 @@ export function StudentScheduleManager({ student, terms, onClose, onSave }: Stud
             <div className="flex gap-2 pt-4 border-t">
               <Button
                 type="submit"
-                className="bg-slate-900 hover:bg-slate-800"
+                className=""
                 disabled={isSaving || isLoading}
               >
                 {isSaving ? (

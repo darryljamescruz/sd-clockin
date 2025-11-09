@@ -73,7 +73,7 @@ export default function HomePage() {
 
   // Card swiper simulation
   useEffect(() => {
-    const handleKeyPress = (event) => {
+    const handleKeyPress = (event: KeyboardEvent) => {
       if (!isCardSwipeDisabled && !isLoginOpen && !isAdminLoginOpen) {
         if (event.key === "Enter" && cardSwipeData.length > 0) {
           handleCardSwipe(cardSwipeData)
@@ -233,17 +233,17 @@ export default function HomePage() {
   const expectedArrivals = staffData.filter((staff) => staff.currentStatus === "expected")
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center">
-              <Clock className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+              <Clock className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">TimeSync</h1>
-              <p className="text-slate-600 text-sm">IT Service Desk Clock-In System</p>
+              <h1 className="text-2xl font-bold text-foreground">TimeSync</h1>
+              <p className="text-muted-foreground text-sm">IT Service Desk Clock-In System</p>
             </div>
           </div>
 
@@ -292,20 +292,20 @@ export default function HomePage() {
 
         {/* Error Message */}
         {error && (
-          <Card className="mb-6 bg-red-50 border-red-200 shadow-lg">
+          <Card className="mb-6 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 shadow-lg">
             <CardContent className="p-4 flex items-center gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-              <span className="text-red-800 font-medium">{error}</span>
+              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+              <span className="text-red-800 dark:text-red-300 font-medium">{error}</span>
             </CardContent>
           </Card>
         )}
 
         {/* Loading State */}
         {isLoading && (
-          <Card className="mb-6 bg-blue-50 border-blue-200 shadow-lg">
+          <Card className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-lg">
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              <span className="text-blue-800 font-medium">Loading data...</span>
+              <div className="w-5 h-5 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin" />
+              <span className="text-blue-800 dark:text-blue-300 font-medium">Loading data...</span>
             </CardContent>
           </Card>
         )}
@@ -314,48 +314,48 @@ export default function HomePage() {
           <>
             {/* Card Swiper Status */}
             {isCardSwiping && (
-              <Card className="mb-6 bg-blue-50 border-blue-200 shadow-lg">
+              <Card className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-lg">
                 <CardContent className="p-4 flex items-center gap-3">
-                  <CreditCard className="w-5 h-5 text-blue-600 animate-pulse" />
-                  <span className="text-blue-800 font-medium">Card detected... Please wait</span>
+                  <CreditCard className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-pulse" />
+                  <span className="text-blue-800 dark:text-blue-300 font-medium">Card detected... Please wait</span>
                 </CardContent>
               </Card>
             )}
 
             {/* Clock In Success Message */}
             {showClockInSuccess && (
-              <Card className="mb-6 bg-green-50 border-green-200 shadow-lg">
+              <Card className="mb-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 shadow-lg">
                 <CardContent className="p-4 flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="text-green-800 font-medium">{clockInMessage}</span>
+                  <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  <span className="text-green-800 dark:text-green-300 font-medium">{clockInMessage}</span>
                 </CardContent>
               </Card>
             )}
 
             {/* Card Swiper Instructions */}
-            <Card className="mb-8 bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+            <Card className="mb-8 bg-card/70 backdrop-blur-sm shadow-lg">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center">
-                    <CreditCard className="w-8 h-8 text-slate-600" />
+                  <div className="w-16 h-16 bg-secondary rounded-lg flex items-center justify-center">
+                    <CreditCard className="w-8 h-8 text-muted-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-900 mb-1">Quick Clock In/Out</h3>
-                    <p className="text-slate-600">Swipe your ID card to clock in or out automatically</p>
-                    <p className="text-sm text-slate-500 mt-1">Or use manual clock in for backup</p>
+                    <h3 className="text-lg font-semibold text-foreground mb-1">Quick Clock In/Out</h3>
+                    <p className="text-muted-foreground">Swipe your ID card to clock in or out automatically</p>
+                    <p className="text-sm text-muted-foreground mt-1">Or use manual clock in for backup</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Current Time Display */}
-            <Card className="mb-8 bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+            <Card className="mb-8 bg-card/70 backdrop-blur-sm shadow-lg">
               <CardContent className="p-8 text-center">
                 <div className="space-y-2">
-                  <div className="text-6xl font-mono font-bold text-slate-900 tracking-tight">
+                  <div className="text-6xl font-mono font-bold text-foreground tracking-tight">
                     {formatTime(currentTime)}
                   </div>
-                  <div className="text-xl text-slate-600 flex items-center justify-center gap-2">
+                  <div className="text-xl text-muted-foreground flex items-center justify-center gap-2">
                     <Calendar className="w-5 h-5" />
                     {formatDate(currentTime)}
                   </div>

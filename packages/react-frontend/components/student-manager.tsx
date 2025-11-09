@@ -42,11 +42,11 @@ function DeleteConfirmationModal({ isOpen, student, onConfirm, onCancel }: Delet
 
   return (
     <div 
-      className="absolute inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-[60]"
+      className="absolute inset-0 bg-background/30 backdrop-blur-sm flex items-center justify-center z-[60]"
       onClick={onCancel}
     >
       <Card 
-        className="w-full max-w-md shadow-xl border-slate-200"
+        className="w-full max-w-md shadow-xl "
         onClick={(e) => e.stopPropagation()}
       >
         <CardHeader className="pb-3">
@@ -73,8 +73,8 @@ function DeleteConfirmationModal({ isOpen, student, onConfirm, onCancel }: Delet
             </div>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-            <p className="text-sm text-slate-600">
+          <div className="bg-slate-50 border  rounded-lg p-3">
+            <p className="text-sm text-muted-foreground">
               <strong>Clock-in History:</strong> {student.clockEntries.length} entries will be deleted
             </p>
           </div>
@@ -87,13 +87,13 @@ function DeleteConfirmationModal({ isOpen, student, onConfirm, onCancel }: Delet
             <Button
               onClick={onCancel}
               variant="outline"
-              className="flex-1 border-slate-200 hover:bg-slate-50 bg-transparent"
+              className="flex-1   bg-transparent"
             >
               Cancel
             </Button>
           </div>
 
-          <div className="text-xs text-slate-500 text-center">
+          <div className="text-xs text-muted-foreground text-center">
             Type the student's name to confirm deletion (coming soon)
           </div>
         </CardContent>
@@ -190,14 +190,14 @@ export function StudentManager({
   const getRoleBadge = (role: string) => {
     if (role === "Student Lead") {
       return (
-        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+        <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-100">
           <Shield className="w-3 h-3 mr-1" />
           Student Lead
         </Badge>
       )
     } else {
       return (
-        <Badge className="bg-slate-100 text-slate-800 hover:bg-slate-100">
+        <Badge className="bg-secondary text-secondary-foreground hover:bg-slate-100">
           <UserCheck className="w-3 h-3 mr-1" />
           Assistant
         </Badge>
@@ -224,7 +224,7 @@ export function StudentManager({
   return (
     <>
       <div 
-        className="absolute inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50"
+        className="absolute inset-0 bg-background/30 backdrop-blur-sm flex items-center justify-center z-50"
         onClick={onClose}
       >
         <Card 
@@ -282,7 +282,7 @@ export function StudentManager({
                 </Select>
               </div>
               <div className="flex gap-2">
-                <Button type="submit" className="bg-slate-900 hover:bg-slate-800">
+                <Button type="submit" className="">
                   {editingStudent ? "Update" : "Add"} Student/Staff
                 </Button>
                 <Button type="button" variant="ghost" onClick={onClose}>

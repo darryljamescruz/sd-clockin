@@ -22,7 +22,7 @@ export function TermSelector({ terms, selectedTerm, onTermChange }: TermSelector
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="bg-white border-slate-200 hover:bg-slate-50">
+        <Button variant="outline">
           <Calendar className="w-4 h-4 mr-2" />
           {selectedTerm}
           <ChevronDown className="w-4 h-4 ml-2" />
@@ -33,11 +33,11 @@ export function TermSelector({ terms, selectedTerm, onTermChange }: TermSelector
           <DropdownMenuItem
             key={term.id}
             onClick={() => onTermChange(term.name)}
-            className={selectedTerm === term.name ? "bg-slate-100" : ""}
+            className={selectedTerm === term.name ? "bg-accent" : ""}
           >
             <div className="flex flex-col">
               <span className="font-medium">{term.name}</span>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-muted-foreground">
                 {new Date(term.startDate).toLocaleDateString()} - {new Date(term.endDate).toLocaleDateString()}
               </span>
             </div>

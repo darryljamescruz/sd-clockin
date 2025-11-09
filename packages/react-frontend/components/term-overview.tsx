@@ -24,11 +24,11 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     const termEnd = new Date(currentTerm.endDate)
 
     if (today >= termStart && today <= termEnd) {
-      return { status: "current", label: "Current Term", color: "bg-green-100 text-green-800" }
+      return { status: "current", label: "Current Term", color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400" }
     } else if (today > termEnd) {
-      return { status: "past", label: "Past Term", color: "bg-gray-100 text-gray-800" }
+      return { status: "past", label: "Past Term", color: "bg-secondary text-secondary-foreground" }
     } else {
-      return { status: "future", label: "Future Term", color: "bg-blue-100 text-blue-800" }
+      return { status: "future", label: "Future Term", color: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400" }
     }
   }
 
@@ -268,11 +268,11 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      early: { color: "bg-blue-100 text-blue-800", label: "Early" },
-      "on-time": { color: "bg-green-100 text-green-800", label: "On Time" },
-      late: { color: "bg-red-100 text-red-800", label: "Late" },
-      absent: { color: "bg-gray-100 text-gray-800", label: "Absent" },
-      "not-scheduled": { color: "bg-slate-100 text-slate-600", label: "Not Scheduled" },
+      early: { color: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400", label: "Early" },
+      "on-time": { color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400", label: "On Time" },
+      late: { color: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400", label: "Late" },
+      absent: { color: "bg-secondary text-secondary-foreground", label: "Absent" },
+      "not-scheduled": { color: "bg-muted text-muted-foreground", label: "Not Scheduled" },
     }
 
     const config = statusConfig[status] || statusConfig["absent"]
@@ -281,23 +281,23 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
 
   const getRoleBadge = (role: string) => {
     if (role === "Student Lead") {
-      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Student Lead</Badge>
+      return <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30">Student Lead</Badge>
     } else {
-      return <Badge className="bg-slate-100 text-slate-800 hover:bg-slate-100">Assistant</Badge>
+      return <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary">Assistant</Badge>
     }
   }
 
   return (
     <div className="space-y-6">
       {/* Term Status Header */}
-      <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Calendar className="w-6 h-6 text-slate-600" />
+              <Calendar className="w-6 h-6 text-muted-foreground" />
               <div>
-                <CardTitle className="text-xl text-slate-900">{selectedTerm}</CardTitle>
-                <p className="text-sm text-slate-600">
+                <CardTitle className="text-xl">{selectedTerm}</CardTitle>
+                <p className="text-sm text-muted-foreground">
                   {new Date(currentTerm.startDate).toLocaleDateString()} -{" "}
                   {new Date(currentTerm.endDate).toLocaleDateString()}
                 </p>
@@ -310,61 +310,61 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
 
       {/* Daily Stats */}
       <div className="grid md:grid-cols-4 gap-6">
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-green-700">{dayStats.present}</div>
-                <div className="text-slate-600">Present Shifts</div>
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{dayStats.present}</div>
+                <div className="text-muted-foreground">Present Shifts</div>
               </div>
-              <Users className="w-8 h-8 text-green-600" />
+              <Users className="w-8 h-8 text-green-600 dark:text-green-400" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-gray-700">{dayStats.absent}</div>
-                <div className="text-slate-600">Absent Shifts</div>
+                <div className="text-2xl font-bold text-foreground">{dayStats.absent}</div>
+                <div className="text-muted-foreground">Absent Shifts</div>
               </div>
-              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 font-bold">×</span>
+              <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
+                <span className="text-muted-foreground font-bold">×</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-red-700">{dayStats.late}</div>
-                <div className="text-slate-600">Late Arrivals</div>
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">{dayStats.late}</div>
+                <div className="text-muted-foreground">Late Arrivals</div>
               </div>
-              <AlertCircle className="w-8 h-8 text-red-600" />
+              <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-yellow-700">{dayStats.manual}</div>
-                <div className="text-slate-600">Manual Entries</div>
+                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{dayStats.manual}</div>
+                <div className="text-muted-foreground">Manual Entries</div>
               </div>
-              <TrendingUp className="w-8 h-8 text-yellow-600" />
+              <TrendingUp className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Daily Attendance Table */}
-      <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-slate-900">
+          <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
             Daily Attendance by Shift -{" "}
             {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
@@ -373,45 +373,45 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
         <CardContent>
           <Table>
             <TableHeader>
-              <TableRow className="border-slate-200">
-                <TableHead className="text-slate-700">Name</TableHead>
-                <TableHead className="text-slate-700">Role</TableHead>
-                <TableHead className="text-slate-700">Shift</TableHead>
-                <TableHead className="text-slate-700">Actual Clock-In</TableHead>
-                <TableHead className="text-slate-700">Status</TableHead>
-                <TableHead className="text-slate-700">Entry Type</TableHead>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Shift</TableHead>
+                <TableHead>Actual Clock-In</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Entry Type</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {dayAttendance.map((staff, index) => (
-                <TableRow key={`${staff.id}-${staff.shiftNumber || 0}-${index}`} className="border-slate-100">
-                  <TableCell className="font-medium text-slate-900">
+                <TableRow key={`${staff.id}-${staff.shiftNumber || 0}-${index}`}>
+                  <TableCell className="font-medium">
                     {staff.name}
                     {staff.totalShifts > 1 && (
-                      <span className="text-xs text-slate-500 ml-2">
+                      <span className="text-xs text-muted-foreground ml-2">
                         (Shift {staff.shiftNumber}/{staff.totalShifts})
                       </span>
                     )}
                   </TableCell>
                   <TableCell>{getRoleBadge(staff.role)}</TableCell>
-                  <TableCell className="font-mono text-slate-900">
+                  <TableCell className="font-mono">
                     {staff.currentShift ? (
-                      <div className="text-xs bg-white border border-slate-200 px-2 py-1 rounded shadow-sm inline-block">
+                      <div className="text-xs bg-card border px-2 py-1 rounded shadow-sm inline-block">
                         {staff.currentShift}
                       </div>
                     ) : (
-                      <span className="text-slate-400 italic text-xs">Not scheduled</span>
+                      <span className="text-muted-foreground italic text-xs">Not scheduled</span>
                     )}
                   </TableCell>
-                  <TableCell className="font-mono text-slate-900">{staff.actualTime || "—"}</TableCell>
+                  <TableCell className="font-mono">{staff.actualTime || "—"}</TableCell>
                   <TableCell>{getStatusBadge(staff.status)}</TableCell>
                   <TableCell>
                     {staff.isManual ? (
-                      <Badge className="bg-yellow-100 text-yellow-800">Manual</Badge>
+                      <Badge className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400">Manual</Badge>
                     ) : staff.actualTime ? (
-                      <Badge className="bg-green-100 text-green-800">Card Swipe</Badge>
+                      <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400">Card Swipe</Badge>
                     ) : (
-                      <span className="text-slate-500">—</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
                 </TableRow>
@@ -422,17 +422,17 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
       </Card>
 
       {/* Quick Navigation */}
-      <Card className="bg-slate-50 border-slate-200">
+      <Card className="bg-muted">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="font-semibold text-slate-900 mb-1">Quick Navigation</h4>
-              <p className="text-sm text-slate-600">
+              <h4 className="font-semibold mb-1">Quick Navigation</h4>
+              <p className="text-sm text-muted-foreground">
                 Use the arrow buttons to navigate day by day through the {selectedTerm} term. Each shift is tracked
                 separately.
               </p>
             </div>
-            <div className="flex items-center gap-2 text-sm text-slate-600">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="w-4 h-4" />
               <span>{termWeekdays.length} weekdays in term</span>
             </div>

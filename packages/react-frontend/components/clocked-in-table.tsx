@@ -73,14 +73,14 @@ export function ClockedInTable({ clockedInUsers }: ClockedInTableProps) {
   const getRoleBadge = (role: string) => {
     if (role === "Student Lead") {
       return (
-        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+        <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30">
           <Shield className="w-3 h-3 mr-1" />
           Student Lead
         </Badge>
       )
     } else {
       return (
-        <Badge className="bg-slate-100 text-slate-800 hover:bg-slate-100">
+        <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary">
           <UserCheck className="w-3 h-3 mr-1" />
           Assistant
         </Badge>
@@ -89,12 +89,12 @@ export function ClockedInTable({ clockedInUsers }: ClockedInTableProps) {
   }
 
   return (
-    <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+    <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-slate-900">
-          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+        <CardTitle className="flex items-center gap-2 text-foreground">
+          <div className="w-3 h-3 bg-green-500 dark:bg-green-400 rounded-full"></div>
           Currently Clocked In
-          <Badge variant="secondary" className="ml-auto bg-green-100 text-green-800">
+          <Badge variant="secondary" className="ml-auto bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400">
             {clockedInUsers.length} Active
           </Badge>
         </CardTitle>
@@ -102,20 +102,20 @@ export function ClockedInTable({ clockedInUsers }: ClockedInTableProps) {
       <CardContent>
         <Table>
           <TableHeader>
-            <TableRow className="border-slate-200">
-              <TableHead className="text-slate-700">Name</TableHead>
-              <TableHead className="text-slate-700">Role</TableHead>
-              <TableHead className="text-slate-700">Clock In</TableHead>
-              <TableHead className="text-slate-700">Shift End</TableHead>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Clock In</TableHead>
+              <TableHead>Shift End</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {clockedInUsers.map((user) => (
-              <TableRow key={user.id} className="border-slate-100">
-                <TableCell className="font-medium text-slate-900">{user.name}</TableCell>
+              <TableRow key={user.id}>
+                <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell>{getRoleBadge(user.role)}</TableCell>
-                <TableCell className="font-mono text-slate-900">{user.todayActual}</TableCell>
-                <TableCell className="font-mono text-slate-900">{getShiftEndTime(user)}</TableCell>
+                <TableCell className="font-mono">{user.todayActual}</TableCell>
+                <TableCell className="font-mono">{getShiftEndTime(user)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
