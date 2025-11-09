@@ -59,13 +59,9 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
               currentStatus = 'absent'; // Didn't show up
             }
 
-            // Get actual clock-in time
+            // Get actual clock-in time (return as ISO string, let frontend format)
             if (todayShift.actualStart) {
-              todayActual = new Date(todayShift.actualStart).toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-              });
+              todayActual = todayShift.actualStart.toISOString();
             }
 
             // Get expected end time
@@ -82,11 +78,8 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
               const lastCheckIn = todayCheckIns[0];
               if (lastCheckIn.type === 'in') {
                 currentStatus = 'present'; // Currently clocked in
-                todayActual = new Date(lastCheckIn.timestamp).toLocaleTimeString('en-US', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true,
-                });
+                // Return as ISO string, let frontend format in user's timezone
+                todayActual = lastCheckIn.timestamp.toISOString();
               } else if (lastCheckIn.type === 'out') {
                 currentStatus = 'clocked_out'; // Already clocked out
               }

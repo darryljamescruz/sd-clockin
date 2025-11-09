@@ -11,6 +11,35 @@ interface ClockedInTableProps {
 }
 
 export function ClockedInTable({ clockedInUsers }: ClockedInTableProps) {
+  const formatClockInTime = (timeStr: string | null) => {
+    if (!timeStr) return ""
+
+    // If it's already formatted (includes AM/PM), return as is
+    if (timeStr.includes("AM") || timeStr.includes("PM")) {
+      return timeStr
+    }
+
+    // If it's an ISO timestamp, parse and format in user's timezone
+    try {
+      const date = new Date(timeStr)
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      })
+    } catch (e) {
+      // Fallback: try to parse as HH:MM format
+      const [hours, minutes] = timeStr.split(':')
+      const hour = Number.parseInt(hours)
+      const mins = minutes || '00'
+      
+      if (hour === 0) return `12:${mins} AM`
+      if (hour < 12) return `${hour}:${mins} AM`
+      if (hour === 12) return `12:${mins} PM`
+      return `${hour - 12}:${mins} PM`
+    }
+  }
+  
   const convertTo12Hour = (timeStr: string) => {
     if (!timeStr) return ""
 
@@ -79,7 +108,7 @@ export function ClockedInTable({ clockedInUsers }: ClockedInTableProps) {
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell>{getRoleBadge(user.role)}</TableCell>
-                <TableCell className="font-mono">{user.todayActual}</TableCell>
+                <TableCell className="font-mono">{formatClockInTime(user.todayActual || null)}</TableCell>
                 <TableCell className="font-mono">{getShiftEndTime(user)}</TableCell>
               </TableRow>
             ))}
