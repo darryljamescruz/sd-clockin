@@ -51,14 +51,14 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
   const getRoleBadge = (role: string) => {
     if (role === "Student Lead") {
       return (
-        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+        <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-100">
           <Shield className="w-3 h-3 mr-1" />
           Student Lead
         </Badge>
       )
     } else {
       return (
-        <Badge className="bg-slate-100 text-slate-800 hover:bg-slate-100">
+        <Badge className="bg-secondary text-secondary-foreground hover:bg-slate-100">
           <UserCheck className="w-3 h-3 mr-1" />
           Assistant
         </Badge>
@@ -78,11 +78,11 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Manage Students & Staff</h2>
-            <p className="text-slate-600">Add, edit, and manage student assistants and leads</p>
+            <h2 className="text-2xl font-bold text-foreground">Manage Students & Staff</h2>
+            <p className="text-muted-foreground">Add, edit, and manage student assistants and leads</p>
           </div>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="bg-slate-900 hover:bg-slate-800">
+        <Button onClick={() => setShowAddModal(true)} className="">
           <Plus className="w-4 h-4 mr-2" />
           Add New Student/Staff
         </Button>
@@ -90,45 +90,45 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
 
       {/* Staff Overview */}
       <div className="grid md:grid-cols-3 gap-6">
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-slate-900">{staffData.length}</div>
-                <div className="text-slate-600">Total Staff</div>
+                <div className="text-2xl font-bold text-foreground">{staffData.length}</div>
+                <div className="text-muted-foreground">Total Staff</div>
               </div>
-              <Users className="w-8 h-8 text-slate-600" />
+              <Users className="w-8 h-8 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-blue-700">{studentLeads}</div>
-                <div className="text-slate-600">Student Leads</div>
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{studentLeads}</div>
+                <div className="text-muted-foreground">Student Leads</div>
               </div>
-              <Shield className="w-8 h-8 text-blue-600" />
+              <Shield className="w-8 h-8 text-blue-600 dark:text-blue-400" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-slate-700">{assistants}</div>
-                <div className="text-slate-600">Assistants</div>
+                <div className="text-2xl font-bold text-foreground">{assistants}</div>
+                <div className="text-muted-foreground">Assistants</div>
               </div>
-              <UserCheck className="w-8 h-8 text-slate-600" />
+              <UserCheck className="w-8 h-8 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Students Table */}
-      <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
         <CardHeader>
           <CardTitle>All Students & Staff ({staffData.length})</CardTitle>
         </CardHeader>
@@ -157,7 +157,7 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
                         size="sm"
                         variant="outline"
                         onClick={() => onDeleteStudent(staff.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="text-red-600 hover:text-destructive"
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>

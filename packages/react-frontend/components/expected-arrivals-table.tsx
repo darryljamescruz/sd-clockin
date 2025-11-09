@@ -14,14 +14,14 @@ export function ExpectedArrivalsTable({ expectedArrivals }: ExpectedArrivalsTabl
   const getRoleBadge = (role: string) => {
     if (role === "Student Lead") {
       return (
-        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+        <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30">
           <Shield className="w-3 h-3 mr-1" />
           Student Lead
         </Badge>
       )
     } else {
       return (
-        <Badge className="bg-slate-100 text-slate-800 hover:bg-slate-100">
+        <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary">
           <UserCheck className="w-3 h-3 mr-1" />
           Assistant
         </Badge>
@@ -29,19 +29,19 @@ export function ExpectedArrivalsTable({ expectedArrivals }: ExpectedArrivalsTabl
     }
   }
 
-  const getTodaySchedule = (staff: Staff, date = new Date()) => {
-    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+  const getTodaySchedule = (staff: Student, date = new Date()) => {
+    const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday"]
     const dayName = dayNames[date.getDay()]
     return staff.weeklySchedule?.[dayName] || []
   }
 
   return (
-    <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+    <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-slate-900">
-          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+        <CardTitle className="flex items-center gap-2 text-foreground">
+          <div className="w-3 h-3 bg-blue-500 dark:bg-blue-400 rounded-full"></div>
           Expected Arrivals
-          <Badge variant="secondary" className="ml-auto bg-blue-100 text-blue-800">
+          <Badge variant="secondary" className="ml-auto bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400">
             {expectedArrivals.length} Pending
           </Badge>
         </CardTitle>
@@ -49,28 +49,28 @@ export function ExpectedArrivalsTable({ expectedArrivals }: ExpectedArrivalsTabl
       <CardContent>
         <Table>
           <TableHeader>
-            <TableRow className="border-slate-200">
-              <TableHead className="text-slate-700">Name</TableHead>
-              <TableHead className="text-slate-700">Role</TableHead>
-              <TableHead className="text-slate-700">Today's Schedule</TableHead>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Today's Schedule</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {expectedArrivals.map((user) => (
-              <TableRow key={user.id} className="border-slate-100">
-                <TableCell className="font-medium text-slate-900">{user.name}</TableCell>
+              <TableRow key={user.id}>
+                <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell>{getRoleBadge(user.role)}</TableCell>
-                <TableCell className="font-mono text-slate-900">
+                <TableCell className="font-mono">
                   {getTodaySchedule(user).length > 0 ? (
                     <div className="space-y-1">
                       {getTodaySchedule(user).map((block, index) => (
-                        <div key={index} className="text-xs bg-slate-100 px-2 py-1 rounded">
+                        <div key={index} className="text-xs bg-secondary px-2 py-1 rounded">
                           {block}
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-slate-400 italic">No schedule</span>
+                    <span className="text-muted-foreground italic">No schedule</span>
                   )}
                 </TableCell>
               </TableRow>

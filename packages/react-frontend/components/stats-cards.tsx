@@ -13,52 +13,52 @@ interface StatsCardsProps {
 export function StatsCards({ totalStaff, presentStaff, studentLeads, lateToday }: StatsCardsProps) {
   return (
     <div className="grid md:grid-cols-4 gap-6 mb-8">
-      <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-bold text-slate-900">{totalStaff}</div>
-              <div className="text-slate-600">Total Staff</div>
+              <div className="text-2xl font-bold text-foreground">{totalStaff}</div>
+              <div className="text-muted-foreground">Total Staff</div>
             </div>
-            <Users className="w-8 h-8 text-slate-600" />
+            <Users className="w-8 h-8 text-muted-foreground" />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-bold text-green-700">{presentStaff}</div>
-              <div className="text-slate-600">Present Today</div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{presentStaff}</div>
+              <div className="text-muted-foreground">Present Today</div>
             </div>
-            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-              <span className="text-green-600 font-bold">●</span>
+            <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+              <span className="text-green-600 dark:text-green-400 font-bold">●</span>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-bold text-blue-700">{studentLeads}</div>
-              <div className="text-slate-600">Student Leads</div>
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{studentLeads}</div>
+              <div className="text-muted-foreground">Student Leads</div>
             </div>
-            <Shield className="w-8 h-8 text-blue-600" />
+            <Shield className="w-8 h-8 text-blue-600 dark:text-blue-400" />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-bold text-red-700">{lateToday}</div>
-              <div className="text-slate-600">Late Today</div>
+              <div className="text-2xl font-bold text-red-600 dark:text-red-400">{lateToday}</div>
+              <div className="text-muted-foreground">Late Today</div>
             </div>
-            <AlertCircle className="w-8 h-8 text-red-600" />
+            <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
           </div>
         </CardContent>
       </Card>

@@ -65,7 +65,7 @@ export function TermManager({
 
   return (
     <div 
-      className="absolute inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50"
+      className="absolute inset-0 bg-background/30 backdrop-blur-sm flex items-center justify-center z-50"
       onClick={onClose}
     >
       <Card 
@@ -126,7 +126,7 @@ export function TermManager({
               </div>
             </div>
             <div className="flex gap-2">
-              <Button type="submit" className="bg-slate-900 hover:bg-slate-800">
+              <Button type="submit">
                 {editingTerm ? "Update Term" : "Add Term"}
               </Button>
               <Button type="button" variant="outline" onClick={onClose}>

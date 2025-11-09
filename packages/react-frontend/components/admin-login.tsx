@@ -60,7 +60,7 @@ export function AdminLogin({ isOpen, onToggle, onLogin }: AdminLoginProps) {
   return (
     <>
       {/* Always render the button */}
-      <Button onClick={onToggle} variant="ghost" className="text-slate-600 hover:text-slate-900">
+      <Button onClick={onToggle} variant="ghost">
         <Shield className="w-4 h-4 mr-2" />
         Admin Login
       </Button>
@@ -68,7 +68,7 @@ export function AdminLogin({ isOpen, onToggle, onLogin }: AdminLoginProps) {
       {/* Render modal when open */}
       {isOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-96 shadow-xl border-slate-200">
+          <Card className="w-96 shadow-xl">
             <CardHeader className="pb-3 flex flex-row items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Shield className="w-5 h-5" />
@@ -102,23 +102,22 @@ export function AdminLogin({ isOpen, onToggle, onLogin }: AdminLoginProps) {
                     required
                   />
                 </div>
-                {error && <div className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</div>}
+                {error && <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</div>}
                 <div className="flex gap-2">
-                  <Button type="submit" className="flex-1 bg-slate-900 hover:bg-slate-800">
+                  <Button type="submit" className="flex-1">
                     Login
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     onClick={handleClose}
-                    className="border-slate-200 hover:bg-slate-50 bg-transparent"
                   >
                     Cancel
                   </Button>
                 </div>
               </form>
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-xs text-blue-700">
+              <div className="mt-4 p-3 bg-muted rounded-lg">
+                <p className="text-xs text-muted-foreground">
                   <strong>Demo:</strong> Username: admin, Password: admin123
                 </p>
               </div>

@@ -38,31 +38,31 @@ export function Navbar({ currentTime, onLogout, onManageTerms, onManageStudents,
   }
 
   return (
-    <nav className="bg-white/80 backdrop-blur-sm border-b border-slate-200 shadow-sm mb-8">
+    <nav className="bg-background/80 backdrop-blur-sm border-b shadow-sm mb-8">
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex justify-between items-center mb-3">
           {/* Logo and Brand */}
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center">
-              <Clock className="w-7 h-7 text-white" />
+            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
+              <Clock className="w-7 h-7 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">TimeSync Admin</h1>
-              <p className="text-slate-600 text-base">IT Service Desk Attendance Management</p>
+              <h1 className="text-3xl font-bold text-foreground">TimeSync Admin</h1>
+              <p className="text-muted-foreground text-base">IT Service Desk Attendance Management</p>
             </div>
           </div>
 
           {/* Current Time Display */}
           <div className="text-center">
-            <div className="text-2xl font-mono font-bold text-slate-900">{formatTime(currentTime)}</div>
-            <div className="text-sm text-slate-600">{formatDate(currentTime)}</div>
+            <div className="text-2xl font-mono font-bold text-foreground">{formatTime(currentTime)}</div>
+            <div className="text-sm text-muted-foreground">{formatDate(currentTime)}</div>
           </div>
 
           {/* User Menu */}
           <div className="flex items-center gap-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="bg-white border-slate-200 hover:bg-slate-50">
+                <Button variant="outline">
                   <User className="w-4 h-4 mr-2" />
                   Admin
                 </Button>
@@ -77,7 +77,7 @@ export function Navbar({ currentTime, onLogout, onManageTerms, onManageStudents,
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={onLogout} className="text-red-600">
+                <DropdownMenuItem onClick={onLogout} className="text-destructive">
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
                 </DropdownMenuItem>
@@ -91,7 +91,6 @@ export function Navbar({ currentTime, onLogout, onManageTerms, onManageStudents,
           <Button
             onClick={onManageTerms}
             variant="ghost"
-            className="text-slate-700 hover:text-slate-900 hover:bg-slate-100 px-4 py-2"
           >
             <Calendar className="w-4 h-4 mr-2" />
             Manage Terms
@@ -100,7 +99,6 @@ export function Navbar({ currentTime, onLogout, onManageTerms, onManageStudents,
           <Button
             onClick={onManageStudents}
             variant="ghost"
-            className="text-slate-700 hover:text-slate-900 hover:bg-slate-100 px-4 py-2"
           >
             <Users className="w-4 h-4 mr-2" />
             Manage Students
@@ -110,7 +108,6 @@ export function Navbar({ currentTime, onLogout, onManageTerms, onManageStudents,
             <Button
               onClick={onManageLocations}
               variant="ghost"
-              className="text-slate-700 hover:text-slate-900 hover:bg-slate-100 px-4 py-2"
             >
               <MapPin className="w-4 h-4 mr-2" />
               Manage Locations

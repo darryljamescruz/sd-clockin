@@ -39,24 +39,24 @@ export function AdminHeader({ currentTime, onLogout, onManageTerms, onManageStud
   return (
     <div className="flex justify-between items-center mb-8">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center">
-          <Clock className="w-6 h-6 text-white" />
+        <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+          <Clock className="w-6 h-6 text-primary-foreground" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
-          <p className="text-slate-600 text-sm">IT Service Desk Attendance Management</p>
+          <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
+          <p className="text-muted-foreground text-sm">IT Service Desk Attendance Management</p>
         </div>
       </div>
 
       <div className="flex items-center gap-4">
         <div className="text-right">
-          <div className="text-lg font-mono font-bold text-slate-900">{formatTime(currentTime)}</div>
-          <div className="text-sm text-slate-600">{formatDate(currentTime)}</div>
+          <div className="text-lg font-mono font-bold text-foreground">{formatTime(currentTime)}</div>
+          <div className="text-sm text-muted-foreground">{formatDate(currentTime)}</div>
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="bg-white border-slate-200 hover:bg-slate-50">
+            <Button variant="outline">
               <Settings className="w-4 h-4 mr-2" />
               Admin Settings
             </Button>
@@ -75,7 +75,7 @@ export function AdminHeader({ currentTime, onLogout, onManageTerms, onManageStud
               Manage Students
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onLogout} className="text-red-600">
+            <DropdownMenuItem onClick={onLogout} className="text-destructive">
               <LogOut className="w-4 h-4 mr-2" />
               Logout
             </DropdownMenuItem>

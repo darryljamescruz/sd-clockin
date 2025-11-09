@@ -18,14 +18,14 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
   const getRoleBadge = (role: string) => {
     if (role === "Student Lead") {
       return (
-        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+        <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-100">
           <Shield className="w-3 h-3 mr-1" />
           Student Lead
         </Badge>
       )
     } else {
       return (
-        <Badge className="bg-slate-100 text-slate-800 hover:bg-slate-100">
+        <Badge className="bg-secondary text-secondary-foreground hover:bg-slate-100">
           <UserCheck className="w-3 h-3 mr-1" />
           Assistant
         </Badge>
@@ -48,9 +48,9 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
 
   return (
     <div className="grid lg:grid-cols-3 gap-6">
-      <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
         <CardHeader>
-          <CardTitle className="text-slate-900">Select Staff Member</CardTitle>
+          <CardTitle className="text-foreground">Select Staff Member</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -74,20 +74,20 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
       </Card>
 
       {selectedStaff && (
-        <Card className="lg:col-span-2 bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="lg:col-span-2 bg-card/70 backdrop-blur-sm shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-3">
               <div className="w-10 h-10 bg-slate-200 rounded-lg flex items-center justify-center">
                 {selectedStaff.role === "Student Lead" ? (
                   <Shield className="w-6 h-6 text-blue-600" />
                 ) : (
-                  <UserCheck className="w-6 h-6 text-slate-600" />
+                  <UserCheck className="w-6 h-6 text-muted-foreground" />
                 )}
               </div>
               <div>
-                <div className="text-slate-900">{selectedStaff.name}</div>
+                <div className="text-foreground">{selectedStaff.name}</div>
                 <div className="flex items-center gap-2 mt-1">{getRoleBadge(selectedStaff.role)}</div>
-                <div className="text-sm text-slate-500 mt-1">
+                <div className="text-sm text-muted-foreground mt-1">
                   Card ID: {selectedStaff.cardId} • Term: {selectedTerm}
                 </div>
               </div>
@@ -95,13 +95,13 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <h4 className="font-semibold text-slate-900">Clock In/Out History</h4>
+              <h4 className="font-semibold text-foreground">Clock In/Out History</h4>
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-200">
-                    <TableHead className="text-slate-700">Date & Time</TableHead>
-                    <TableHead className="text-slate-700">Type</TableHead>
-                    <TableHead className="text-slate-700">Day</TableHead>
+                  <TableRow className="">
+                    <TableHead className="text-foreground">Date & Time</TableHead>
+                    <TableHead className="text-foreground">Type</TableHead>
+                    <TableHead className="text-foreground">Day</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -113,9 +113,9 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
                         const date = new Date(entry.timestamp)
                         return (
                           <TableRow key={index} className="border-slate-100">
-                            <TableCell className="font-mono text-slate-900">{date.toLocaleString()}</TableCell>
+                            <TableCell className="font-mono text-foreground">{date.toLocaleString()}</TableCell>
                             <TableCell>{getEntryTypeBadge(entry)}</TableCell>
-                            <TableCell className="text-slate-600">
+                            <TableCell className="text-muted-foreground">
                               {date.toLocaleDateString("en-US", { weekday: "long" })}
                             </TableCell>
                           </TableRow>
@@ -123,7 +123,7 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
                       })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center text-slate-500">
+                      <TableCell colSpan={3} className="text-center text-muted-foreground">
                         No clock entries found
                       </TableCell>
                     </TableRow>

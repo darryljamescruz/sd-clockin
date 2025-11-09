@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import CheckIn from '../models/CheckIn.js';
 import Student from '../models/Student.js';
 import Term from '../models/Term.js';
+import Shift from '../models/Shift.js';
 
 const router = express.Router();
 
@@ -73,7 +74,42 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
       isManual: isManual || false,
     });
 
-    await newCheckIn.save();
+    const savedCheckIn = await newCheckIn.save();
+
+    // Update or create shift
+    const checkInDate = new Date(savedCheckIn.timestamp);
+    // Create date at midnight UTC for consistent querying
+    const shiftDate = new Date(Date.UTC(checkInDate.getFullYear(), checkInDate.getMonth(), checkInDate.getDate()));
+    
+    console.log('Creating/finding shift for date:', shiftDate, 'from check-in:', savedCheckIn.timestamp);
+    
+    let shift = await Shift.findOne({
+      studentId: savedCheckIn.studentId,
+      termId: savedCheckIn.termId,
+      date: shiftDate,
+    });
+    
+    if (!shift) {
+      shift = new Shift({
+        studentId: savedCheckIn.studentId,
+        termId: savedCheckIn.termId,
+        date: shiftDate,
+        scheduledStart: checkInDate.toTimeString().slice(0, 5),
+        scheduledEnd: '23:59',
+        status: type === 'in' ? 'started' : 'scheduled',
+        source: 'manual',
+      });
+    }
+    
+    if (type === 'in') {
+      shift.status = 'started';
+      shift.actualStart = savedCheckIn.timestamp;
+    } else if (type === 'out') {
+      shift.status = 'completed';
+      shift.actualEnd = savedCheckIn.timestamp;
+    }
+    
+    await shift.save();
 
     res.status(201).json({
       id: newCheckIn._id,

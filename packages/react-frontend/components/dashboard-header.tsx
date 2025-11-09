@@ -39,12 +39,12 @@ export function DashboardHeader({
 }: DashboardHeaderProps) {
   return (
     <div className="flex justify-between items-center mb-6">
-      <h2 className="text-xl font-semibold text-slate-900">Attendance Dashboard</h2>
+      <h2 className="text-xl font-semibold text-foreground">Attendance Dashboard</h2>
       <div className="flex items-center gap-4">
         <TermSelector terms={terms} selectedTerm={selectedTerm} onTermChange={onTermChange} />
 
         {/* Day Navigation */}
-        <div className="flex items-center gap-2 bg-white/70 backdrop-blur-sm border border-slate-200 rounded-lg px-3 py-2">
+        <div className="flex items-center gap-2 bg-card/70 backdrop-blur-sm border rounded-lg px-3 py-2">
           <Button
             variant="ghost"
             size="sm"
@@ -55,7 +55,7 @@ export function DashboardHeader({
             <ChevronLeft className="w-4 h-4" />
           </Button>
 
-          <div className="text-sm font-medium text-slate-900 min-w-[120px] text-center">
+          <div className="text-sm font-medium text-foreground min-w-[120px] text-center">
             {selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </div>
 
@@ -74,7 +74,7 @@ export function DashboardHeader({
             size="sm"
             onClick={onToday}
             disabled={getTermStatus().status === "future"}
-            className="ml-2 h-7 text-xs bg-transparent"
+            className="ml-2 h-7 text-xs"
           >
             Today
           </Button>

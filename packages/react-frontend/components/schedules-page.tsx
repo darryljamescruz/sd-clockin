@@ -106,19 +106,19 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Manage Schedules</h2>
-            <p className="text-slate-600">Set student availability for each term</p>
+            <h2 className="text-2xl font-bold text-foreground">Manage Schedules</h2>
+            <p className="text-muted-foreground">Set student availability for each term</p>
           </div>
         </div>
       </div>
 
       {/* Term Selector */}
-      <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
-            <Calendar className="w-5 h-5 text-slate-600" />
+            <Calendar className="w-5 h-5 text-muted-foreground" />
             <div className="flex-1">
-              <Label className="text-sm font-medium text-slate-700 mb-2 block">Select Term</Label>
+              <Label className="text-sm font-medium text-foreground mb-2 block">Select Term</Label>
               <Select value={selectedTermId} onValueChange={setSelectedTermId}>
                 <SelectTrigger className="w-full max-w-md">
                   <SelectValue placeholder="Select a term" />
@@ -133,7 +133,7 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
               </Select>
             </div>
             {selectedTerm && (
-              <div className="text-sm text-slate-600">
+              <div className="text-sm text-muted-foreground">
                 {new Date(selectedTerm.startDate).toLocaleDateString()} -{" "}
                 {new Date(selectedTerm.endDate).toLocaleDateString()}
               </div>
@@ -143,36 +143,36 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
       </Card>
 
       {/* Overview Stats */}
-      <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-bold text-slate-900">{students.length}</div>
-              <div className="text-slate-600">Total Students</div>
+              <div className="text-2xl font-bold text-foreground">{students.length}</div>
+              <div className="text-muted-foreground">Total Students</div>
             </div>
-            <Users className="w-8 h-8 text-slate-600" />
+            <Users className="w-8 h-8 text-muted-foreground" />
           </div>
         </CardContent>
       </Card>
 
       {/* Students Table */}
       {!selectedTermId ? (
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-12 text-center">
-            <Calendar className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">Select a Term</h3>
-            <p className="text-slate-600">Choose a term to view and manage student schedules</p>
+            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">Select a Term</h3>
+            <p className="text-muted-foreground">Choose a term to view and manage student schedules</p>
           </CardContent>
         </Card>
       ) : isLoading ? (
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-12 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mx-auto mb-4"></div>
-            <p className="text-slate-600">Loading schedules...</p>
+            <p className="text-muted-foreground">Loading schedules...</p>
           </CardContent>
         </Card>
       ) : (
-        <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardHeader>
             <CardTitle>
               Student Schedules for {selectedTerm?.name} ({students.length} students)
@@ -197,12 +197,12 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
                       <TableCell className="font-medium">{student.name}</TableCell>
                       <TableCell>
                         {student.role === "Student Lead" ? (
-                          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Student Lead</Badge>
+                          <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-100">Student Lead</Badge>
                         ) : (
-                          <Badge className="bg-slate-100 text-slate-800 hover:bg-slate-100">Assistant</Badge>
+                          <Badge className="bg-secondary text-secondary-foreground hover:bg-slate-100">Assistant</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm text-slate-600">
+                      <TableCell className="text-sm text-muted-foreground">
                         {schedule?.availability ? (
                           <div className="space-y-1">
                             {Object.entries(schedule.availability).map(([day, blocks]) => 
@@ -213,11 +213,11 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
                               ) : null
                             )}
                             {Object.values(schedule.availability).every(blocks => blocks.length === 0) && (
-                              <span className="text-slate-400 italic">No schedule set</span>
+                              <span className="text-muted-foreground italic">No schedule set</span>
                             )}
                           </div>
                         ) : (
-                          <span className="text-slate-400 italic">No schedule set</span>
+                          <span className="text-muted-foreground italic">No schedule set</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -226,7 +226,7 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
                             size="sm"
                             variant="outline"
                             onClick={() => handleEditSchedule(student)}
-                            className="hover:bg-slate-50"
+                            className=""
                           >
                             <Edit className="w-3 h-3 mr-1" />
                             Edit

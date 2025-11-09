@@ -8,6 +8,14 @@ export interface Student {
   cardId: string;
   role: string;
   currentStatus: string;
+  expectedEndShift?: string | null; // Expected end shift time for today
+  weeklySchedule?: {
+    monday: string[];
+    tuesday: string[];
+    wednesday: string[];
+    thursday: string[];
+    friday: string[];
+  };
   clockEntries?: ClockEntry[];
   todayActual?: string | null; // Computed field for display
   todayExpected?: string; // Computed field for display

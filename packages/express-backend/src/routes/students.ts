@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import Student from '../models/Student.js';
 import Schedule from '../models/Schedule.js';
 import CheckIn from '../models/CheckIn.js';
+import Shift from '../models/Shift.js';
 
 const router = express.Router();
 
@@ -10,10 +11,16 @@ const router = express.Router();
 router.get('/', async (req: Request, res: Response): Promise<any> => {
   try {
     const { termId } = req.query;
-    const students = await Student.find({ status: { $ne: 'inactive' } }).lean();
+    // Admin panel (no termId): Get ALL students for management
+    // Dashboard (with termId): Get all students, compute clock-in status dynamically
+    const students = await Student.find({}).lean();
 
     // If termId is provided, get schedules and check-ins for that term
     if (termId) {
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
       const studentsWithData = await Promise.all(
         students.map(async (student) => {
           const schedule = await Schedule.findOne({
@@ -21,11 +28,78 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
             termId,
           }).lean();
 
+          // Get today's shift for this student (simplest approach using Shift model)
+          // Create date at midnight UTC for consistent querying
+          const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+          
+          console.log('Looking for shift on date:', today, 'for student:', student.name);
+          
+          const todayShift = await Shift.findOne({
+            studentId: student._id,
+            termId,
+            date: today,
+          }).lean();
+          
+          console.log('Found shift:', todayShift ? `status=${todayShift.status}` : 'none');
+
+          // Determine current status from shift
+          let currentStatus = 'off';
+          let todayActual: string | null = null;
+          let expectedEndShift: string | null = null;
+
+          if (todayShift) {
+            // Map shift status to frontend status
+            if (todayShift.status === 'scheduled') {
+              currentStatus = 'incoming'; // Expected to arrive
+            } else if (todayShift.status === 'started') {
+              currentStatus = 'present'; // Currently clocked in
+            } else if (todayShift.status === 'completed') {
+              currentStatus = 'clocked_out'; // Finished shift
+            } else if (todayShift.status === 'missed') {
+              currentStatus = 'absent'; // Didn't show up
+            }
+
+            // Get actual clock-in time
+            if (todayShift.actualStart) {
+              todayActual = new Date(todayShift.actualStart).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+              });
+            }
+
+            // Get expected end time
+            expectedEndShift = todayShift.scheduledEnd || null;
+          } else {
+            // Fallback: If no shift but there are check-ins today, compute status from check-ins
+            const todayCheckIns = await CheckIn.find({
+              studentId: student._id,
+              termId,
+              timestamp: { $gte: startOfDay, $lte: endOfDay }
+            }).sort({ timestamp: -1 }).lean();
+
+            if (todayCheckIns.length > 0) {
+              const lastCheckIn = todayCheckIns[0];
+              if (lastCheckIn.type === 'in') {
+                currentStatus = 'present'; // Currently clocked in
+                todayActual = new Date(lastCheckIn.timestamp).toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true,
+                });
+              } else if (lastCheckIn.type === 'out') {
+                currentStatus = 'clocked_out'; // Already clocked out
+              }
+            }
+          }
+
+          // Get all check-ins for historical data (limited for performance)
           const checkIns = await CheckIn.find({
             studentId: student._id,
             termId,
           })
             .sort({ timestamp: -1 })
+            .limit(50)
             .lean();
 
           return {
@@ -33,15 +107,16 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
             name: student.name,
             cardId: student.iso,
             role: student.role,
-            currentStatus: student.status,
+            currentStatus,
+            todayActual,
+            expectedEndShift,
             weeklySchedule: schedule?.availability || {
               monday: [],
               tuesday: [],
               wednesday: [],
               thursday: [],
               friday: [],
-              saturday: [],
-              sunday: [],
+
             },
             clockEntries: checkIns.map((entry) => ({
               timestamp: entry.timestamp,
