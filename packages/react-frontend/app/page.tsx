@@ -134,24 +134,9 @@ export default function HomePage() {
         isManual,
       })
 
-      // Update local state
-      setStaffData((prev) =>
-        prev.map((staff) => {
-          if (staff.id === staffId) {
-            const newEntry = {
-              timestamp: new Date().toISOString(),
-              type,
-              isManual,
-            }
-            return {
-              ...staff,
-              clockEntries: [...(staff.clockEntries || []), newEntry],
-              currentStatus: type === "in" ? "present" : "absent",
-            }
-          }
-          return staff
-        }),
-      )
+      // Re-fetch all students to get accurate computed status from backend
+      const students = await api.students.getAll(currentTerm.id)
+      setStaffData(students)
     } catch (err) {
       console.error("Error recording clock entry:", err)
       setClockInMessage("Failed to record check-in. Please try again.")
@@ -165,7 +150,19 @@ export default function HomePage() {
   }
 
   const handleCardSwipe = async (cardData: string) => {
-    const staff = staffData.find((s) => s.cardId === cardData.toUpperCase())
+    // Parse the magnetic stripe data - ISO number is the second number after semicolon
+    // Format: %FIRST_NUMBER^NAME?;ISO_NUMBER?
+    let isoNumber = cardData
+    
+    if (cardData.includes(';')) {
+      // Extract ISO number after the semicolon
+      const match = cardData.match(/;(\d+)/)
+      if (match && match[1]) {
+        isoNumber = match[1]
+      }
+    }
+    
+    const staff = staffData.find((s) => s.cardId?.toUpperCase() === isoNumber.toUpperCase())
 
     if (staff) {
       const isCurrentlyPresent = staff.currentStatus === "present"
@@ -231,7 +228,7 @@ export default function HomePage() {
   }
 
   const clockedInUsers = staffData.filter((staff) => staff.currentStatus === "present")
-  const expectedArrivals = staffData.filter((staff) => staff.currentStatus === "expected")
+  const expectedArrivals = staffData.filter((staff) => staff.currentStatus === "incoming")
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-6">

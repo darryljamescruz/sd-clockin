@@ -11,51 +11,6 @@ interface ClockedInTableProps {
 }
 
 export function ClockedInTable({ clockedInUsers }: ClockedInTableProps) {
-  const getTodaySchedule = (staff: Student, date = new Date()) => {
-    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
-    const dayName = dayNames[date.getDay()]
-    return staff.weeklySchedule?.[dayName] || []
-  }
-
-  const getShiftEndTime = (staff: Student) => {
-    const todaySchedule = getTodaySchedule(staff)
-    if (todaySchedule.length === 0) return "No schedule"
-
-    const clockInTime = staff.todayActual
-    if (!clockInTime) return "No schedule"
-
-    const clockInMinutes = timeToMinutes(clockInTime)
-
-    for (const shift of todaySchedule) {
-      const [startTime, endTime] = shift.split("-").map((t) => t.trim())
-      const shiftStartMinutes = timeToMinutes(convertTo12Hour(startTime))
-      const shiftEndMinutes = timeToMinutes(convertTo12Hour(endTime))
-
-      if (clockInMinutes >= shiftStartMinutes - 30 && clockInMinutes <= shiftEndMinutes) {
-        return convertTo12Hour(endTime)
-      }
-    }
-
-    const lastShift = todaySchedule[todaySchedule.length - 1]
-    const endTime = lastShift.split("-")[1]?.trim()
-    return endTime ? convertTo12Hour(endTime) : "No schedule"
-  }
-
-  const timeToMinutes = (timeStr: string) => {
-    if (!timeStr) return 0
-    const [time, period] = timeStr.split(" ")
-    const [hours, minutes] = time.split(":").map(Number)
-    let totalMinutes = hours * 60 + (minutes || 0)
-
-    if (period === "PM" && hours !== 12) {
-      totalMinutes += 12 * 60
-    } else if (period === "AM" && hours === 12) {
-      totalMinutes -= 12 * 60
-    }
-
-    return totalMinutes
-  }
-
   const convertTo12Hour = (timeStr: string) => {
     if (!timeStr) return ""
 
@@ -63,11 +18,21 @@ export function ClockedInTable({ clockedInUsers }: ClockedInTableProps) {
       return timeStr
     }
 
-    const hour = Number.parseInt(timeStr)
-    if (hour === 0) return "12:00 AM"
-    if (hour < 12) return `${hour}:00 AM`
-    if (hour === 12) return "12:00 PM"
-    return `${hour - 12}:00 PM`
+    const [hours, minutes] = timeStr.split(':')
+    const hour = Number.parseInt(hours)
+    const mins = minutes || '00'
+    
+    if (hour === 0) return `12:${mins} AM`
+    if (hour < 12) return `${hour}:${mins} AM`
+    if (hour === 12) return `12:${mins} PM`
+    return `${hour - 12}:${mins} PM`
+  }
+
+  const getShiftEndTime = (staff: Student) => {
+    if (staff.expectedEndShift) {
+      return convertTo12Hour(staff.expectedEndShift)
+    }
+    return "No schedule"
   }
 
   const getRoleBadge = (role: string) => {

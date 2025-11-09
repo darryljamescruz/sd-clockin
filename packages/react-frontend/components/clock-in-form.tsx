@@ -69,7 +69,7 @@ export function ClockInForm({ isOpen, onToggle, onClockIn, staffData, mode, titl
     onToggle()
   }
 
-  const handleStaffSelect = (staff: Staff) => {
+  const handleStaffSelect = (staff: Student) => {
     setSelectedStaff(staff)
     setSearchTerm(staff.name)
     setShowDropdown(false)

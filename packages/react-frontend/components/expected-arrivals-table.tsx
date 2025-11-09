@@ -29,8 +29,8 @@ export function ExpectedArrivalsTable({ expectedArrivals }: ExpectedArrivalsTabl
     }
   }
 
-  const getTodaySchedule = (staff: Staff, date = new Date()) => {
-    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+  const getTodaySchedule = (staff: Student, date = new Date()) => {
+    const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday"]
     const dayName = dayNames[date.getDay()]
     return staff.weeklySchedule?.[dayName] || []
   }
