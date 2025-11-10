@@ -226,10 +226,10 @@ export const importAPI = {
     summary: {
       totalRows: number;
       matched: number;
-      unmatched: number;
+      willCreate: number;
     };
     matchedStudents: any[];
-    unmatchedStudents: any[];
+    studentsToCreate: any[];
   }> => {
     return fetchAPI('/import/preview', {
       method: 'POST',
@@ -244,12 +244,13 @@ export const importAPI = {
     summary: {
       totalProcessed: number;
       saved: number;
+      matched: number;
+      created: number;
       errors: number;
-      unmatched: number;
     };
     savedSchedules: any[];
+    createdStudents: any[];
     errors: any[];
-    unmatchedStudents: any[];
   }> => {
     return fetchAPI('/import/schedules', {
       method: 'POST',

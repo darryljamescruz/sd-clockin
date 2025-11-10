@@ -77,7 +77,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <Clock className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">TimeSync</span>
+                  <span className="truncate font-semibold">ClockedIN</span>
                   <span className="truncate text-xs">Admin Dashboard</span>
                 </div>
               </a>

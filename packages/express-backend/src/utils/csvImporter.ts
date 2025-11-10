@@ -169,7 +169,15 @@ export function parseTeamsCSV(csvContent: string): ProcessedSchedule[] {
 }
 
 /**
- * Match processed schedules to existing students by name
+ * Extract first name from full name
+ */
+function getFirstName(fullName: string): string {
+  return fullName.trim().split(/\s+/)[0].toLowerCase();
+}
+
+/**
+ * Match processed schedules to existing students by first name
+ * More flexible matching that handles name variations
  */
 export function matchStudentsByName(
   processedSchedules: ProcessedSchedule[],
@@ -182,10 +190,13 @@ export function matchStudentsByName(
   matched: boolean;
 }> {
   return processedSchedules.map(schedule => {
-    // Try to find matching student by name (case-insensitive, trim whitespace)
-    const matchedStudent = existingStudents.find(
-      s => s.name.toLowerCase().trim() === schedule.name.toLowerCase().trim()
-    );
+    const csvFirstName = getFirstName(schedule.name);
+    
+    // Try to find matching student by first name (case-insensitive)
+    const matchedStudent = existingStudents.find(s => {
+      const existingFirstName = getFirstName(s.name);
+      return existingFirstName === csvFirstName;
+    });
     
     return {
       studentId: matchedStudent?.id || '',

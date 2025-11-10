@@ -203,29 +203,32 @@ export function CSVImport({ termId, onImportComplete }: CSVImportProps) {
         {isPreviewOpen && previewData && (
           <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
             <h3 className="font-semibold text-foreground">Preview Results</h3>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Badge variant="secondary">
                 Total: {previewData.summary.totalRows}
               </Badge>
               <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400">
                 <CheckCircle className="w-3 h-3 mr-1" />
-                Matched: {previewData.summary.matched}
+                Existing: {previewData.summary.matched}
               </Badge>
-              <Badge variant="destructive">
-                <XCircle className="w-3 h-3 mr-1" />
-                Unmatched: {previewData.summary.unmatched}
-              </Badge>
+              {previewData.summary.willCreate > 0 && (
+                <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400">
+                  <Upload className="w-3 h-3 mr-1" />
+                  Will Create: {previewData.summary.willCreate}
+                </Badge>
+              )}
             </div>
 
-            {previewData.unmatchedStudents.length > 0 && (
-              <Alert variant="destructive">
-                <AlertTriangle className="w-4 h-4" />
+            {previewData.studentsToCreate && previewData.studentsToCreate.length > 0 && (
+              <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                <Upload className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <AlertDescription>
-                  <strong>Unmatched students:</strong>{" "}
-                  {previewData.unmatchedStudents.map((s: any) => s.csvName).join(", ")}
+                  <strong className="text-blue-800 dark:text-blue-300">New students will be created:</strong>{" "}
+                  {previewData.studentsToCreate.map((s: any) => s.csvName).join(", ")}
                   <br />
-                  <span className="text-xs mt-1 block">
-                    These students will be skipped. Please ensure their names match exactly.
+                  <span className="text-xs mt-1 block text-blue-700 dark:text-blue-300">
+                    These students will be added to the system with placeholder card IDs (role: Assistant).
+                    You can update their details later in the Students page.
                   </span>
                 </AlertDescription>
               </Alert>
@@ -241,15 +244,21 @@ export function CSVImport({ termId, onImportComplete }: CSVImportProps) {
               <strong className="text-green-800 dark:text-green-300">
                 {importResult.message}
               </strong>
-              <div className="mt-2 space-y-1 text-sm">
-                <div>✅ Saved: {importResult.summary.saved} students</div>
-                {importResult.summary.errors > 0 && (
-                  <div className="text-red-600">⚠️ Errors: {importResult.summary.errors}</div>
+              <div className="mt-2 space-y-1 text-sm text-green-700 dark:text-green-300">
+                <div>✅ Total Saved: {importResult.summary.saved} schedules</div>
+                <div>👤 Existing Students: {importResult.summary.matched}</div>
+                {importResult.summary.created > 0 && (
+                  <div>🆕 New Students Created: {importResult.summary.created}</div>
                 )}
-                {importResult.summary.unmatched > 0 && (
-                  <div className="text-yellow-600">⚠️ Unmatched: {importResult.summary.unmatched}</div>
+                {importResult.summary.errors > 0 && (
+                  <div className="text-red-600 dark:text-red-400">⚠️ Errors: {importResult.summary.errors}</div>
                 )}
               </div>
+              {importResult.createdStudents && importResult.createdStudents.length > 0 && (
+                <div className="mt-2 text-xs text-blue-700 dark:text-blue-300">
+                  <strong>New students:</strong> {importResult.createdStudents.map((s: any) => s.studentName).join(", ")}
+                </div>
+              )}
             </AlertDescription>
           </Alert>
         )}

@@ -30,7 +30,7 @@ router.post('/preview', async (req: Request, res: Response): Promise<any> => {
     // Match by name
     const matched = matchStudentsByName(processedSchedules, studentsSimple);
 
-    // Separate matched and unmatched
+    // Separate matched and unmatched (unmatched will be created)
     const matchedStudents = matched.filter(m => m.matched);
     const unmatchedStudents = matched.filter(m => !m.matched);
 
@@ -39,10 +39,10 @@ router.post('/preview', async (req: Request, res: Response): Promise<any> => {
       summary: {
         totalRows: processedSchedules.length,
         matched: matchedStudents.length,
-        unmatched: unmatchedStudents.length,
+        willCreate: unmatchedStudents.length,
       },
       matchedStudents,
-      unmatchedStudents,
+      studentsToCreate: unmatchedStudents,
     });
   } catch (error) {
     console.error('Error previewing CSV import:', error);
@@ -82,27 +82,45 @@ router.post('/schedules', async (req: Request, res: Response): Promise<any> => {
     // Match by name
     const matched = matchStudentsByName(processedSchedules, studentsSimple);
 
-    // Filter only matched students
-    const matchedStudents = matched.filter(m => m.matched);
-
-    if (matchedStudents.length === 0) {
-      return res.status(400).json({ 
-        message: 'No students could be matched. Please ensure student emails are registered in the system.' 
-      });
-    }
-
-    // Save schedules for matched students
+    // Process all students (matched and unmatched)
     const savedSchedules = [];
+    const createdStudents = [];
     const errors = [];
 
-    for (const matchedStudent of matchedStudents) {
+    for (const student of matched) {
       try {
+        let studentId = student.studentId;
+
+        // If student doesn't exist, create them
+        if (!student.matched) {
+          console.log(`Creating new student: ${student.csvName}`);
+          
+          // Generate a placeholder card ID (can be updated later)
+          const placeholderCardId = `TEMP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          
+          const newStudent = new Student({
+            name: student.csvName,
+            iso: placeholderCardId,
+            role: 'Assistant', // Default role, can be updated later
+            status: 'active',
+          });
+
+          await newStudent.save();
+          studentId = (newStudent._id as any).toString();
+
+          createdStudents.push({
+            studentId,
+            studentName: student.csvName,
+            cardId: placeholderCardId,
+          });
+        }
+
         // Normalize availability (already normalized in CSV parser, but double-check)
-        const normalizedAvailability = normalizeSchedule(matchedStudent.availability);
+        const normalizedAvailability = normalizeSchedule(student.availability);
 
         // Find or create schedule
         let schedule = await Schedule.findOne({ 
-          studentId: matchedStudent.studentId, 
+          studentId, 
           termId 
         });
 
@@ -111,7 +129,7 @@ router.post('/schedules', async (req: Request, res: Response): Promise<any> => {
           await schedule.save();
         } else {
           schedule = new Schedule({
-            studentId: matchedStudent.studentId,
+            studentId,
             termId,
             availability: normalizedAvailability,
           });
@@ -119,29 +137,34 @@ router.post('/schedules', async (req: Request, res: Response): Promise<any> => {
         }
 
         savedSchedules.push({
-          studentId: matchedStudent.studentId,
-          studentName: matchedStudent.studentName,
+          studentId,
+          studentName: student.studentName,
+          wasCreated: !student.matched,
         });
       } catch (error) {
         errors.push({
-          studentName: matchedStudent.studentName,
+          studentName: student.studentName,
           error: (error as Error).message,
         });
       }
     }
 
+    const createdCount = createdStudents.length;
+    const matchedCount = savedSchedules.length - createdCount;
+
     res.status(201).json({
       success: true,
-      message: `Successfully imported schedules for ${savedSchedules.length} students`,
+      message: `Successfully imported schedules for ${savedSchedules.length} students (${matchedCount} existing, ${createdCount} new)`,
       summary: {
         totalProcessed: processedSchedules.length,
         saved: savedSchedules.length,
+        matched: matchedCount,
+        created: createdCount,
         errors: errors.length,
-        unmatched: matched.filter(m => !m.matched).length,
       },
       savedSchedules,
+      createdStudents,
       errors,
-      unmatchedStudents: matched.filter(m => !m.matched),
     });
   } catch (error) {
     console.error('Error importing schedules:', error);

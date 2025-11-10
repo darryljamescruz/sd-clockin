@@ -240,7 +240,7 @@ export default function HomePage() {
               <Clock className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">TimeSync</h1>
+              <h1 className="text-2xl font-bold text-foreground">ClockedIn</h1>
               <p className="text-muted-foreground text-sm">IT Service Desk Clock-In System</p>
             </div>
           </div>
