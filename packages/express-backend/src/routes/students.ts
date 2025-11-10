@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import Student from '../models/Student.js';
-import Schedule from '../models/Schedule.js';
+import Schedule, { ISchedule } from '../models/Schedule.js';
 import CheckIn from '../models/CheckIn.js';
 import Shift from '../models/Shift.js';
 
@@ -85,37 +85,74 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
           }
 
           // If still 'off', check weekly schedule for expected arrivals
+          console.log('=== Checking expected arrivals for:', student.name);
+          console.log('Current status:', currentStatus);
+          console.log('Has schedule?', !!schedule);
+          
           if (currentStatus === 'off' && schedule) {
-            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
-            const dayName = dayNames[now.getDay()] as keyof typeof schedule.availability;
-            const todaySchedule = schedule.availability[dayName] || [];
+            // Map getDay() (0=Sunday, 1=Monday...6=Saturday) to weekday names
+            const dayOfWeek = now.getDay(); // 0-6
+            const dayNames: Record<number, keyof ISchedule['availability'] | null> = {
+              0: null, // Sunday - no schedule
+              1: 'monday',
+              2: 'tuesday',
+              3: 'wednesday',
+              4: 'thursday',
+              5: 'friday',
+              6: null, // Saturday - no schedule
+            };
+            const dayName = dayNames[dayOfWeek];
+            
+            console.log('Day of week:', dayOfWeek, '(', dayName || 'weekend', ')');
+            console.log('Schedule availability keys:', Object.keys(schedule.availability));
+            
+            // Only check if it's a weekday
+            const todaySchedule = dayName ? (schedule.availability[dayName] || []) : [];
+
+            console.log('Today schedule:', todaySchedule);
 
             // Check if any shift starts within the next 3 hours
             const currentHour = now.getHours();
             const currentMinute = now.getMinutes();
             const currentTotalMinutes = currentHour * 60 + currentMinute;
+            
+            console.log('Current time:', `${currentHour}:${currentMinute}`, '(', currentTotalMinutes, 'minutes)');
 
             for (const shiftBlock of todaySchedule) {
+              console.log('Processing shift block:', shiftBlock);
+              
               // Parse shift block (e.g., "08:00-12:00")
               const [startTime, endTime] = shiftBlock.split('-');
-              if (!startTime || !endTime) continue;
+              if (!startTime || !endTime) {
+                console.log('Invalid shift block format');
+                continue;
+              }
 
               const [startHourStr, startMinuteStr] = startTime.trim().split(':');
               const shiftStartHour = parseInt(startHourStr, 10);
               const shiftStartMinute = parseInt(startMinuteStr, 10);
               const shiftStartTotalMinutes = shiftStartHour * 60 + shiftStartMinute;
 
+              console.log('Shift start time:', `${shiftStartHour}:${shiftStartMinute}`, '(', shiftStartTotalMinutes, 'minutes)');
+
               // Check if shift starts within next 3 hours (180 minutes)
               const minutesUntilShift = shiftStartTotalMinutes - currentTotalMinutes;
+              
+              console.log('Minutes until shift:', minutesUntilShift);
+              console.log('Is within 3 hours?', minutesUntilShift >= 0 && minutesUntilShift <= 180);
 
               if (minutesUntilShift >= 0 && minutesUntilShift <= 180) {
                 currentStatus = 'incoming'; // Expected to arrive within 3 hours
                 expectedStartShift = startTime.trim();
                 expectedEndShift = endTime.trim();
+                console.log('✓ Setting as INCOMING with shift:', expectedStartShift, '-', expectedEndShift);
                 break; // Use the first matching shift
               }
             }
           }
+          
+          console.log('Final status for', student.name, ':', currentStatus);
+          console.log('---');
 
           // Get all check-ins for historical data (limited for performance)
           const checkIns = await CheckIn.find({
@@ -141,7 +178,6 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
               wednesday: [],
               thursday: [],
               friday: [],
-
             },
             clockEntries: checkIns.map((entry) => ({
               timestamp: entry.timestamp,
