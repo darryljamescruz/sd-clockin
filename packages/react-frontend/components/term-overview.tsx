@@ -211,20 +211,37 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
   }
 
   const getTodayScheduleForDate = (staff, date) => {
-    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+    const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday"]
     const dayName = dayNames[date.getDay()]
     return staff.weeklySchedule?.[dayName] || []
   }
 
   const getExpectedStartTimeFromSchedule = (scheduleBlock) => {
     if (!scheduleBlock) return null
-    const startTime = scheduleBlock.split("-")[0].trim()
+    let startTime = scheduleBlock.split("-")[0].trim()
 
-    // Convert to standard format if needed
-    if (startTime.includes(":")) {
-      return startTime.includes("AM") || startTime.includes("PM") ? startTime : startTime + " AM"
+    // Normalize to uppercase for consistency
+    const upperTime = startTime.toUpperCase()
+    
+    // Check if it has a colon (has minutes)
+    const hasMinutes = startTime.includes(":")
+    
+    // Check if it already has AM/PM (case insensitive)
+    const hasAMPM = upperTime.includes("AM") || upperTime.includes("PM")
+    
+    if (hasAMPM) {
+      // Standardize: ensure space before AM/PM, uppercase, and add :00 if no minutes
+      let normalized = startTime.replace(/([ap]m)/gi, (match) => ` ${match.toUpperCase()}`)
+        .replace(/\s+/g, ' ') // Remove any duplicate spaces
+      
+      // If no colon, add :00 for minutes
+      if (!hasMinutes) {
+        // Insert :00 before the space and AM/PM
+        normalized = normalized.replace(/\s(AM|PM)/, ':00 $1')
+      }
+      return normalized
     } else {
-      // Convert 24-hour to 12-hour format
+      // No AM/PM, assume it's 24-hour format
       const hour = Number.parseInt(startTime)
       if (hour === 0) return "12:00 AM"
       if (hour < 12) return `${hour}:00 AM`
@@ -235,14 +252,31 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
 
   const getExpectedEndTimeFromSchedule = (scheduleBlock) => {
     if (!scheduleBlock) return null
-    const endTime = scheduleBlock.split("-")[1]?.trim()
+    let endTime = scheduleBlock.split("-")[1]?.trim()
     if (!endTime) return null
 
-    // Convert to standard format if needed
-    if (endTime.includes(":")) {
-      return endTime.includes("AM") || endTime.includes("PM") ? endTime : endTime + " PM"
+    // Normalize to uppercase for consistency
+    const upperTime = endTime.toUpperCase()
+    
+    // Check if it has a colon (has minutes)
+    const hasMinutes = endTime.includes(":")
+    
+    // Check if it already has AM/PM (case insensitive)
+    const hasAMPM = upperTime.includes("AM") || upperTime.includes("PM")
+    
+    if (hasAMPM) {
+      // Standardize: ensure space before AM/PM, uppercase, and add :00 if no minutes
+      let normalized = endTime.replace(/([ap]m)/gi, (match) => ` ${match.toUpperCase()}`)
+        .replace(/\s+/g, ' ') // Remove any duplicate spaces
+      
+      // If no colon, add :00 for minutes
+      if (!hasMinutes) {
+        // Insert :00 before the space and AM/PM
+        normalized = normalized.replace(/\s(AM|PM)/, ':00 $1')
+      }
+      return normalized
     } else {
-      // Convert 24-hour to 12-hour format
+      // No AM/PM, assume it's 24-hour format
       const hour = Number.parseInt(endTime)
       if (hour === 0) return "12:00 AM"
       if (hour < 12) return `${hour}:00 AM`
