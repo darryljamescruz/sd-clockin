@@ -211,8 +211,13 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
   }
 
   const getTodayScheduleForDate = (staff, date) => {
-    const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday"]
+    // Map getDay() (0=Sunday, 1=Monday...6=Saturday) to schedule keys
+    // Weekends (0=Sunday, 6=Saturday) return null
+    const dayNames = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null]
     const dayName = dayNames[date.getDay()]
+    
+    // Return empty array for weekends or if no schedule exists
+    if (!dayName) return []
     return staff.weeklySchedule?.[dayName] || []
   }
 
