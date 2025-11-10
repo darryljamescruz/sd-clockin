@@ -32,49 +32,22 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
           // Create date at midnight UTC for consistent querying
           const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
           
-          console.log('Looking for shift on date:', today, 'for student:', student.name);
-          
           const todayShift = await Shift.findOne({
             studentId: student._id,
             termId,
             date: today,
           }).lean();
-          
-          console.log('Found shift:', todayShift ? `status=${todayShift.status}` : 'none');
 
-          // Determine current status from shift
+          // Determine current status from shift and schedule
           let currentStatus = 'off';
           let todayActual: string | null = null;
           let expectedStartShift: string | null = null;
           let expectedEndShift: string | null = null;
 
+          // First check if there's an actual shift record (clocked in)
           if (todayShift) {
             // Map shift status to frontend status
-            if (todayShift.status === 'scheduled') {
-              // Only mark as "incoming" if shift starts within the next 3 hours
-              if (todayShift.scheduledStart) {
-                const [hourStr, minuteStr] = todayShift.scheduledStart.split(':');
-                const shiftStartHour = parseInt(hourStr, 10);
-                const shiftStartMinute = parseInt(minuteStr, 10);
-                
-                const currentHour = now.getHours();
-                const currentMinute = now.getMinutes();
-                const currentTotalMinutes = currentHour * 60 + currentMinute;
-                const shiftStartTotalMinutes = shiftStartHour * 60 + shiftStartMinute;
-                
-                // Check if shift starts within next 3 hours (180 minutes)
-                const minutesUntilShift = shiftStartTotalMinutes - currentTotalMinutes;
-                
-                if (minutesUntilShift >= 0 && minutesUntilShift <= 180) {
-                  currentStatus = 'incoming'; // Expected to arrive within 3 hours
-                } else {
-                  currentStatus = 'off'; // Shift not starting soon
-                }
-              } else {
-                // If no scheduled start time, show as off
-                currentStatus = 'off';
-              }
-            } else if (todayShift.status === 'started') {
+            if (todayShift.status === 'started') {
               currentStatus = 'present'; // Currently clocked in
             } else if (todayShift.status === 'completed') {
               currentStatus = 'clocked_out'; // Finished shift
@@ -87,11 +60,13 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
               todayActual = todayShift.actualStart.toISOString();
             }
 
-            // Get expected start and end times
+            // Get expected start and end times from shift
             expectedStartShift = todayShift.scheduledStart || null;
             expectedEndShift = todayShift.scheduledEnd || null;
-          } else {
-            // Fallback: If no shift but there are check-ins today, compute status from check-ins
+          }
+
+          // If not clocked in yet, check fallback: manual check-ins without shift
+          if (currentStatus === 'off') {
             const todayCheckIns = await CheckIn.find({
               studentId: student._id,
               termId,
@@ -102,10 +77,42 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
               const lastCheckIn = todayCheckIns[0];
               if (lastCheckIn.type === 'in') {
                 currentStatus = 'present'; // Currently clocked in
-                // Return as ISO string, let frontend format in user's timezone
                 todayActual = lastCheckIn.timestamp.toISOString();
               } else if (lastCheckIn.type === 'out') {
                 currentStatus = 'clocked_out'; // Already clocked out
+              }
+            }
+          }
+
+          // If still 'off', check weekly schedule for expected arrivals
+          if (currentStatus === 'off' && schedule) {
+            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+            const dayName = dayNames[now.getDay()] as keyof typeof schedule.availability;
+            const todaySchedule = schedule.availability[dayName] || [];
+
+            // Check if any shift starts within the next 3 hours
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentTotalMinutes = currentHour * 60 + currentMinute;
+
+            for (const shiftBlock of todaySchedule) {
+              // Parse shift block (e.g., "08:00-12:00")
+              const [startTime, endTime] = shiftBlock.split('-');
+              if (!startTime || !endTime) continue;
+
+              const [startHourStr, startMinuteStr] = startTime.trim().split(':');
+              const shiftStartHour = parseInt(startHourStr, 10);
+              const shiftStartMinute = parseInt(startMinuteStr, 10);
+              const shiftStartTotalMinutes = shiftStartHour * 60 + shiftStartMinute;
+
+              // Check if shift starts within next 3 hours (180 minutes)
+              const minutesUntilShift = shiftStartTotalMinutes - currentTotalMinutes;
+
+              if (minutesUntilShift >= 0 && minutesUntilShift <= 180) {
+                currentStatus = 'incoming'; // Expected to arrive within 3 hours
+                expectedStartShift = startTime.trim();
+                expectedEndShift = endTime.trim();
+                break; // Use the first matching shift
               }
             }
           }

@@ -325,7 +325,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     if (status === "not-clocked-in") {
       return <span className="text-muted-foreground">—</span>
     }
-    
+
     const config = statusConfig[status] || statusConfig["absent"]
     return <Badge className={`${config.color} hover:${config.color}`}>{config.label}</Badge>
   }
