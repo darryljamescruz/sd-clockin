@@ -117,12 +117,17 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
             console.log('Today schedule:', todaySchedule);
 
             if (todaySchedule.length > 0) {
-              // Get the clock-in time in minutes (in server's local timezone)
+              // Get the clock-in time in minutes (convert UTC to PST/PDT: UTC-8 or UTC-7)
               const clockInTime = new Date(todayActual);
-              const clockInMinutes = clockInTime.getHours() * 60 + clockInTime.getMinutes();
-              console.log('Clock-in time (local):', clockInTime.toString());
-              console.log('Clock-in hours:', clockInTime.getHours(), 'minutes:', clockInTime.getMinutes());
-              console.log('Clock-in total minutes:', clockInMinutes);
+              
+              // Get the time in PST by using toLocaleString with America/Los_Angeles timezone
+              const pstTime = new Date(clockInTime.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+              const clockInMinutes = pstTime.getHours() * 60 + pstTime.getMinutes();
+              
+              console.log('Clock-in time (UTC):', clockInTime.toISOString());
+              console.log('Clock-in time (PST):', pstTime.toString());
+              console.log('Clock-in hours (PST):', pstTime.getHours(), 'minutes:', pstTime.getMinutes());
+              console.log('Clock-in total minutes (PST):', clockInMinutes);
 
               // Find the shift they clocked into (allow up to 30 minutes early)
               for (const shiftBlock of todaySchedule) {
@@ -169,8 +174,11 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
           console.log('Has schedule?', !!schedule);
           
           if (currentStatus === 'off' && schedule) {
+            // Convert current time to PST for comparison with schedules
+            const nowPST = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+            
             // Map getDay() (0=Sunday, 1=Monday...6=Saturday) to weekday names
-            const dayOfWeek = now.getDay(); // 0-6
+            const dayOfWeek = nowPST.getDay(); // 0-6
             const dayNames: Record<number, keyof ISchedule['availability'] | null> = {
               0: null, // Sunday - no schedule
               1: 'monday',
@@ -182,7 +190,9 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
             };
             const dayName = dayNames[dayOfWeek];
             
-            console.log('Day of week:', dayOfWeek, '(', dayName || 'weekend', ')');
+            console.log('Server time (UTC):', now.toString());
+            console.log('Current time (PST):', nowPST.toString());
+            console.log('Day of week (PST):', dayOfWeek, '(', dayName || 'weekend', ')');
             console.log('Schedule availability keys:', Object.keys(schedule.availability));
             
             // Only check if it's a weekday
@@ -190,12 +200,12 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
 
             console.log('Today schedule:', todaySchedule);
 
-            // Check if any shift starts within the next 3 hours
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
+            // Check if any shift starts within the next 3 hours (use PST time)
+            const currentHour = nowPST.getHours();
+            const currentMinute = nowPST.getMinutes();
             const currentTotalMinutes = currentHour * 60 + currentMinute;
             
-            console.log('Current time:', `${currentHour}:${currentMinute}`, '(', currentTotalMinutes, 'minutes)');
+            console.log('Current time (PST):', `${currentHour}:${currentMinute}`, '(', currentTotalMinutes, 'minutes)');
 
             for (const shiftBlock of todaySchedule) {
               console.log('Processing shift block:', shiftBlock);
