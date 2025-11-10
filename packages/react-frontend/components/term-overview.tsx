@@ -90,7 +90,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
           })
 
           const clockInEntry = shiftClockIns[0] // First relevant clock-in for this shift
-          let status = "not-clocked-in" // Default to not clocked in yet
+          let status = "incoming" // Default to incoming (shift hasn't started)
           let actualTime = null
           let isManual = false
 
@@ -102,29 +102,39 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
             })
             isManual = clockInEntry.isManual || false
 
-            // Calculate if early, on-time, or late for this specific shift
+            // Calculate status based on how late they are
             if (shiftStartTime) {
               const expectedMinutes = timeToMinutes(shiftStartTime)
               const actualMinutes =
                 new Date(clockInEntry.timestamp).getHours() * 60 + new Date(clockInEntry.timestamp).getMinutes()
               const diffMinutes = actualMinutes - expectedMinutes
 
-              if (diffMinutes < -5) status = "early"
-              else if (diffMinutes <= 5) status = "on-time"
-              else status = "late"
+              // "late" = 10+ minutes late, otherwise "present"
+              if (diffMinutes >= 10) {
+                status = "late"
+              } else {
+                status = "present" // Includes early, on-time, and <10 min late
+              }
             } else {
-              status = "on-time" // If no expected time, consider present as on-time
+              status = "present" // If no expected time, consider present
             }
           } else {
-            // Only mark as absent if shift has started and it's been >10 minutes
+            // Check if shift has started and how long it's been
             if (shiftStartTime) {
               const now = new Date()
               const startMinutes = timeToMinutes(shiftStartTime)
               const nowMinutes = now.getHours() * 60 + now.getMinutes()
+              const minutesLate = nowMinutes - startMinutes
               
-              // Only mark absent if it's past the shift start time by more than 10 minutes
-              if (nowMinutes > startMinutes + 10) {
+              // "incoming" = shift hasn't started yet
+              // "absent" = shift started over 1 hour ago and they haven't shown up
+              if (minutesLate < 0) {
+                status = "incoming"
+              } else if (minutesLate >= 60) {
                 status = "absent"
+              } else {
+                // Between 0-60 minutes: still waiting for them
+                status = "incoming"
               }
             }
           }
@@ -313,16 +323,15 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { color: string; label: string }> = {
-      early: { color: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400", label: "Early" },
-      "on-time": { color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400", label: "On Time" },
-      late: { color: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400", label: "Late" },
-      absent: { color: "bg-secondary text-secondary-foreground", label: "Absent" },
+      incoming: { color: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400", label: "Incoming" },
+      present: { color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400", label: "Present" },
+      late: { color: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400", label: "Late" },
+      absent: { color: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400", label: "Absent" },
       "not-scheduled": { color: "bg-muted text-muted-foreground", label: "Not Scheduled" },
-      "not-clocked-in": { color: "", label: "" }, // Don't show a badge for not clocked in yet
     }
 
-    // For not-clocked-in, return empty dash instead of badge
-    if (status === "not-clocked-in") {
+    // For incoming (shift not started), return empty dash instead of badge
+    if (status === "incoming") {
       return <span className="text-muted-foreground">—</span>
     }
 

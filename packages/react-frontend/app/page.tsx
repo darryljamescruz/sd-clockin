@@ -249,20 +249,35 @@ export default function HomePage() {
       return a.name.localeCompare(b.name)
     })
 
-  // Sort expected arrivals: alphabetical, non-scheduled at bottom
+  // Sort expected arrivals: by shift start time (chronological), then by first name
   const expectedArrivals = staffData
     .filter((staff) => staff.currentStatus === "incoming")
     .sort((a, b) => {
       // First, separate scheduled from non-scheduled
-      const aHasSchedule = a.weeklySchedule && Object.values(a.weeklySchedule).some(day => day.length > 0)
-      const bHasSchedule = b.weeklySchedule && Object.values(b.weeklySchedule).some(day => day.length > 0)
+      const aHasShift = a.expectedStartShift && a.expectedStartShift !== "No schedule"
+      const bHasShift = b.expectedStartShift && b.expectedStartShift !== "No schedule"
       
-      if (aHasSchedule && !bHasSchedule) return -1
-      if (!aHasSchedule && bHasSchedule) return 1
+      if (aHasShift && !bHasShift) return -1
+      if (!aHasShift && bHasShift) return 1
       
-      // Then sort alphabetically by name
-      return a.name.localeCompare(b.name)
+      // Then sort by shift start time (chronological)
+      if (aHasShift && bHasShift) {
+        const aStartMinutes = timeToMinutes(a.expectedStartShift!)
+        const bStartMinutes = timeToMinutes(b.expectedStartShift!)
+        if (aStartMinutes !== bStartMinutes) return aStartMinutes - bStartMinutes
+      }
+      
+      // Finally, sort by first name alphabetically
+      const aFirstName = a.name.split(" ")[0]
+      const bFirstName = b.name.split(" ")[0]
+      return aFirstName.localeCompare(bFirstName)
     })
+
+  // Helper function to convert time string (HH:MM) to minutes
+  function timeToMinutes(timeStr: string): number {
+    const [hours, minutes] = timeStr.split(':').map(Number)
+    return hours * 60 + minutes
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-6">
