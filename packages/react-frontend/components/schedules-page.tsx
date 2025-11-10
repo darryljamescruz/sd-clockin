@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, Edit, ArrowLeft, Users, Clock } from "lucide-react"
 import { useState, useEffect } from "react"
 import { StudentScheduleManager } from "./student-schedule-manager"
+import { CSVImport } from "./csv-import"
 import type { Term, Student, Schedule } from "@/lib/api"
 import { api } from "@/lib/api"
 
@@ -154,6 +155,11 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* CSV Import */}
+      {selectedTermId && (
+        <CSVImport termId={selectedTermId} onImportComplete={handleSaveSchedule} />
+      )}
 
       {/* Students Table */}
       {!selectedTermId ? (

@@ -9,6 +9,7 @@ import studentsRouter from './routes/students.js';
 import termsRouter from './routes/terms.js';
 import schedulesRouter from './routes/schedules.js';
 import checkinsRouter from './routes/checkins.js';
+import importRouter from './routes/import.js';
 
 // later implementation for backend build
 // import { fileURLToPath } from "url";
@@ -66,6 +67,7 @@ app.use('/api/students', studentsRouter);
 app.use('/api/terms', termsRouter);
 app.use('/api/schedules', schedulesRouter);
 app.use('/api/checkins', checkinsRouter);
+app.use('/api/import', importRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

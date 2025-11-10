@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import Schedule from '../models/Schedule.js';
 import Student from '../models/Student.js';
 import Term from '../models/Term.js';
+import { normalizeSchedule } from '../utils/scheduleParser.js';
 
 const router = express.Router();
 
@@ -65,19 +66,22 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
       return res.status(404).json({ message: 'Term not found' });
     }
 
+    // Normalize the schedule to standard format (HH:MM-HH:MM)
+    const normalizedAvailability = normalizeSchedule(availability);
+
     // Check if schedule already exists
     let schedule = await Schedule.findOne({ studentId, termId });
 
     if (schedule) {
       // Update existing schedule
-      schedule.availability = availability;
+      schedule.availability = normalizedAvailability;
       await schedule.save();
     } else {
       // Create new schedule
       schedule = new Schedule({
         studentId,
         termId,
-        availability,
+        availability: normalizedAvailability,
       });
       await schedule.save();
     }

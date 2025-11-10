@@ -217,6 +217,47 @@ export const checkinsAPI = {
   },
 };
 
+// ============ IMPORT API ============
+
+export const importAPI = {
+  // Preview CSV import without saving
+  previewCSV: async (csvContent: string): Promise<{
+    success: boolean;
+    summary: {
+      totalRows: number;
+      matched: number;
+      unmatched: number;
+    };
+    matchedStudents: any[];
+    unmatchedStudents: any[];
+  }> => {
+    return fetchAPI('/import/preview', {
+      method: 'POST',
+      body: JSON.stringify({ csvContent }),
+    });
+  },
+
+  // Import schedules from CSV
+  importSchedules: async (csvContent: string, termId: string): Promise<{
+    success: boolean;
+    message: string;
+    summary: {
+      totalProcessed: number;
+      saved: number;
+      errors: number;
+      unmatched: number;
+    };
+    savedSchedules: any[];
+    errors: any[];
+    unmatchedStudents: any[];
+  }> => {
+    return fetchAPI('/import/schedules', {
+      method: 'POST',
+      body: JSON.stringify({ csvContent, termId }),
+    });
+  },
+};
+
 // ============ HEALTH CHECK ============
 
 export const healthAPI = {
@@ -231,6 +272,7 @@ export const api = {
   terms: termsAPI,
   schedules: schedulesAPI,
   checkins: checkinsAPI,
+  import: importAPI,
   health: healthAPI,
 };
 
