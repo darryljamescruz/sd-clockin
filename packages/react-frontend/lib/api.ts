@@ -8,6 +8,7 @@ export interface Student {
   cardId: string;
   role: string;
   currentStatus: string;
+  expectedStartShift?: string | null; // Expected start shift time for today
   expectedEndShift?: string | null; // Expected end shift time for today
   weeklySchedule?: {
     monday: string[];

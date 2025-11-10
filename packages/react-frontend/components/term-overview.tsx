@@ -338,6 +338,32 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     }
   }
 
+  // Convert 24-hour time to 12-hour format with am/pm (e.g., "08:00-12:00" -> "8am-12pm")
+  const formatShiftTime = (shift: string) => {
+    if (!shift || shift === "Not scheduled") return shift
+    
+    const parts = shift.split("-")
+    if (parts.length !== 2) return shift
+    
+    const formatTime = (time: string) => {
+      const [hourStr, minute] = time.trim().split(":")
+      const hour = parseInt(hourStr, 10)
+      
+      if (isNaN(hour)) return time
+      
+      const period = hour >= 12 ? "pm" : "am"
+      const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+      
+      // Only show minutes if they're not :00
+      if (minute && minute !== "00") {
+        return `${hour12}:${minute}${period}`
+      }
+      return `${hour12}${period}`
+    }
+    
+    return `${formatTime(parts[0])}-${formatTime(parts[1])}`
+  }
+
   return (
     <div className="space-y-6">
       {/* Term Status Header */}
@@ -445,10 +471,10 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
                     )}
                   </TableCell>
                   <TableCell>{getRoleBadge(staff.role)}</TableCell>
-                  <TableCell className="font-mono">
+                  <TableCell>
                     {staff.currentShift ? (
                       <div className="text-xs bg-card border px-2 py-1 rounded shadow-sm inline-block">
-                        {staff.currentShift}
+                        {formatShiftTime(staff.currentShift)}
                       </div>
                     ) : (
                       <span className="text-muted-foreground italic text-xs">Not scheduled</span>

@@ -45,12 +45,35 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
           // Determine current status from shift
           let currentStatus = 'off';
           let todayActual: string | null = null;
+          let expectedStartShift: string | null = null;
           let expectedEndShift: string | null = null;
 
           if (todayShift) {
             // Map shift status to frontend status
             if (todayShift.status === 'scheduled') {
-              currentStatus = 'incoming'; // Expected to arrive
+              // Only mark as "incoming" if shift starts within the next 3 hours
+              if (todayShift.scheduledStart) {
+                const [hourStr, minuteStr] = todayShift.scheduledStart.split(':');
+                const shiftStartHour = parseInt(hourStr, 10);
+                const shiftStartMinute = parseInt(minuteStr, 10);
+                
+                const currentHour = now.getHours();
+                const currentMinute = now.getMinutes();
+                const currentTotalMinutes = currentHour * 60 + currentMinute;
+                const shiftStartTotalMinutes = shiftStartHour * 60 + shiftStartMinute;
+                
+                // Check if shift starts within next 3 hours (180 minutes)
+                const minutesUntilShift = shiftStartTotalMinutes - currentTotalMinutes;
+                
+                if (minutesUntilShift >= 0 && minutesUntilShift <= 180) {
+                  currentStatus = 'incoming'; // Expected to arrive within 3 hours
+                } else {
+                  currentStatus = 'off'; // Shift not starting soon
+                }
+              } else {
+                // If no scheduled start time, show as off
+                currentStatus = 'off';
+              }
             } else if (todayShift.status === 'started') {
               currentStatus = 'present'; // Currently clocked in
             } else if (todayShift.status === 'completed') {
@@ -64,7 +87,8 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
               todayActual = todayShift.actualStart.toISOString();
             }
 
-            // Get expected end time
+            // Get expected start and end times
+            expectedStartShift = todayShift.scheduledStart || null;
             expectedEndShift = todayShift.scheduledEnd || null;
           } else {
             // Fallback: If no shift but there are check-ins today, compute status from check-ins
@@ -102,6 +126,7 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
             role: student.role,
             currentStatus,
             todayActual,
+            expectedStartShift,
             expectedEndShift,
             weeklySchedule: schedule?.availability || {
               monday: [],
