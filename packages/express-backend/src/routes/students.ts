@@ -129,7 +129,9 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
               console.log('Clock-in hours (PST):', pstTime.getHours(), 'minutes:', pstTime.getMinutes());
               console.log('Clock-in total minutes (PST):', clockInMinutes);
 
-              // Find the shift they clocked into (allow up to 30 minutes early)
+              // Find the shift they clocked into (match to closest shift for multiple shifts per day)
+              let bestMatch: { startTime: string; endTime: string; distance: number } | null = null;
+              
               for (const shiftBlock of todaySchedule) {
                 const [startTime, endTime] = shiftBlock.split('-');
                 if (!startTime || !endTime) continue;
@@ -147,13 +149,26 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
                 console.log(`Checking shift ${shiftBlock}: start=${shiftStartMinutes}, end=${shiftEndMinutes}`);
                 console.log(`Clock-in is ${clockInMinutes - shiftStartMinutes} minutes from shift start`);
 
-                // Check if clocked in within 30 minutes before shift start or during shift
-                if (clockInMinutes >= shiftStartMinutes - 30 && clockInMinutes <= shiftEndMinutes) {
-                  expectedStartShift = startTime.trim();
-                  expectedEndShift = endTime.trim();
-                  console.log('✓ Matched shift:', expectedStartShift, '-', expectedEndShift);
-                  break; // Found the matching shift
+                // Check if clocked in within 4 hours (240 min) before shift start or during shift
+                if (clockInMinutes >= shiftStartMinutes - 240 && clockInMinutes <= shiftEndMinutes) {
+                  // Calculate distance to shift start (prefer closest shift)
+                  const distance = Math.abs(clockInMinutes - shiftStartMinutes);
+                  
+                  if (!bestMatch || distance < bestMatch.distance) {
+                    bestMatch = {
+                      startTime: startTime.trim(),
+                      endTime: endTime.trim(),
+                      distance
+                    };
+                    console.log(`  → Potential match (distance: ${distance} min)`);
+                  }
                 }
+              }
+              
+              if (bestMatch) {
+                expectedStartShift = bestMatch.startTime;
+                expectedEndShift = bestMatch.endTime;
+                console.log('✓ Best match:', expectedStartShift, '-', expectedEndShift);
               }
 
               // If no matching shift found, they clocked in too early or outside schedule

@@ -75,21 +75,34 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
           const shiftStartTime = getExpectedStartTimeFromSchedule(shift)
           const shiftEndTime = getExpectedEndTimeFromSchedule(shift)
 
-          // Find clock entries for this specific shift
-          const shiftClockIns = staff.clockEntries.filter((entry) => {
+          // Find clock entries for this specific shift (match to closest shift for multiple shifts per day)
+          const shiftStartMinutes = shiftStartTime ? timeToMinutes(shiftStartTime) : 0
+          const shiftEndMinutes = shiftEndTime ? timeToMinutes(shiftEndTime) : 1440
+          
+          const candidateClockIns = staff.clockEntries?.filter((entry) => {
             const entryDate = new Date(entry.timestamp)
             if (entryDate.toDateString() !== dateStr || entry.type !== "in") return false
 
-            // Check if this clock-in falls within this shift's time window
+            // Check if this clock-in falls within 4-hour window before shift or during shift
             const entryMinutes = entryDate.getHours() * 60 + entryDate.getMinutes()
-            const shiftStartMinutes = shiftStartTime ? timeToMinutes(shiftStartTime) : 0
-            const shiftEndMinutes = shiftEndTime ? timeToMinutes(shiftEndTime) : 1440 // End of day
+            return entryMinutes >= shiftStartMinutes - 240 && entryMinutes <= shiftEndMinutes
+          }) || []
 
-            // Allow clock-ins up to 30 minutes before shift start and up to shift end
-            return entryMinutes >= shiftStartMinutes - 30 && entryMinutes <= shiftEndMinutes
+          // Find the closest clock-in to this shift's start time
+          let clockInEntry: any = null
+          let minDistance = Infinity
+          
+          candidateClockIns.forEach(entry => {
+            const entryDate = new Date(entry.timestamp)
+            const entryMinutes = entryDate.getHours() * 60 + entryDate.getMinutes()
+            const distance = Math.abs(entryMinutes - shiftStartMinutes)
+            
+            if (distance < minDistance) {
+              minDistance = distance
+              clockInEntry = entry
+            }
           })
-
-          const clockInEntry = shiftClockIns[0] // First relevant clock-in for this shift
+          
           let status = "incoming" // Default to incoming (shift hasn't started)
           let actualTime = null
           let isManual = false
