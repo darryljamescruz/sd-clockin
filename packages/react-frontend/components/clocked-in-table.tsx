@@ -41,7 +41,7 @@ export function ClockedInTable({ clockedInUsers }: ClockedInTableProps) {
   }
   
   const convertTo12Hour = (timeStr: string) => {
-    if (!timeStr) return ""
+    if (!timeStr || timeStr === "No schedule") return timeStr
 
     if (timeStr.includes("AM") || timeStr.includes("PM")) {
       return timeStr
@@ -51,10 +51,13 @@ export function ClockedInTable({ clockedInUsers }: ClockedInTableProps) {
     const hour = Number.parseInt(hours)
     const mins = minutes || '00'
     
-    if (hour === 0) return `12:${mins} AM`
-    if (hour < 12) return `${hour}:${mins} AM`
-    if (hour === 12) return `12:${mins} PM`
-    return `${hour - 12}:${mins} PM`
+    // Remove minutes if they're :00
+    const displayMinutes = mins === '00' ? '' : `:${mins}`
+    
+    if (hour === 0) return `12${displayMinutes} AM`
+    if (hour < 12) return `${hour}${displayMinutes} AM`
+    if (hour === 12) return `12${displayMinutes} PM`
+    return `${hour - 12}${displayMinutes} PM`
   }
 
   const getShiftEndTime = (staff: Student) => {
@@ -109,7 +112,7 @@ export function ClockedInTable({ clockedInUsers }: ClockedInTableProps) {
                 <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell>{getRoleBadge(user.role)}</TableCell>
                 <TableCell className="font-mono">{formatClockInTime(user.todayActual || null)}</TableCell>
-                <TableCell className="font-mono">{getShiftEndTime(user)}</TableCell>
+                <TableCell>{getShiftEndTime(user)}</TableCell>
               </TableRow>
             ))}
           </TableBody>

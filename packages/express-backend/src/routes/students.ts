@@ -46,6 +46,13 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
 
           // First check if there's an actual shift record (clocked in)
           if (todayShift) {
+            console.log('Found todayShift for', student.name, ':', {
+              status: todayShift.status,
+              scheduledStart: todayShift.scheduledStart,
+              scheduledEnd: todayShift.scheduledEnd,
+              actualStart: todayShift.actualStart,
+            });
+
             // Map shift status to frontend status
             if (todayShift.status === 'started') {
               currentStatus = 'present'; // Currently clocked in
@@ -63,6 +70,8 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
             // Get expected start and end times from shift
             expectedStartShift = todayShift.scheduledStart || null;
             expectedEndShift = todayShift.scheduledEnd || null;
+          } else {
+            console.log('No todayShift found for', student.name);
           }
 
           // If not clocked in yet, check fallback: manual check-ins without shift
@@ -81,6 +90,76 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
               } else if (lastCheckIn.type === 'out') {
                 currentStatus = 'clocked_out'; // Already clocked out
               }
+            }
+          }
+
+          // If currently present but no expected end time, calculate from schedule
+          console.log('Checking if should calculate shift end:', {
+            name: student.name,
+            currentStatus,
+            hasExpectedEndShift: !!expectedEndShift,
+            hasSchedule: !!schedule,
+            hasTodayActual: !!todayActual,
+          });
+
+          if (currentStatus === 'present' && !expectedEndShift && schedule && todayActual) {
+            console.log('>>> Calculating shift end for clocked-in user:', student.name);
+            const dayOfWeek = now.getDay();
+            const dayNames: Record<number, keyof ISchedule['availability'] | null> = {
+              0: null, 1: 'monday', 2: 'tuesday', 3: 'wednesday', 4: 'thursday', 5: 'friday', 6: null,
+            };
+            const dayName = dayNames[dayOfWeek];
+            const todaySchedule = dayName ? (schedule.availability[dayName] || []) : [];
+
+            console.log('Server time (now):', now.toString());
+            console.log('Day of week:', dayOfWeek, '(', dayName, ')');
+            console.log('Clock-in time (ISO):', todayActual);
+            console.log('Today schedule:', todaySchedule);
+
+            if (todaySchedule.length > 0) {
+              // Get the clock-in time in minutes (in server's local timezone)
+              const clockInTime = new Date(todayActual);
+              const clockInMinutes = clockInTime.getHours() * 60 + clockInTime.getMinutes();
+              console.log('Clock-in time (local):', clockInTime.toString());
+              console.log('Clock-in hours:', clockInTime.getHours(), 'minutes:', clockInTime.getMinutes());
+              console.log('Clock-in total minutes:', clockInMinutes);
+
+              // Find the shift they clocked into (allow up to 30 minutes early)
+              for (const shiftBlock of todaySchedule) {
+                const [startTime, endTime] = shiftBlock.split('-');
+                if (!startTime || !endTime) continue;
+
+                const [startHourStr, startMinuteStr] = startTime.trim().split(':');
+                const shiftStartHour = parseInt(startHourStr, 10);
+                const shiftStartMinute = parseInt(startMinuteStr, 10);
+                const shiftStartMinutes = shiftStartHour * 60 + shiftStartMinute;
+
+                const [endHourStr, endMinuteStr] = endTime.trim().split(':');
+                const shiftEndHour = parseInt(endHourStr, 10);
+                const shiftEndMinute = parseInt(endMinuteStr, 10);
+                const shiftEndMinutes = shiftEndHour * 60 + shiftEndMinute;
+
+                console.log(`Checking shift ${shiftBlock}: start=${shiftStartMinutes}, end=${shiftEndMinutes}`);
+                console.log(`Clock-in is ${clockInMinutes - shiftStartMinutes} minutes from shift start`);
+
+                // Check if clocked in within 30 minutes before shift start or during shift
+                if (clockInMinutes >= shiftStartMinutes - 30 && clockInMinutes <= shiftEndMinutes) {
+                  expectedStartShift = startTime.trim();
+                  expectedEndShift = endTime.trim();
+                  console.log('✓ Matched shift:', expectedStartShift, '-', expectedEndShift);
+                  break; // Found the matching shift
+                }
+              }
+
+              // If no matching shift found, they clocked in too early or outside schedule
+              if (!expectedEndShift) {
+                expectedEndShift = 'No schedule';
+                console.log('✗ No matching shift found (clocked in too early or outside schedule)');
+              }
+            } else {
+              // No schedule for today
+              expectedEndShift = 'No schedule';
+              console.log('✗ No schedule for today');
             }
           }
 
