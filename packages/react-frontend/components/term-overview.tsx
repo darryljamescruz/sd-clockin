@@ -90,7 +90,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
           })
 
           const clockInEntry = shiftClockIns[0] // First relevant clock-in for this shift
-          let status = "absent"
+          let status = "not-clocked-in" // Default to not clocked in yet
           let actualTime = null
           let isManual = false
 
@@ -114,6 +114,18 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
               else status = "late"
             } else {
               status = "on-time" // If no expected time, consider present as on-time
+            }
+          } else {
+            // Only mark as absent if shift has started and it's been >10 minutes
+            if (shiftStartTime) {
+              const now = new Date()
+              const startMinutes = timeToMinutes(shiftStartTime)
+              const nowMinutes = now.getHours() * 60 + now.getMinutes()
+              
+              // Only mark absent if it's past the shift start time by more than 10 minutes
+              if (nowMinutes > startMinutes + 10) {
+                status = "absent"
+              }
             }
           }
 
@@ -257,24 +269,63 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
 
   // Get day statistics - now counts shifts, not just people
   const dayAttendance = getDayAttendance(selectedDate)
+  
+  // Sort attendance: scheduled shifts first (by start time, then first name), then non-scheduled
+  const sortedDayAttendance = useMemo(() => {
+    return [...dayAttendance].sort((a, b) => {
+      // Non-scheduled go to the bottom
+      const aIsScheduled = a.currentShift && a.currentShift !== "Not scheduled"
+      const bIsScheduled = b.currentShift && b.currentShift !== "Not scheduled"
+      
+      if (aIsScheduled && !bIsScheduled) return -1
+      if (!aIsScheduled && bIsScheduled) return 1
+      
+      // Both scheduled: sort by shift start time
+      if (aIsScheduled && bIsScheduled) {
+        const aStartTime = a.currentShift?.split("-")[0]?.trim()
+        const bStartTime = b.currentShift?.split("-")[0]?.trim()
+        
+        if (aStartTime && bStartTime) {
+          const aMinutes = timeToMinutes(aStartTime)
+          const bMinutes = timeToMinutes(bStartTime)
+          
+          if (aMinutes !== bMinutes) {
+            return aMinutes - bMinutes
+          }
+        }
+      }
+      
+      // Same start time or both non-scheduled: sort by first name
+      const aFirstName = a.name.split(" ")[0].toLowerCase()
+      const bFirstName = b.name.split(" ")[0].toLowerCase()
+      return aFirstName.localeCompare(bFirstName)
+    })
+  }, [dayAttendance])
+  
   const dayStats = {
-    present: dayAttendance.filter((s) => s.status !== "absent" && s.status !== "not-scheduled").length,
-    absent: dayAttendance.filter((s) => s.status === "absent").length,
-    late: dayAttendance.filter((s) => s.status === "late").length,
-    manual: dayAttendance.filter((s) => s.isManual).length,
+    present: sortedDayAttendance.filter((s) => s.status !== "absent" && s.status !== "not-scheduled" && s.status !== "not-clocked-in").length,
+    absent: sortedDayAttendance.filter((s) => s.status === "absent").length,
+    late: sortedDayAttendance.filter((s) => s.status === "late").length,
+    manual: sortedDayAttendance.filter((s) => s.isManual).length,
   }
 
   const termStatus = getTermStatus()
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
+    const statusConfig: Record<string, { color: string; label: string }> = {
       early: { color: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400", label: "Early" },
       "on-time": { color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400", label: "On Time" },
       late: { color: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400", label: "Late" },
       absent: { color: "bg-secondary text-secondary-foreground", label: "Absent" },
       "not-scheduled": { color: "bg-muted text-muted-foreground", label: "Not Scheduled" },
+      "not-clocked-in": { color: "", label: "" }, // Don't show a badge for not clocked in yet
     }
 
+    // For not-clocked-in, return empty dash instead of badge
+    if (status === "not-clocked-in") {
+      return <span className="text-muted-foreground">—</span>
+    }
+    
     const config = statusConfig[status] || statusConfig["absent"]
     return <Badge className={`${config.color} hover:${config.color}`}>{config.label}</Badge>
   }
@@ -383,7 +434,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
               </TableRow>
             </TableHeader>
             <TableBody>
-              {dayAttendance.map((staff, index) => (
+              {sortedDayAttendance.map((staff, index) => (
                 <TableRow key={`${staff.id}-${staff.shiftNumber || 0}-${index}`}>
                   <TableCell className="font-medium">
                     {staff.name}

@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Upload, FileText, CheckCircle, XCircle, AlertTriangle, Loader2 } from "lucide-react"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Upload, FileText, CheckCircle, XCircle, AlertTriangle, Loader2, ChevronDown, ChevronUp } from "lucide-react"
 import { useState, useRef } from "react"
 import { api } from "@/lib/api"
 
@@ -23,6 +24,7 @@ export function CSVImport({ termId, onImportComplete }: CSVImportProps) {
   const [importResult, setImportResult] = useState<any>(null)
   const [error, setError] = useState("")
   const [fileName, setFileName] = useState("")
+  const [isOpen, setIsOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,14 +103,21 @@ export function CSVImport({ termId, onImportComplete }: CSVImportProps) {
   }
 
   return (
-    <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-foreground">
-          <Upload className="w-5 h-5" />
-          Import Schedules from Teams CSV
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+        <CardHeader className="pb-3">
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full justify-between p-0 hover:bg-transparent">
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <Upload className="w-4 h-4" />
+                Import Schedules from Teams CSV
+              </CardTitle>
+              {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </Button>
+          </CollapsibleTrigger>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent className="space-y-4 pt-0">
         {/* Instructions */}
         <Alert>
           <FileText className="w-4 h-4" />
@@ -149,7 +158,7 @@ export function CSVImport({ termId, onImportComplete }: CSVImportProps) {
             placeholder="Paste CSV content here..."
             value={csvContent}
             onChange={(e) => setCSVContent(e.target.value)}
-            className="font-mono text-xs min-h-[200px]"
+            className="font-mono text-xs min-h-[150px]"
             disabled={isImporting}
           />
         </div>
@@ -262,8 +271,10 @@ export function CSVImport({ termId, onImportComplete }: CSVImportProps) {
             </AlertDescription>
           </Alert>
         )}
-      </CardContent>
-    </Card>
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   )
 }
 

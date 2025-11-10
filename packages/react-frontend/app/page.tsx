@@ -227,8 +227,42 @@ export default function HomePage() {
     }
   }
 
-  const clockedInUsers = staffData.filter((staff) => staff.currentStatus === "present")
-  const expectedArrivals = staffData.filter((staff) => staff.currentStatus === "incoming")
+  // Sort clocked in users: chronological (clock-in time), then alphabetical, non-scheduled at bottom
+  const clockedInUsers = staffData
+    .filter((staff) => staff.currentStatus === "present")
+    .sort((a, b) => {
+      // First, separate scheduled from non-scheduled
+      const aHasSchedule = a.expectedEndShift && a.expectedEndShift !== "No schedule"
+      const bHasSchedule = b.expectedEndShift && b.expectedEndShift !== "No schedule"
+      
+      if (aHasSchedule && !bHasSchedule) return -1
+      if (!aHasSchedule && bHasSchedule) return 1
+      
+      // Then sort by clock-in time (chronological)
+      if (a.todayActual && b.todayActual) {
+        const timeA = new Date(a.todayActual).getTime()
+        const timeB = new Date(b.todayActual).getTime()
+        if (timeA !== timeB) return timeA - timeB
+      }
+      
+      // Finally, sort alphabetically by name
+      return a.name.localeCompare(b.name)
+    })
+
+  // Sort expected arrivals: alphabetical, non-scheduled at bottom
+  const expectedArrivals = staffData
+    .filter((staff) => staff.currentStatus === "incoming")
+    .sort((a, b) => {
+      // First, separate scheduled from non-scheduled
+      const aHasSchedule = a.weeklySchedule && Object.values(a.weeklySchedule).some(day => day.length > 0)
+      const bHasSchedule = b.weeklySchedule && Object.values(b.weeklySchedule).some(day => day.length > 0)
+      
+      if (aHasSchedule && !bHasSchedule) return -1
+      if (!aHasSchedule && bHasSchedule) return 1
+      
+      // Then sort alphabetically by name
+      return a.name.localeCompare(b.name)
+    })
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-6">

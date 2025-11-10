@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Edit, ArrowLeft, Users, Clock } from "lucide-react"
-import { useState, useEffect } from "react"
+import { Input } from "@/components/ui/input"
+import { Calendar, Edit, ArrowLeft, Users, Clock, Search, ArrowUpDown } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
 import { StudentScheduleManager } from "./student-schedule-manager"
 import { CSVImport } from "./csv-import"
 import type { Term, Student, Schedule } from "@/lib/api"
@@ -23,6 +24,8 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
   const [schedules, setSchedules] = useState<Record<string, Schedule>>({})
   const [editingStudent, setEditingStudent] = useState<Student | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [sortBy, setSortBy] = useState<"name" | "scheduled" | "none">("name")
 
   // Set default term to active term or first term
   useEffect(() => {
@@ -98,6 +101,37 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
 
   const selectedTerm = terms.find((t) => t.id === selectedTermId)
 
+  // Filter and sort students
+  const filteredAndSortedStudents = useMemo(() => {
+    let filtered = students
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(s => 
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.role.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    // Sort
+    if (sortBy === "name") {
+      filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name))
+    } else if (sortBy === "scheduled") {
+      filtered = [...filtered].sort((a, b) => {
+        const aHasSchedule = schedules[a.id] && 
+          Object.values(schedules[a.id].availability).some(day => day.length > 0)
+        const bHasSchedule = schedules[b.id] && 
+          Object.values(schedules[b.id].availability).some(day => day.length > 0)
+        
+        if (aHasSchedule && !bHasSchedule) return -1
+        if (!aHasSchedule && bHasSchedule) return 1
+        return a.name.localeCompare(b.name)
+      })
+    }
+
+    return filtered
+  }, [students, searchQuery, sortBy, schedules])
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -161,6 +195,36 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
         <CSVImport termId={selectedTermId} onImportComplete={handleSaveSchedule} />
       )}
 
+      {/* Filter and Sort Controls */}
+      {selectedTermId && (
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+          <CardContent className="p-4">
+            <div className="flex gap-4 items-center">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search by name or role..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                <SelectTrigger className="w-[200px]">
+                  <ArrowUpDown className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Sort by Name</SelectItem>
+                  <SelectItem value="scheduled">Scheduled First</SelectItem>
+                  <SelectItem value="none">No Sorting</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Students Table */}
       {!selectedTermId ? (
         <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
@@ -195,7 +259,7 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.map((student) => {
+                {filteredAndSortedStudents.map((student) => {
                   const schedule = schedules[student.id]
 
                   return (
