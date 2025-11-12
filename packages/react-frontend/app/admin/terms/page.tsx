@@ -38,6 +38,7 @@ export default function TermsManagement() {
         startDate: term.startDate,
         endDate: term.endDate,
         isActive: term.isActive,
+        daysOff: term.daysOff || [],
       })
       setTerms((prev) => [...prev, newTerm])
     } catch (err) {
@@ -54,6 +55,7 @@ export default function TermsManagement() {
         startDate: updatedTerm.startDate,
         endDate: updatedTerm.endDate,
         isActive: updatedTerm.isActive,
+        daysOff: updatedTerm.daysOff || [],
       })
       setTerms((prev) => prev.map((term) => (term.id === id ? editedTerm : term)))
     } catch (err) {
