@@ -8,6 +8,7 @@ export interface Student {
   cardId: string;
   role: string;
   currentStatus: string;
+  expectedStartShift?: string | null; // Expected start shift time for today
   expectedEndShift?: string | null; // Expected end shift time for today
   weeklySchedule?: {
     monday: string[];
@@ -30,6 +31,7 @@ export interface Term {
 }
 
 export interface ClockEntry {
+  id?: string;
   timestamp: string;
   type: 'in' | 'out';
   isManual?: boolean;
@@ -209,10 +211,60 @@ export const checkinsAPI = {
     });
   },
 
+  // Update a check-in
+  update: async (id: string, data: { timestamp?: string; type?: 'in' | 'out' }): Promise<CheckIn> => {
+    return fetchAPI<CheckIn>(`/checkins/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
   // Delete a check-in
   delete: async (id: string): Promise<{ message: string }> => {
     return fetchAPI<{ message: string }>(`/checkins/${id}`, {
       method: 'DELETE',
+    });
+  },
+};
+
+// ============ IMPORT API ============
+
+export const importAPI = {
+  // Preview CSV import without saving
+  previewCSV: async (csvContent: string): Promise<{
+    success: boolean;
+    summary: {
+      totalRows: number;
+      matched: number;
+      willCreate: number;
+    };
+    matchedStudents: any[];
+    studentsToCreate: any[];
+  }> => {
+    return fetchAPI('/import/preview', {
+      method: 'POST',
+      body: JSON.stringify({ csvContent }),
+    });
+  },
+
+  // Import schedules from CSV
+  importSchedules: async (csvContent: string, termId: string): Promise<{
+    success: boolean;
+    message: string;
+    summary: {
+      totalProcessed: number;
+      saved: number;
+      matched: number;
+      created: number;
+      errors: number;
+    };
+    savedSchedules: any[];
+    createdStudents: any[];
+    errors: any[];
+  }> => {
+    return fetchAPI('/import/schedules', {
+      method: 'POST',
+      body: JSON.stringify({ csvContent, termId }),
     });
   },
 };
@@ -231,6 +283,7 @@ export const api = {
   terms: termsAPI,
   schedules: schedulesAPI,
   checkins: checkinsAPI,
+  import: importAPI,
   health: healthAPI,
 };
 

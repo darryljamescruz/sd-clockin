@@ -227,8 +227,84 @@ export default function HomePage() {
     }
   }
 
-  const clockedInUsers = staffData.filter((staff) => staff.currentStatus === "present")
-  const expectedArrivals = staffData.filter((staff) => staff.currentStatus === "incoming")
+  // Sort clocked in users: chronological (clock-in time), then alphabetical, non-scheduled at bottom
+  const clockedInUsers = staffData
+    .filter((staff) => staff.currentStatus === "present")
+    .sort((a, b) => {
+      // First, separate scheduled from non-scheduled
+      const aHasSchedule = a.expectedEndShift && a.expectedEndShift !== "No schedule"
+      const bHasSchedule = b.expectedEndShift && b.expectedEndShift !== "No schedule"
+      
+      if (aHasSchedule && !bHasSchedule) return -1
+      if (!aHasSchedule && bHasSchedule) return 1
+      
+      // Then sort by clock-in time (chronological)
+      if (a.todayActual && b.todayActual) {
+        const timeA = new Date(a.todayActual).getTime()
+        const timeB = new Date(b.todayActual).getTime()
+        if (timeA !== timeB) return timeA - timeB
+      }
+      
+      // Finally, sort alphabetically by name
+      return a.name.localeCompare(b.name)
+    })
+
+  // Helper function to convert time string (HH:MM) to minutes
+  function timeToMinutes(timeStr: string): number {
+    const [hours, minutes] = timeStr.split(':').map(Number)
+    return hours * 60 + minutes
+  }
+
+  // Sort expected arrivals: by shift start time (chronological), then by first name
+  // Only show people within 2 hours from current time who are pending
+  const expectedArrivals = staffData
+    .filter((staff) => {
+      // Must be in incoming/pending status
+      if (staff.currentStatus !== "incoming") return false
+      
+      // Must have a valid shift time
+      if (!staff.expectedStartShift || staff.expectedStartShift === "No schedule") return false
+      
+      // Calculate current time in minutes
+      const currentHour = currentTime.getHours()
+      const currentMinute = currentTime.getMinutes()
+      const currentTotalMinutes = currentHour * 60 + currentMinute
+      
+      // Calculate shift start time in minutes
+      const shiftStartMinutes = timeToMinutes(staff.expectedStartShift)
+      
+      // Calculate minutes until shift starts
+      let minutesUntilShift = shiftStartMinutes - currentTotalMinutes
+      
+      // Handle case where shift is tomorrow (e.g., if it's 11pm and shift is at 8am)
+      // If shift time is earlier than current time, assume it's tomorrow
+      if (minutesUntilShift < 0) {
+        minutesUntilShift += 24 * 60 // Add 24 hours (1440 minutes)
+      }
+      
+      // Only include if shift starts within 2 hours (120 minutes) from now
+      return minutesUntilShift >= 0 && minutesUntilShift <= 120
+    })
+    .sort((a, b) => {
+      // First, separate scheduled from non-scheduled
+      const aHasShift = a.expectedStartShift && a.expectedStartShift !== "No schedule"
+      const bHasShift = b.expectedStartShift && b.expectedStartShift !== "No schedule"
+      
+      if (aHasShift && !bHasShift) return -1
+      if (!aHasShift && bHasShift) return 1
+      
+      // Then sort by shift start time (chronological)
+      if (aHasShift && bHasShift) {
+        const aStartMinutes = timeToMinutes(a.expectedStartShift!)
+        const bStartMinutes = timeToMinutes(b.expectedStartShift!)
+        if (aStartMinutes !== bStartMinutes) return aStartMinutes - bStartMinutes
+      }
+      
+      // Finally, sort by first name alphabetically
+      const aFirstName = a.name.split(" ")[0]
+      const bFirstName = b.name.split(" ")[0]
+      return aFirstName.localeCompare(bFirstName)
+    })
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-6">
@@ -240,43 +316,13 @@ export default function HomePage() {
               <Clock className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">TimeSync</h1>
+              <h1 className="text-2xl font-bold text-foreground">ClockedIn</h1>
               <p className="text-muted-foreground text-sm">IT Service Desk Clock-In System</p>
             </div>
           </div>
 
           {/* Login Area */}
           <div className="flex items-center gap-4">
-            {!isLoading && (
-              <>
-                <ClockInForm
-                  isOpen={isLoginOpen}
-                  onToggle={() => {
-                    setIsLoginOpen(!isLoginOpen)
-                    setIsCardSwipeDisabled(!isLoginOpen)
-                  }}
-                  onClockIn={handleManualClockIn}
-                  staffData={staffData}
-                  mode="in"
-                  title="Manual Clock In"
-                  buttonText="Manual Clock In"
-                />
-
-                <ClockInForm
-                  isOpen={isClockOutOpen}
-                  onToggle={() => {
-                    setIsClockOutOpen(!isClockOutOpen)
-                    setIsCardSwipeDisabled(!isClockOutOpen)
-                  }}
-                  onClockIn={handleManualClockOut}
-                  staffData={staffData}
-                  mode="out"
-                  title="Manual Clock Out"
-                  buttonText="Manual Clock Out"
-                />
-              </>
-            )}
-
             <ThemeToggle />
 
             <AdminLogin
@@ -362,6 +408,37 @@ export default function HomePage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Manual Clock In/Out Buttons */}
+            {!isLoading && (
+              <div className="flex justify-center gap-4 mb-8">
+                <ClockInForm
+                  isOpen={isLoginOpen}
+                  onToggle={() => {
+                    setIsLoginOpen(!isLoginOpen)
+                    setIsCardSwipeDisabled(!isLoginOpen)
+                  }}
+                  onClockIn={handleManualClockIn}
+                  staffData={staffData}
+                  mode="in"
+                  title="Manual Clock In"
+                  buttonText="Manual Clock In"
+                />
+
+                <ClockInForm
+                  isOpen={isClockOutOpen}
+                  onToggle={() => {
+                    setIsClockOutOpen(!isClockOutOpen)
+                    setIsCardSwipeDisabled(!isClockOutOpen)
+                  }}
+                  onClockIn={handleManualClockOut}
+                  staffData={staffData}
+                  mode="out"
+                  title="Manual Clock Out"
+                  buttonText="Manual Clock Out"
+                />
+              </div>
+            )}
 
             {/* Tables Grid */}
             <div className="grid lg:grid-cols-2 gap-8">

@@ -7,6 +7,7 @@ import { Calendar, Users, TrendingUp, AlertCircle } from "lucide-react"
 import { useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { type Student, type Term } from "@/lib/api"
+import { formatDateString, parseDateString } from "@/lib/utils"
 
 interface TermOverviewProps {
   staffData: Student[]
@@ -20,8 +21,11 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
   // Check if selected term is current, past, or future
   const getTermStatus = () => {
     const today = new Date()
-    const termStart = new Date(currentTerm.startDate)
-    const termEnd = new Date(currentTerm.endDate)
+    today.setHours(0, 0, 0, 0) // Set to midnight for date-only comparison
+    const termStart = parseDateString(currentTerm.startDate)
+    termStart.setHours(0, 0, 0, 0)
+    const termEnd = parseDateString(currentTerm.endDate)
+    termEnd.setHours(23, 59, 59, 999) // Set to end of day for inclusive comparison
 
     if (today >= termStart && today <= termEnd) {
       return { status: "current", label: "Current Term", color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400" }
@@ -35,8 +39,8 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
   // Get all weekdays in the term
   const getTermWeekdays = () => {
     const weekdays = []
-    const start = new Date(currentTerm.startDate)
-    const end = new Date(currentTerm.endDate)
+    const start = parseDateString(currentTerm.startDate)
+    const end = parseDateString(currentTerm.endDate)
     const current = new Date(start)
 
     while (current <= end) {
@@ -54,7 +58,14 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
   // Get attendance data for a specific date - now creates separate entries for each shift
   const getDayAttendance = (date: Date) => {
     const dateStr = date.toDateString()
-    const dayData = []
+    const dayData: Array<Student & {
+      status: string
+      actualTime: string | null
+      isManual: boolean
+      currentShift: string | null
+      shiftNumber: number
+      totalShifts?: number
+    }> = []
 
     staffData.forEach((staff) => {
       const expectedSchedule = getTodayScheduleForDate(staff, date)
@@ -71,26 +82,39 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
         })
       } else {
         // Create separate entry for each shift
-        expectedSchedule.forEach((shift, shiftIndex) => {
+        expectedSchedule.forEach((shift: string, shiftIndex: number) => {
           const shiftStartTime = getExpectedStartTimeFromSchedule(shift)
           const shiftEndTime = getExpectedEndTimeFromSchedule(shift)
 
-          // Find clock entries for this specific shift
-          const shiftClockIns = staff.clockEntries.filter((entry) => {
+          // Find clock entries for this specific shift (match to closest shift for multiple shifts per day)
+          const shiftStartMinutes = shiftStartTime ? timeToMinutes(shiftStartTime) : 0
+          const shiftEndMinutes = shiftEndTime ? timeToMinutes(shiftEndTime) : 1440
+          
+          const candidateClockIns = staff.clockEntries?.filter((entry) => {
             const entryDate = new Date(entry.timestamp)
             if (entryDate.toDateString() !== dateStr || entry.type !== "in") return false
 
-            // Check if this clock-in falls within this shift's time window
+            // Check if this clock-in falls within 4-hour window before shift or during shift
             const entryMinutes = entryDate.getHours() * 60 + entryDate.getMinutes()
-            const shiftStartMinutes = shiftStartTime ? timeToMinutes(shiftStartTime) : 0
-            const shiftEndMinutes = shiftEndTime ? timeToMinutes(shiftEndTime) : 1440 // End of day
+            return entryMinutes >= shiftStartMinutes - 240 && entryMinutes <= shiftEndMinutes
+          }) || []
 
-            // Allow clock-ins up to 30 minutes before shift start and up to shift end
-            return entryMinutes >= shiftStartMinutes - 30 && entryMinutes <= shiftEndMinutes
+          // Find the closest clock-in to this shift's start time
+          let clockInEntry: any = null
+          let minDistance = Infinity
+          
+          candidateClockIns.forEach(entry => {
+            const entryDate = new Date(entry.timestamp)
+            const entryMinutes = entryDate.getHours() * 60 + entryDate.getMinutes()
+            const distance = Math.abs(entryMinutes - shiftStartMinutes)
+            
+            if (distance < minDistance) {
+              minDistance = distance
+              clockInEntry = entry
+            }
           })
-
-          const clockInEntry = shiftClockIns[0] // First relevant clock-in for this shift
-          let status = "absent"
+          
+          let status = "incoming" // Default to incoming (shift hasn't started)
           let actualTime = null
           let isManual = false
 
@@ -102,18 +126,53 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
             })
             isManual = clockInEntry.isManual || false
 
-            // Calculate if early, on-time, or late for this specific shift
+            // Calculate status based on arrival time vs expected time
             if (shiftStartTime) {
               const expectedMinutes = timeToMinutes(shiftStartTime)
               const actualMinutes =
                 new Date(clockInEntry.timestamp).getHours() * 60 + new Date(clockInEntry.timestamp).getMinutes()
               const diffMinutes = actualMinutes - expectedMinutes
 
-              if (diffMinutes < -5) status = "early"
-              else if (diffMinutes <= 5) status = "on-time"
-              else status = "late"
+              // Categorize: early (>10 min early), on-time/present (-10 to +10 min), late (>10 min late)
+              if (diffMinutes < -10) {
+                status = "early" // More than 10 minutes early
+              } else if (diffMinutes >= 10) {
+                status = "late" // More than 10 minutes late
+              } else {
+                status = "present" // On-time: within 10 minute window (early or late)
+              }
             } else {
-              status = "on-time" // If no expected time, consider present as on-time
+              status = "present" // If no expected time, consider present
+            }
+          } else {
+            // Check if shift has started and how long it's been
+            if (shiftStartTime) {
+              const now = new Date()
+              const isToday = date.toDateString() === now.toDateString()
+              
+              // Only mark as absent/incoming if we're viewing today's data
+              if (isToday) {
+                const startMinutes = timeToMinutes(shiftStartTime)
+                const nowMinutes = now.getHours() * 60 + now.getMinutes()
+                const minutesLate = nowMinutes - startMinutes
+                
+                // "incoming" = shift hasn't started yet
+                // "absent" = shift started over 1 hour ago and they haven't shown up
+                if (minutesLate < 0) {
+                  status = "incoming"
+                } else if (minutesLate >= 60) {
+                  status = "absent"
+                } else {
+                  // Between 0-60 minutes: still waiting for them
+                  status = "incoming"
+                }
+              } else if (date < now) {
+                // For past dates: if no clock-in, they were absent
+                status = "absent"
+              } else {
+                // For future dates: mark as not yet applicable
+                status = "not-clocked-in"
+              }
             }
           }
 
@@ -131,7 +190,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     })
 
     // Sort by start time first, then alphabetically by first name, then by shift number
-    dayData.sort((a, b) => {
+    dayData.sort((a: typeof dayData[0], b: typeof dayData[0]) => {
       // Get expected start times
       const aStartTime = a.currentShift ? getExpectedStartTimeFromSchedule(a.currentShift) : null
       const bStartTime = b.currentShift ? getExpectedStartTimeFromSchedule(b.currentShift) : null
@@ -175,21 +234,43 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     return totalMinutes
   }
 
-  const getTodayScheduleForDate = (staff, date) => {
-    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+  const getTodayScheduleForDate = (staff: Student, date: Date): string[] => {
+    // Map getDay() (0=Sunday, 1=Monday...6=Saturday) to schedule keys
+    // Weekends (0=Sunday, 6=Saturday) return null
+    const dayNames: Array<keyof NonNullable<Student['weeklySchedule']> | null> = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null]
     const dayName = dayNames[date.getDay()]
+    
+    // Return empty array for weekends or if no schedule exists
+    if (!dayName) return []
     return staff.weeklySchedule?.[dayName] || []
   }
 
-  const getExpectedStartTimeFromSchedule = (scheduleBlock) => {
+  const getExpectedStartTimeFromSchedule = (scheduleBlock: string): string | null => {
     if (!scheduleBlock) return null
-    const startTime = scheduleBlock.split("-")[0].trim()
+    let startTime = scheduleBlock.split("-")[0].trim()
 
-    // Convert to standard format if needed
-    if (startTime.includes(":")) {
-      return startTime.includes("AM") || startTime.includes("PM") ? startTime : startTime + " AM"
+    // Normalize to uppercase for consistency
+    const upperTime = startTime.toUpperCase()
+    
+    // Check if it has a colon (has minutes)
+    const hasMinutes = startTime.includes(":")
+    
+    // Check if it already has AM/PM (case insensitive)
+    const hasAMPM = upperTime.includes("AM") || upperTime.includes("PM")
+    
+    if (hasAMPM) {
+      // Standardize: ensure space before AM/PM, uppercase, and add :00 if no minutes
+      let normalized = startTime.replace(/([ap]m)/gi, (match: string) => ` ${match.toUpperCase()}`)
+        .replace(/\s+/g, ' ') // Remove any duplicate spaces
+      
+      // If no colon, add :00 for minutes
+      if (!hasMinutes) {
+        // Insert :00 before the space and AM/PM
+        normalized = normalized.replace(/\s(AM|PM)/, ':00 $1')
+      }
+      return normalized
     } else {
-      // Convert 24-hour to 12-hour format
+      // No AM/PM, assume it's 24-hour format
       const hour = Number.parseInt(startTime)
       if (hour === 0) return "12:00 AM"
       if (hour < 12) return `${hour}:00 AM`
@@ -198,16 +279,33 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     }
   }
 
-  const getExpectedEndTimeFromSchedule = (scheduleBlock) => {
+  const getExpectedEndTimeFromSchedule = (scheduleBlock: string): string | null => {
     if (!scheduleBlock) return null
-    const endTime = scheduleBlock.split("-")[1]?.trim()
+    let endTime = scheduleBlock.split("-")[1]?.trim()
     if (!endTime) return null
 
-    // Convert to standard format if needed
-    if (endTime.includes(":")) {
-      return endTime.includes("AM") || endTime.includes("PM") ? endTime : endTime + " PM"
+    // Normalize to uppercase for consistency
+    const upperTime = endTime.toUpperCase()
+    
+    // Check if it has a colon (has minutes)
+    const hasMinutes = endTime.includes(":")
+    
+    // Check if it already has AM/PM (case insensitive)
+    const hasAMPM = upperTime.includes("AM") || upperTime.includes("PM")
+    
+    if (hasAMPM) {
+      // Standardize: ensure space before AM/PM, uppercase, and add :00 if no minutes
+      let normalized = endTime.replace(/([ap]m)/gi, (match: string) => ` ${match.toUpperCase()}`)
+        .replace(/\s+/g, ' ') // Remove any duplicate spaces
+      
+      // If no colon, add :00 for minutes
+      if (!hasMinutes) {
+        // Insert :00 before the space and AM/PM
+        normalized = normalized.replace(/\s(AM|PM)/, ':00 $1')
+      }
+      return normalized
     } else {
-      // Convert 24-hour to 12-hour format
+      // No AM/PM, assume it's 24-hour format
       const hour = Number.parseInt(endTime)
       if (hour === 0) return "12:00 AM"
       if (hour < 12) return `${hour}:00 AM`
@@ -257,22 +355,63 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
 
   // Get day statistics - now counts shifts, not just people
   const dayAttendance = getDayAttendance(selectedDate)
+  
+  // Sort attendance: scheduled shifts first (by start time, then first name), then non-scheduled
+  const sortedDayAttendance = useMemo(() => {
+    return [...dayAttendance].sort((a, b) => {
+      // Non-scheduled go to the bottom
+      const aIsScheduled = a.currentShift && a.currentShift !== "Not scheduled"
+      const bIsScheduled = b.currentShift && b.currentShift !== "Not scheduled"
+      
+      if (aIsScheduled && !bIsScheduled) return -1
+      if (!aIsScheduled && bIsScheduled) return 1
+      
+      // Both scheduled: sort by shift start time
+      if (aIsScheduled && bIsScheduled) {
+        const aStartTime = a.currentShift?.split("-")[0]?.trim()
+        const bStartTime = b.currentShift?.split("-")[0]?.trim()
+        
+        if (aStartTime && bStartTime) {
+          const aMinutes = timeToMinutes(aStartTime)
+          const bMinutes = timeToMinutes(bStartTime)
+          
+          if (aMinutes !== bMinutes) {
+            return aMinutes - bMinutes
+          }
+        }
+      }
+      
+      // Same start time or both non-scheduled: sort by first name
+      const aFirstName = a.name.split(" ")[0].toLowerCase()
+      const bFirstName = b.name.split(" ")[0].toLowerCase()
+      return aFirstName.localeCompare(bFirstName)
+    })
+  }, [dayAttendance])
+  
   const dayStats = {
-    present: dayAttendance.filter((s) => s.status !== "absent" && s.status !== "not-scheduled").length,
-    absent: dayAttendance.filter((s) => s.status === "absent").length,
-    late: dayAttendance.filter((s) => s.status === "late").length,
-    manual: dayAttendance.filter((s) => s.isManual).length,
+    present: sortedDayAttendance.filter((s) => s.status === "present" || s.status === "early").length,
+    early: sortedDayAttendance.filter((s) => s.status === "early").length,
+    absent: sortedDayAttendance.filter((s) => s.status === "absent").length,
+    late: sortedDayAttendance.filter((s) => s.status === "late").length,
+    manual: sortedDayAttendance.filter((s) => s.isManual).length,
   }
 
   const termStatus = getTermStatus()
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      early: { color: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400", label: "Early" },
-      "on-time": { color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400", label: "On Time" },
-      late: { color: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400", label: "Late" },
-      absent: { color: "bg-secondary text-secondary-foreground", label: "Absent" },
+    const statusConfig: Record<string, { color: string; label: string }> = {
+      incoming: { color: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400", label: "Incoming" },
+      early: { color: "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-400", label: "Early" },
+      present: { color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400", label: "Present" },
+      late: { color: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400", label: "Late" },
+      absent: { color: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400", label: "Absent" },
       "not-scheduled": { color: "bg-muted text-muted-foreground", label: "Not Scheduled" },
+      "not-clocked-in": { color: "bg-muted text-muted-foreground", label: "Not Clocked In" },
+    }
+
+    // For incoming (shift not started), return empty dash instead of badge
+    if (status === "incoming") {
+      return <span className="text-muted-foreground">—</span>
     }
 
     const config = statusConfig[status] || statusConfig["absent"]
@@ -287,6 +426,32 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     }
   }
 
+  // Convert 24-hour time to 12-hour format with am/pm (e.g., "08:00-12:00" -> "8am-12pm")
+  const formatShiftTime = (shift: string) => {
+    if (!shift || shift === "Not scheduled") return shift
+    
+    const parts = shift.split("-")
+    if (parts.length !== 2) return shift
+    
+    const formatTime = (time: string) => {
+      const [hourStr, minute] = time.trim().split(":")
+      const hour = parseInt(hourStr, 10)
+      
+      if (isNaN(hour)) return time
+      
+      const period = hour >= 12 ? "pm" : "am"
+      const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+      
+      // Only show minutes if they're not :00
+      if (minute && minute !== "00") {
+        return `${hour12}:${minute}${period}`
+      }
+      return `${hour12}${period}`
+    }
+    
+    return `${formatTime(parts[0])}-${formatTime(parts[1])}`
+  }
+
   return (
     <div className="space-y-6">
       {/* Term Status Header */}
@@ -298,8 +463,8 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
               <div>
                 <CardTitle className="text-xl">{selectedTerm}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(currentTerm.startDate).toLocaleDateString()} -{" "}
-                  {new Date(currentTerm.endDate).toLocaleDateString()}
+                  {formatDateString(currentTerm.startDate)} -{" "}
+                  {formatDateString(currentTerm.endDate)}
                 </p>
               </div>
             </div>
@@ -309,7 +474,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
       </Card>
 
       {/* Daily Stats */}
-      <div className="grid md:grid-cols-4 gap-6">
+      <div className="grid md:grid-cols-5 gap-4">
         <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -326,12 +491,10 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-foreground">{dayStats.absent}</div>
-                <div className="text-muted-foreground">Absent Shifts</div>
+                <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{dayStats.early}</div>
+                <div className="text-muted-foreground">Early Arrivals</div>
               </div>
-              <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
-                <span className="text-muted-foreground font-bold">×</span>
-              </div>
+              <TrendingUp className="w-8 h-8 text-cyan-600 dark:text-cyan-400 rotate-180" />
             </div>
           </CardContent>
         </Card>
@@ -340,10 +503,24 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-red-600 dark:text-red-400">{dayStats.late}</div>
+                <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{dayStats.late}</div>
                 <div className="text-muted-foreground">Late Arrivals</div>
               </div>
-              <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+              <AlertCircle className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-foreground">{dayStats.absent}</div>
+                <div className="text-muted-foreground">Absent Shifts</div>
+              </div>
+              <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
+                <span className="text-muted-foreground font-bold">×</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -383,21 +560,21 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
               </TableRow>
             </TableHeader>
             <TableBody>
-              {dayAttendance.map((staff, index) => (
+              {sortedDayAttendance.map((staff, index) => (
                 <TableRow key={`${staff.id}-${staff.shiftNumber || 0}-${index}`}>
                   <TableCell className="font-medium">
                     {staff.name}
-                    {staff.totalShifts > 1 && (
+                    {(staff.totalShifts ?? 0) > 1 && (
                       <span className="text-xs text-muted-foreground ml-2">
                         (Shift {staff.shiftNumber}/{staff.totalShifts})
                       </span>
                     )}
                   </TableCell>
                   <TableCell>{getRoleBadge(staff.role)}</TableCell>
-                  <TableCell className="font-mono">
+                  <TableCell>
                     {staff.currentShift ? (
                       <div className="text-xs bg-card border px-2 py-1 rounded shadow-sm inline-block">
-                        {staff.currentShift}
+                        {formatShiftTime(staff.currentShift)}
                       </div>
                     ) : (
                       <span className="text-muted-foreground italic text-xs">Not scheduled</span>

@@ -1,21 +1,18 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AlertTriangle, Loader2 } from "lucide-react"
 import { useState, useEffect } from "react"
 
 import { DashboardHeader } from "@/components/dashboard-header"
 import { StatsCards } from "@/components/stats-cards"
-import { IndividualRecords } from "@/components/individual-records"
-import { TermAnalytics } from "@/components/term-analytics"
-import { TermOverview } from "@/components/term-overview"
+import { HourlyDashboard } from "@/components/hourly-dashboard"
 import { api, type Student, type Term } from "@/lib/api"
+import { parseDateString } from "@/lib/utils"
 
 export default function AdminDashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [dateError, setDateError] = useState("")
-  const [selectedStaff, setSelectedStaff] = useState<Student | null>(null)
 
   // Data state
   const [terms, setTerms] = useState<Term[]>([])
@@ -41,6 +38,19 @@ export default function AdminDashboard() {
           setSelectedTerm(activeTerm.name)
         } else if (fetchedTerms.length > 0) {
           setSelectedTerm(fetchedTerms[0].name)
+        }
+        
+        // Set selected date to today if it's within the term
+        if (fetchedTerms.length > 0) {
+          const termToUse = activeTerm || fetchedTerms[0]
+          const termStart = parseDateString(termToUse.startDate)
+          const termEnd = parseDateString(termToUse.endDate)
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          
+          if (today >= termStart && today <= termEnd) {
+            setSelectedDate(today)
+          }
         }
       } catch (err) {
         console.error("Error fetching terms:", err)
@@ -76,6 +86,7 @@ export default function AdminDashboard() {
     fetchStudents()
   }, [selectedTerm, terms])
 
+
   const getWeeklyStats = () => {
     const totalStaff = staffData.length
     const presentStaff = staffData.filter((s) => s.currentStatus === "present").length
@@ -85,9 +96,10 @@ export default function AdminDashboard() {
       const actual = new Date(`2000-01-01 ${s.todayActual}`)
       return actual > expected
     }).length
-    const studentLeads = staffData.filter((s) => s.role === "Student Lead").length
+    // Count student leads who are actively present
+    const studentLeadsPresent = staffData.filter((s) => s.role === "Student Lead" && s.currentStatus === "present").length
 
-    return { totalStaff, presentStaff, lateToday, studentLeads }
+    return { totalStaff, presentStaff, lateToday, studentLeadsPresent }
   }
 
   const getCurrentTerm = () => {
@@ -127,8 +139,8 @@ export default function AdminDashboard() {
       return []
     }
     
-    const start = new Date(currentTerm.startDate)
-    const end = new Date(currentTerm.endDate)
+    const start = parseDateString(currentTerm.startDate)
+    const end = parseDateString(currentTerm.endDate)
     const current = new Date(start)
 
     while (current <= end) {
@@ -183,9 +195,12 @@ export default function AdminDashboard() {
 
   const getTermStatus = () => {
     const today = new Date()
+    today.setHours(0, 0, 0, 0) // Set to midnight for date-only comparison
     const currentTerm = getCurrentTerm()
-    const startDate = new Date(currentTerm.startDate)
-    const endDate = new Date(currentTerm.endDate)
+    const startDate = parseDateString(currentTerm.startDate)
+    startDate.setHours(0, 0, 0, 0)
+    const endDate = parseDateString(currentTerm.endDate)
+    endDate.setHours(23, 59, 59, 999) // Set to end of day for inclusive comparison
 
     if (today < startDate) {
       return { status: "future" }
@@ -226,7 +241,7 @@ export default function AdminDashboard() {
           <StatsCards
             totalStaff={stats.totalStaff}
             presentStaff={stats.presentStaff}
-            studentLeads={stats.studentLeads}
+            studentLeadsPresent={stats.studentLeadsPresent}
             lateToday={stats.lateToday}
           />
 
@@ -252,41 +267,10 @@ export default function AdminDashboard() {
             getTermStatus={getTermStatus}
           />
 
-          <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="bg-white/70 backdrop-blur-sm border-slate-200">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="analytics">Term Analytics</TabsTrigger>
-              <TabsTrigger value="individual">Individual Records</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="overview">
-              <TermOverview
-                staffData={staffData}
-                selectedTerm={selectedTerm}
-                currentTerm={getCurrentTerm()}
-                selectedDate={selectedDate}
-                onDateChange={setSelectedDate}
-              />
-            </TabsContent>
-
-            <TabsContent value="analytics">
-              <TermAnalytics
-                staffData={staffData}
-                selectedTerm={selectedTerm}
-                termStartDate={getCurrentTerm().startDate}
-                termEndDate={getCurrentTerm().endDate}
-              />
-            </TabsContent>
-
-            <TabsContent value="individual">
-              <IndividualRecords
-                staffData={staffData}
-                selectedStaff={selectedStaff}
-                onSelectStaff={setSelectedStaff}
-                selectedTerm={selectedTerm}
-              />
-            </TabsContent>
-          </Tabs>
+          <HourlyDashboard
+            staffData={staffData}
+            selectedDate={selectedDate}
+          />
         </>
       )}
     </>

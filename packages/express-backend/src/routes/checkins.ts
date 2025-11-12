@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, RequestHandler } from 'express';
 import CheckIn from '../models/CheckIn.js';
 import Student from '../models/Student.js';
 import Term from '../models/Term.js';
@@ -11,11 +11,19 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const { studentId, termId, startDate, endDate } = req.query;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const query: Record<string, any> = {};
+    interface MongoQuery {
+      studentId?: string;
+      termId?: string;
+      timestamp?: {
+        $gte?: Date;
+        $lte?: Date;
+      };
+    }
 
-    if (studentId) query.studentId = studentId;
-    if (termId) query.termId = termId;
+    const query: MongoQuery = {};
+
+    if (studentId) query.studentId = studentId as string;
+    if (termId) query.termId = termId as string;
 
     if (startDate || endDate) {
       query.timestamp = {};
@@ -45,8 +53,7 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // POST - Create a new check-in (manual or card swipe)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.post('/', async (req: Request, res: Response): Promise<any> => {
+router.post('/', (async (req: Request, res: Response) => {
   try {
     const { studentId, termId, type, timestamp, isManual } = req.body;
 
@@ -94,8 +101,7 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
         studentId: savedCheckIn.studentId,
         termId: savedCheckIn.termId,
         date: shiftDate,
-        scheduledStart: checkInDate.toTimeString().slice(0, 5),
-        scheduledEnd: '23:59',
+        // Don't set scheduledStart/scheduledEnd for manual entries - they're not scheduled
         status: type === 'in' ? 'started' : 'scheduled',
         source: 'manual',
       });
@@ -123,11 +129,76 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
     console.error('Error creating check-in:', error);
     res.status(500).json({ message: 'Error creating check-in', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
+
+// PUT - Update a check-in
+router.put('/:id', (async (req: Request, res: Response) => {
+  try {
+    const { timestamp, type } = req.body;
+    const { id } = req.params;
+
+    // Validate ID format
+    if (!id || id.trim() === '') {
+      return res.status(400).json({ message: 'Invalid check-in ID provided' });
+    }
+
+    const checkIn = await CheckIn.findById(id);
+
+    if (!checkIn) {
+      return res.status(404).json({ message: 'Check-in not found' });
+    }
+
+    // Update timestamp if provided
+    if (timestamp) {
+      checkIn.timestamp = new Date(timestamp);
+    }
+
+    // Update type if provided
+    if (type) {
+      checkIn.type = type;
+    }
+
+    // Mark as manual since it's being edited
+    checkIn.isManual = true;
+
+    const updatedCheckIn = await checkIn.save();
+
+    // Update shift if it exists
+    const checkInDate = new Date(updatedCheckIn.timestamp);
+    const shiftDate = new Date(Date.UTC(checkInDate.getFullYear(), checkInDate.getMonth(), checkInDate.getDate()));
+    
+    const shift = await Shift.findOne({
+      studentId: updatedCheckIn.studentId,
+      termId: updatedCheckIn.termId,
+      date: shiftDate,
+    });
+
+    if (shift) {
+      if (updatedCheckIn.type === 'in') {
+        shift.actualStart = updatedCheckIn.timestamp;
+      } else if (updatedCheckIn.type === 'out') {
+        shift.actualEnd = updatedCheckIn.timestamp;
+        shift.status = 'completed';
+      }
+      await shift.save();
+    }
+
+    res.json({
+      id: updatedCheckIn._id,
+      studentId: updatedCheckIn.studentId,
+      termId: updatedCheckIn.termId,
+      type: updatedCheckIn.type,
+      timestamp: updatedCheckIn.timestamp,
+      isManual: updatedCheckIn.isManual,
+    });
+  } catch (error) {
+    console.error('Error updating check-in:', error);
+    res.status(500).json({ message: 'Error updating check-in', error: (error as Error).message });
+  }
+}) as RequestHandler);
 
 // DELETE - Delete a check-in
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.delete('/:id', async (req: Request, res: Response): Promise<any> => {
+router.delete('/:id', (async (req: Request, res: Response) => {
   try {
     const checkIn = await CheckIn.findByIdAndDelete(req.params.id);
 
@@ -140,7 +211,7 @@ router.delete('/:id', async (req: Request, res: Response): Promise<any> => {
     console.error('Error deleting check-in:', error);
     res.status(500).json({ message: 'Error deleting check-in', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 export default router;
 

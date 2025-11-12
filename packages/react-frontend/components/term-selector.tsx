@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Calendar, ChevronDown } from "lucide-react"
+import { formatDateString } from "@/lib/utils"
 
 interface Term {
   id: string
@@ -38,7 +39,7 @@ export function TermSelector({ terms, selectedTerm, onTermChange }: TermSelector
             <div className="flex flex-col">
               <span className="font-medium">{term.name}</span>
               <span className="text-xs text-muted-foreground">
-                {new Date(term.startDate).toLocaleDateString()} - {new Date(term.endDate).toLocaleDateString()}
+                {formatDateString(term.startDate)} - {formatDateString(term.endDate)}
               </span>
             </div>
           </DropdownMenuItem>

@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, RequestHandler } from 'express';
 import Term from '../models/Term.js';
 
 const router = express.Router();
@@ -24,8 +24,7 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // GET a single term by ID
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.get('/:id', async (req: Request, res: Response): Promise<any> => {
+router.get('/:id', (async (req: Request, res: Response) => {
   try {
     const term = await Term.findById(req.params.id).lean();
 
@@ -44,11 +43,24 @@ router.get('/:id', async (req: Request, res: Response): Promise<any> => {
     console.error('Error fetching term:', error);
     res.status(500).json({ message: 'Error fetching term', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
+
+// Helper function to parse date string without timezone issues
+const parseDateString = (dateString: string): Date => {
+  // If dateString is in YYYY-MM-DD format, parse it as local date
+  const parts = dateString.split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+    const day = parseInt(parts[2], 10);
+    return new Date(year, month, day);
+  }
+  // Fallback to standard parsing
+  return new Date(dateString);
+};
 
 // POST - Create a new term
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.post('/', async (req: Request, res: Response): Promise<any> => {
+router.post('/', (async (req: Request, res: Response) => {
   try {
     const { name, startDate, endDate, isActive } = req.body;
 
@@ -56,8 +68,8 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
       return res.status(400).json({ message: 'Name, startDate, and endDate are required' });
     }
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = parseDateString(startDate);
+    const end = parseDateString(endDate);
 
     if (start >= end) {
       return res.status(400).json({ message: 'Start date must be before end date' });
@@ -91,11 +103,10 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
     console.error('Error creating term:', error);
     res.status(500).json({ message: 'Error creating term', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 // PUT - Update a term
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.put('/:id', async (req: Request, res: Response): Promise<any> => {
+router.put('/:id', (async (req: Request, res: Response) => {
   try {
     const { name, startDate, endDate, isActive } = req.body;
 
@@ -105,8 +116,8 @@ router.put('/:id', async (req: Request, res: Response): Promise<any> => {
     }
 
     if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
+      const start = parseDateString(startDate);
+      const end = parseDateString(endDate);
 
       if (start >= end) {
         return res.status(400).json({ message: 'Start date must be before end date' });
@@ -116,14 +127,14 @@ router.put('/:id', async (req: Request, res: Response): Promise<any> => {
       term.endDate = end;
       term.year = start.getFullYear();
     } else if (startDate) {
-      const start = new Date(startDate);
+      const start = parseDateString(startDate);
       if (start >= term.endDate) {
         return res.status(400).json({ message: 'Start date must be before end date' });
       }
       term.startDate = start;
       term.year = start.getFullYear();
     } else if (endDate) {
-      const end = new Date(endDate);
+      const end = parseDateString(endDate);
       if (term.startDate >= end) {
         return res.status(400).json({ message: 'Start date must be before end date' });
       }
@@ -153,11 +164,10 @@ router.put('/:id', async (req: Request, res: Response): Promise<any> => {
     console.error('Error updating term:', error);
     res.status(500).json({ message: 'Error updating term', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 // DELETE - Delete a term
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.delete('/:id', async (req: Request, res: Response): Promise<any> => {
+router.delete('/:id', (async (req: Request, res: Response) => {
   try {
     const term = await Term.findByIdAndDelete(req.params.id);
 
@@ -170,7 +180,7 @@ router.delete('/:id', async (req: Request, res: Response): Promise<any> => {
     console.error('Error deleting term:', error);
     res.status(500).json({ message: 'Error deleting term', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 export default router;
 

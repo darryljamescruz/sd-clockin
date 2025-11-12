@@ -27,6 +27,29 @@ interface TermManagerProps {
   isAddMode?: boolean
 }
 
+// Helper function to convert date string to local date string for date input
+// This prevents timezone issues when displaying dates
+const formatDateForInput = (dateString: string): string => {
+  if (!dateString) return ""
+  // If it's already in YYYY-MM-DD format, use it directly (no timezone conversion needed)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return dateString
+  }
+  // If it's an ISO string with time, parse the date part directly to avoid timezone shifts
+  // Extract YYYY-MM-DD from ISO string (e.g., "2025-11-10T00:00:00.000Z" -> "2025-11-10")
+  const isoMatch = dateString.match(/^(\d{4}-\d{2}-\d{2})/)
+  if (isoMatch) {
+    return isoMatch[1]
+  }
+  // Fallback: parse as local date components
+  const date = new Date(dateString)
+  // Use UTC methods to avoid timezone shifts, or parse the string directly
+  const year = date.getUTCFullYear()
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0")
+  const day = String(date.getUTCDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
 export function TermManager({
   terms,
   onAddTerm,
@@ -38,8 +61,8 @@ export function TermManager({
 }: TermManagerProps) {
   const [formData, setFormData] = useState({
     name: editingTerm?.name || "",
-    startDate: editingTerm?.startDate || "",
-    endDate: editingTerm?.endDate || "",
+    startDate: editingTerm?.startDate ? formatDateForInput(editingTerm.startDate) : "",
+    endDate: editingTerm?.endDate ? formatDateForInput(editingTerm.endDate) : "",
     isActive: editingTerm?.isActive || false,
   })
 
@@ -47,8 +70,8 @@ export function TermManager({
     if (editingTerm) {
       setFormData({
         name: editingTerm.name,
-        startDate: editingTerm.startDate,
-        endDate: editingTerm.endDate,
+        startDate: formatDateForInput(editingTerm.startDate),
+        endDate: formatDateForInput(editingTerm.endDate),
         isActive: editingTerm.isActive,
       })
     }

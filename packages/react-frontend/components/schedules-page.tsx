@@ -5,11 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Edit, ArrowLeft, Users, Clock } from "lucide-react"
-import { useState, useEffect } from "react"
+import { Input } from "@/components/ui/input"
+import { Calendar, Edit, ArrowLeft, Users, Clock, Search, ArrowUpDown } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
 import { StudentScheduleManager } from "./student-schedule-manager"
+import { CSVImport } from "./csv-import"
+import { StudentScheduleVisual } from "./student-schedule-visual"
 import type { Term, Student, Schedule } from "@/lib/api"
 import { api } from "@/lib/api"
+import { formatDateString } from "@/lib/utils"
 
 interface SchedulesPageProps {
   students: Student[]
@@ -22,6 +26,8 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
   const [schedules, setSchedules] = useState<Record<string, Schedule>>({})
   const [editingStudent, setEditingStudent] = useState<Student | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [sortBy, setSortBy] = useState<"name" | "scheduled" | "none">("name")
 
   // Set default term to active term or first term
   useEffect(() => {
@@ -97,30 +103,61 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
 
   const selectedTerm = terms.find((t) => t.id === selectedTermId)
 
+  // Filter and sort students
+  const filteredAndSortedStudents = useMemo(() => {
+    let filtered = students
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(s => 
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.role.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    // Sort
+    if (sortBy === "name") {
+      filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name))
+    } else if (sortBy === "scheduled") {
+      filtered = [...filtered].sort((a, b) => {
+        const aHasSchedule = schedules[a.id] && 
+          Object.values(schedules[a.id].availability).some(day => day.length > 0)
+        const bHasSchedule = schedules[b.id] && 
+          Object.values(schedules[b.id].availability).some(day => day.length > 0)
+        
+        if (aHasSchedule && !bHasSchedule) return -1
+        if (!aHasSchedule && bHasSchedule) return 1
+        return a.name.localeCompare(b.name)
+      })
+    }
+
+    return filtered
+  }, [students, searchQuery, sortBy, schedules])
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" onClick={onBack} className="p-2">
+          <Button variant="ghost" onClick={onBack} className="p-2 shrink-0">
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h2 className="text-2xl font-bold text-foreground">Manage Schedules</h2>
-            <p className="text-muted-foreground">Set student availability for each term</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Manage Schedules</h2>
+            <p className="text-sm sm:text-base text-muted-foreground">Set student availability for each term</p>
           </div>
         </div>
       </div>
 
       {/* Term Selector */}
       <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <Calendar className="w-5 h-5 text-muted-foreground" />
+        <CardContent className="p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <Calendar className="w-5 h-5 text-muted-foreground shrink-0" />
             <div className="flex-1">
               <Label className="text-sm font-medium text-foreground mb-2 block">Select Term</Label>
               <Select value={selectedTermId} onValueChange={setSelectedTermId}>
-                <SelectTrigger className="w-full max-w-md">
+                <SelectTrigger className="w-full sm:max-w-md">
                   <SelectValue placeholder="Select a term" />
                 </SelectTrigger>
                 <SelectContent>
@@ -133,9 +170,9 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
               </Select>
             </div>
             {selectedTerm && (
-              <div className="text-sm text-muted-foreground">
-                {new Date(selectedTerm.startDate).toLocaleDateString()} -{" "}
-                {new Date(selectedTerm.endDate).toLocaleDateString()}
+              <div className="text-xs sm:text-sm text-muted-foreground shrink-0">
+                {formatDateString(selectedTerm.startDate)} -{" "}
+                {formatDateString(selectedTerm.endDate)}
               </div>
             )}
           </div>
@@ -154,6 +191,41 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* CSV Import */}
+      {selectedTermId && (
+        <CSVImport termId={selectedTermId} onImportComplete={handleSaveSchedule} />
+      )}
+
+      {/* Filter and Sort Controls */}
+      {selectedTermId && (
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search by name or role..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <ArrowUpDown className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Sort by Name</SelectItem>
+                  <SelectItem value="scheduled">Scheduled First</SelectItem>
+                  <SelectItem value="none">No Sorting</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Students Table */}
       {!selectedTermId ? (
@@ -179,65 +251,54 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead className="min-w-[200px]">Weekly Availability</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {students.map((student) => {
-                  const schedule = schedules[student.id]
-
-                  return (
-                    <TableRow key={student.id}>
-                      <TableCell className="font-medium">{student.name}</TableCell>
-                      <TableCell>
-                        {student.role === "Student Lead" ? (
-                          <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-100">Student Lead</Badge>
-                        ) : (
-                          <Badge className="bg-secondary text-secondary-foreground hover:bg-slate-100">Assistant</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {schedule?.availability ? (
-                          <div className="space-y-1">
-                            {Object.entries(schedule.availability).map(([day, blocks]) => 
-                              blocks.length > 0 ? (
-                                <div key={day}>
-                                  <span className="font-medium capitalize">{day}:</span> {blocks.join(", ")}
-                                </div>
-                              ) : null
-                            )}
-                            {Object.values(schedule.availability).every(blocks => blocks.length === 0) && (
-                              <span className="text-muted-foreground italic">No schedule set</span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground italic">No schedule set</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditSchedule(student)}
-                            className=""
-                          >
-                            <Edit className="w-3 h-3 mr-1" />
-                            Edit
-                          </Button>
-                        </div>
-                      </TableCell>
+            <div className="overflow-x-auto -mx-4 md:mx-0">
+              <div className="px-4 md:px-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[120px]">Name</TableHead>
+                      <TableHead className="min-w-[100px]">Role</TableHead>
+                      <TableHead className="min-w-[400px]">Weekly Availability</TableHead>
+                      <TableHead className="text-right min-w-[80px]">Actions</TableHead>
                     </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAndSortedStudents.map((student) => {
+                      const schedule = schedules[student.id]
+
+                      return (
+                        <TableRow key={student.id}>
+                          <TableCell className="font-medium">{student.name}</TableCell>
+                          <TableCell>
+                            {student.role === "Student Lead" ? (
+                              <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-100">Student Lead</Badge>
+                            ) : (
+                              <Badge className="bg-secondary text-secondary-foreground hover:bg-slate-100">Assistant</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <StudentScheduleVisual schedule={schedule} />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditSchedule(student)}
+                                className=""
+                              >
+                                <Edit className="w-3 h-3 mr-1" />
+                                <span className="hidden sm:inline">Edit</span>
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

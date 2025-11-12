@@ -29,10 +29,27 @@ export function ExpectedArrivalsTable({ expectedArrivals }: ExpectedArrivalsTabl
     }
   }
 
-  const getTodaySchedule = (staff: Student, date = new Date()) => {
-    const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday"]
-    const dayName = dayNames[date.getDay()]
-    return staff.weeklySchedule?.[dayName] || []
+  // Convert 24-hour time to 12-hour format with am/pm (e.g., "08:00-12:00" -> "8am-12pm")
+  const formatShiftTime = (startTime?: string | null, endTime?: string | null) => {
+    if (!startTime || !endTime) return null
+    
+    const formatTime = (time: string) => {
+      const [hourStr, minute] = time.trim().split(":")
+      const hour = parseInt(hourStr, 10)
+      
+      if (isNaN(hour)) return time
+      
+      const period = hour >= 12 ? "pm" : "am"
+      const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+      
+      // Only show minutes if they're not :00
+      if (minute && minute !== "00") {
+        return `${hour12}:${minute}${period}`
+      }
+      return `${hour12}${period}`
+    }
+    
+    return `${formatTime(startTime)}-${formatTime(endTime)}`
   }
 
   return (
@@ -60,17 +77,13 @@ export function ExpectedArrivalsTable({ expectedArrivals }: ExpectedArrivalsTabl
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell>{getRoleBadge(user.role)}</TableCell>
-                <TableCell className="font-mono">
-                  {getTodaySchedule(user).length > 0 ? (
-                    <div className="space-y-1">
-                      {getTodaySchedule(user).map((block, index) => (
-                        <div key={index} className="text-xs bg-secondary px-2 py-1 rounded">
-                          {block}
-                        </div>
-                      ))}
+                <TableCell>
+                  {formatShiftTime(user.expectedStartShift, user.expectedEndShift) ? (
+                    <div className="text-xs bg-card border px-2 py-1 rounded shadow-sm inline-block">
+                      {formatShiftTime(user.expectedStartShift, user.expectedEndShift)}
                     </div>
                   ) : (
-                    <span className="text-muted-foreground italic">No schedule</span>
+                    <span className="text-muted-foreground italic text-xs">No schedule</span>
                   )}
                 </TableCell>
               </TableRow>

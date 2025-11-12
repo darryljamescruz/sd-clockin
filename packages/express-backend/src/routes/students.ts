@@ -1,14 +1,13 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, RequestHandler } from 'express';
 import Student from '../models/Student.js';
-import Schedule from '../models/Schedule.js';
+import Schedule, { ISchedule } from '../models/Schedule.js';
 import CheckIn from '../models/CheckIn.js';
 import Shift from '../models/Shift.js';
 
 const router = express.Router();
 
 // GET all students with their schedules for a specific term
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.get('/', async (req: Request, res: Response): Promise<any> => {
+router.get('/', (async (req: Request, res: Response) => {
   try {
     const { termId } = req.query;
     // Admin panel (no termId): Get ALL students for management
@@ -32,26 +31,29 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
           // Create date at midnight UTC for consistent querying
           const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
           
-          console.log('Looking for shift on date:', today, 'for student:', student.name);
-          
           const todayShift = await Shift.findOne({
             studentId: student._id,
             termId,
             date: today,
           }).lean();
-          
-          console.log('Found shift:', todayShift ? `status=${todayShift.status}` : 'none');
 
-          // Determine current status from shift
+          // Determine current status from shift and schedule
           let currentStatus = 'off';
           let todayActual: string | null = null;
+          let expectedStartShift: string | null = null;
           let expectedEndShift: string | null = null;
 
+          // First check if there's an actual shift record (clocked in)
           if (todayShift) {
+            console.log('Found todayShift for', student.name, ':', {
+              status: todayShift.status,
+              scheduledStart: todayShift.scheduledStart,
+              scheduledEnd: todayShift.scheduledEnd,
+              actualStart: todayShift.actualStart,
+            });
+
             // Map shift status to frontend status
-            if (todayShift.status === 'scheduled') {
-              currentStatus = 'incoming'; // Expected to arrive
-            } else if (todayShift.status === 'started') {
+            if (todayShift.status === 'started') {
               currentStatus = 'present'; // Currently clocked in
             } else if (todayShift.status === 'completed') {
               currentStatus = 'clocked_out'; // Finished shift
@@ -59,19 +61,20 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
               currentStatus = 'absent'; // Didn't show up
             }
 
-            // Get actual clock-in time
+            // Get actual clock-in time (return as ISO string, let frontend format)
             if (todayShift.actualStart) {
-              todayActual = new Date(todayShift.actualStart).toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-              });
+              todayActual = todayShift.actualStart.toISOString();
             }
 
-            // Get expected end time
+            // Get expected start and end times from shift
+            expectedStartShift = todayShift.scheduledStart || null;
             expectedEndShift = todayShift.scheduledEnd || null;
           } else {
-            // Fallback: If no shift but there are check-ins today, compute status from check-ins
+            console.log('No todayShift found for', student.name);
+          }
+
+          // If not clocked in yet, check fallback: manual check-ins without shift
+          if (currentStatus === 'off') {
             const todayCheckIns = await CheckIn.find({
               studentId: student._id,
               termId,
@@ -82,16 +85,177 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
               const lastCheckIn = todayCheckIns[0];
               if (lastCheckIn.type === 'in') {
                 currentStatus = 'present'; // Currently clocked in
-                todayActual = new Date(lastCheckIn.timestamp).toLocaleTimeString('en-US', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true,
-                });
+                todayActual = lastCheckIn.timestamp.toISOString();
               } else if (lastCheckIn.type === 'out') {
                 currentStatus = 'clocked_out'; // Already clocked out
               }
             }
           }
+
+          // If currently present but no expected end time, calculate from schedule
+          console.log('Checking if should calculate shift end:', {
+            name: student.name,
+            currentStatus,
+            hasExpectedEndShift: !!expectedEndShift,
+            hasSchedule: !!schedule,
+            hasTodayActual: !!todayActual,
+          });
+
+          if (currentStatus === 'present' && !expectedEndShift && schedule && todayActual) {
+            console.log('>>> Calculating shift end for clocked-in user:', student.name);
+            const dayOfWeek = now.getDay();
+            const dayNames: Record<number, keyof ISchedule['availability'] | null> = {
+              0: null, 1: 'monday', 2: 'tuesday', 3: 'wednesday', 4: 'thursday', 5: 'friday', 6: null,
+            };
+            const dayName = dayNames[dayOfWeek];
+            const todaySchedule = dayName ? (schedule.availability[dayName] || []) : [];
+
+            console.log('Server time (now):', now.toString());
+            console.log('Day of week:', dayOfWeek, '(', dayName, ')');
+            console.log('Clock-in time (ISO):', todayActual);
+            console.log('Today schedule:', todaySchedule);
+
+            if (todaySchedule.length > 0) {
+              // Get the clock-in time in minutes (convert UTC to PST/PDT: UTC-8 or UTC-7)
+              const clockInTime = new Date(todayActual);
+              
+              // Get the time in PST by using toLocaleString with America/Los_Angeles timezone
+              const pstTime = new Date(clockInTime.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+              const clockInMinutes = pstTime.getHours() * 60 + pstTime.getMinutes();
+              
+              console.log('Clock-in time (UTC):', clockInTime.toISOString());
+              console.log('Clock-in time (PST):', pstTime.toString());
+              console.log('Clock-in hours (PST):', pstTime.getHours(), 'minutes:', pstTime.getMinutes());
+              console.log('Clock-in total minutes (PST):', clockInMinutes);
+
+              // Find the shift they clocked into (match to closest shift for multiple shifts per day)
+              let bestMatch: { startTime: string; endTime: string; distance: number } | null = null;
+              
+              for (const shiftBlock of todaySchedule) {
+                const [startTime, endTime] = shiftBlock.split('-');
+                if (!startTime || !endTime) continue;
+
+                const [startHourStr, startMinuteStr] = startTime.trim().split(':');
+                const shiftStartHour = parseInt(startHourStr, 10);
+                const shiftStartMinute = parseInt(startMinuteStr, 10);
+                const shiftStartMinutes = shiftStartHour * 60 + shiftStartMinute;
+
+                const [endHourStr, endMinuteStr] = endTime.trim().split(':');
+                const shiftEndHour = parseInt(endHourStr, 10);
+                const shiftEndMinute = parseInt(endMinuteStr, 10);
+                const shiftEndMinutes = shiftEndHour * 60 + shiftEndMinute;
+
+                console.log(`Checking shift ${shiftBlock}: start=${shiftStartMinutes}, end=${shiftEndMinutes}`);
+                console.log(`Clock-in is ${clockInMinutes - shiftStartMinutes} minutes from shift start`);
+
+                // Check if clocked in within 4 hours (240 min) before shift start or during shift
+                if (clockInMinutes >= shiftStartMinutes - 240 && clockInMinutes <= shiftEndMinutes) {
+                  // Calculate distance to shift start (prefer closest shift)
+                  const distance = Math.abs(clockInMinutes - shiftStartMinutes);
+                  
+                  if (!bestMatch || distance < bestMatch.distance) {
+                    bestMatch = {
+                      startTime: startTime.trim(),
+                      endTime: endTime.trim(),
+                      distance
+                    };
+                    console.log(`  → Potential match (distance: ${distance} min)`);
+                  }
+                }
+              }
+              
+              if (bestMatch) {
+                expectedStartShift = bestMatch.startTime;
+                expectedEndShift = bestMatch.endTime;
+                console.log('✓ Best match:', expectedStartShift, '-', expectedEndShift);
+              }
+
+              // If no matching shift found, they clocked in too early or outside schedule
+              if (!expectedEndShift) {
+                expectedEndShift = 'No schedule';
+                console.log('✗ No matching shift found (clocked in too early or outside schedule)');
+              }
+            } else {
+              // No schedule for today
+              expectedEndShift = 'No schedule';
+              console.log('✗ No schedule for today');
+            }
+          }
+
+          // If still 'off', check weekly schedule for expected arrivals
+          console.log('=== Checking expected arrivals for:', student.name);
+          console.log('Current status:', currentStatus);
+          console.log('Has schedule?', !!schedule);
+          
+          if (currentStatus === 'off' && schedule) {
+            // Convert current time to PST for comparison with schedules
+            const nowPST = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+            
+            // Map getDay() (0=Sunday, 1=Monday...6=Saturday) to weekday names
+            const dayOfWeek = nowPST.getDay(); // 0-6
+            const dayNames: Record<number, keyof ISchedule['availability'] | null> = {
+              0: null, // Sunday - no schedule
+              1: 'monday',
+              2: 'tuesday',
+              3: 'wednesday',
+              4: 'thursday',
+              5: 'friday',
+              6: null, // Saturday - no schedule
+            };
+            const dayName = dayNames[dayOfWeek];
+            
+            console.log('Server time (UTC):', now.toString());
+            console.log('Current time (PST):', nowPST.toString());
+            console.log('Day of week (PST):', dayOfWeek, '(', dayName || 'weekend', ')');
+            console.log('Schedule availability keys:', Object.keys(schedule.availability));
+            
+            // Only check if it's a weekday
+            const todaySchedule = dayName ? (schedule.availability[dayName] || []) : [];
+
+            console.log('Today schedule:', todaySchedule);
+
+            // Check if any shift starts within the next 3 hours (use PST time)
+            const currentHour = nowPST.getHours();
+            const currentMinute = nowPST.getMinutes();
+            const currentTotalMinutes = currentHour * 60 + currentMinute;
+            
+            console.log('Current time (PST):', `${currentHour}:${currentMinute}`, '(', currentTotalMinutes, 'minutes)');
+
+            for (const shiftBlock of todaySchedule) {
+              console.log('Processing shift block:', shiftBlock);
+              
+              // Parse shift block (e.g., "08:00-12:00")
+              const [startTime, endTime] = shiftBlock.split('-');
+              if (!startTime || !endTime) {
+                console.log('Invalid shift block format');
+                continue;
+              }
+
+              const [startHourStr, startMinuteStr] = startTime.trim().split(':');
+              const shiftStartHour = parseInt(startHourStr, 10);
+              const shiftStartMinute = parseInt(startMinuteStr, 10);
+              const shiftStartTotalMinutes = shiftStartHour * 60 + shiftStartMinute;
+
+              console.log('Shift start time:', `${shiftStartHour}:${shiftStartMinute}`, '(', shiftStartTotalMinutes, 'minutes)');
+
+              // Check if shift starts within next 3 hours (180 minutes)
+              const minutesUntilShift = shiftStartTotalMinutes - currentTotalMinutes;
+              
+              console.log('Minutes until shift:', minutesUntilShift);
+              console.log('Is within 3 hours?', minutesUntilShift >= 0 && minutesUntilShift <= 180);
+
+              if (minutesUntilShift >= 0 && minutesUntilShift <= 180) {
+                currentStatus = 'incoming'; // Expected to arrive within 3 hours
+                expectedStartShift = startTime.trim();
+                expectedEndShift = endTime.trim();
+                console.log('✓ Setting as INCOMING with shift:', expectedStartShift, '-', expectedEndShift);
+                break; // Use the first matching shift
+              }
+            }
+          }
+          
+          console.log('Final status for', student.name, ':', currentStatus);
+          console.log('---');
 
           // Get all check-ins for historical data (limited for performance)
           const checkIns = await CheckIn.find({
@@ -109,6 +273,7 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
             role: student.role,
             currentStatus,
             todayActual,
+            expectedStartShift,
             expectedEndShift,
             weeklySchedule: schedule?.availability || {
               monday: [],
@@ -116,9 +281,9 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
               wednesday: [],
               thursday: [],
               friday: [],
-
             },
             clockEntries: checkIns.map((entry) => ({
+              id: entry._id.toString(),
               timestamp: entry.timestamp,
               type: entry.type,
               isManual: entry.isManual,
@@ -144,11 +309,10 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
     console.error('Error fetching students:', error);
     res.status(500).json({ message: 'Error fetching students', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 // GET a single student by ID
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.get('/:id', async (req: Request, res: Response): Promise<any> => {
+router.get('/:id', (async (req: Request, res: Response) => {
   try {
     const student = await Student.findById(req.params.id).lean();
 
@@ -167,11 +331,10 @@ router.get('/:id', async (req: Request, res: Response): Promise<any> => {
     console.error('Error fetching student:', error);
     res.status(500).json({ message: 'Error fetching student', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 // POST - Create a new student
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.post('/', async (req: Request, res: Response): Promise<any> => {
+router.post('/', (async (req: Request, res: Response) => {
   try {
     const { name, cardId, role } = req.body;
 
@@ -204,11 +367,10 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
     console.error('Error creating student:', error);
     res.status(500).json({ message: 'Error creating student', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 // PUT - Update a student
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.put('/:id', async (req: Request, res: Response): Promise<any> => {
+router.put('/:id', (async (req: Request, res: Response) => {
   try {
     const { name, cardId, role } = req.body;
 
@@ -242,11 +404,10 @@ router.put('/:id', async (req: Request, res: Response): Promise<any> => {
     console.error('Error updating student:', error);
     res.status(500).json({ message: 'Error updating student', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 // DELETE - Delete a student
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.delete('/:id', async (req: Request, res: Response): Promise<any> => {
+router.delete('/:id', (async (req: Request, res: Response) => {
   try {
     const student = await Student.findByIdAndDelete(req.params.id);
 
@@ -263,7 +424,7 @@ router.delete('/:id', async (req: Request, res: Response): Promise<any> => {
     console.error('Error deleting student:', error);
     res.status(500).json({ message: 'Error deleting student', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 export default router;
 

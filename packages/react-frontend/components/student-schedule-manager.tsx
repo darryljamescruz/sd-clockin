@@ -155,7 +155,7 @@ export function StudentScheduleManager({ student, terms, onClose, onSave }: Stud
 
   return (
     <div 
-      className="absolute inset-0 bg-background/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-background/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <Card 
