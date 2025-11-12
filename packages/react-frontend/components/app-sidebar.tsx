@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
+import { api } from "@/lib/api"
 
 import {
   Sidebar,
@@ -69,6 +70,14 @@ const manageItems = [
   },
 ]
 
+const adminItems = [
+  {
+    title: "Staff Accounts",
+    url: "/admin/staff-accounts",
+    icon: User2,
+  },
+]
+
 const analyticsItems = [
   {
     title: "Term Analytics",
@@ -82,7 +91,11 @@ const analyticsItems = [
   },
 ]
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  user?: { id: string; name: string; email: string; isAdmin: boolean } | null
+}
+
+export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [mounted, setMounted] = React.useState(false)
@@ -91,8 +104,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     setMounted(true)
   }, [])
 
-  const handleLogout = () => {
-    router.push("/")
+  const handleLogout = async () => {
+    try {
+      await api.auth.logout()
+    } catch (error) {
+      console.error("Logout error:", error)
+    } finally {
+      router.push("/")
+    }
   }
 
   return (
@@ -181,6 +200,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {user?.isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Administration</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname === item.url}
+                      tooltip={item.title}
+                    >
+                      <Link href={item.url}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter>

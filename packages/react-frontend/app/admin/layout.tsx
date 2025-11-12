@@ -12,8 +12,10 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { usePathname } from "next/navigation"
+import { AdminLogin } from "@/components/admin-login"
+import { usePathname, useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
+import { api } from "@/lib/api"
 
 export default function AdminLayout({
   children,
@@ -21,7 +23,37 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const [isLoginOpen, setIsLoginOpen] = useState(false)
+  const [user, setUser] = useState<{ id: string; name: string; email: string; isAdmin: boolean } | null>(null)
+
+  // Check authentication on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const result = await api.auth.verify()
+        if (result.authenticated && result.user) {
+          setIsAuthenticated(true)
+          setUser({
+            id: result.user.id,
+            name: result.user.username,
+            email: result.user.username,
+            isAdmin: result.user.isAdmin,
+          })
+        } else {
+          setIsAuthenticated(false)
+          setIsLoginOpen(true)
+        }
+      } catch (error) {
+        setIsAuthenticated(false)
+        setIsLoginOpen(true)
+      }
+    }
+
+    checkAuth()
+  }, [])
 
   // Update clock every second
   useEffect(() => {
@@ -31,6 +63,55 @@ export default function AdminLayout({
 
     return () => clearInterval(timer)
   }, [])
+
+  const handleLogin = (loggedInUser: { id: string; name: string; email: string; isAdmin: boolean }) => {
+    setIsAuthenticated(true)
+    setUser(loggedInUser)
+    setIsLoginOpen(false)
+  }
+
+  // Show loading state while checking authentication
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Checking authentication...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show login if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-full max-w-md p-6">
+          <AdminLogin
+            isOpen={isLoginOpen}
+            onToggle={() => {
+              setIsLoginOpen(!isLoginOpen)
+              if (!isLoginOpen) {
+                router.push("/")
+              }
+            }}
+            onLogin={handleLogin}
+          />
+          {!isLoginOpen && (
+            <div className="text-center mt-4">
+              <p className="text-muted-foreground mb-4">Please log in to access the admin panel.</p>
+              <button
+                onClick={() => setIsLoginOpen(true)}
+                className="text-primary hover:underline"
+              >
+                Open Login
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("en-US", {
@@ -91,7 +172,7 @@ export default function AdminLayout({
 
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar user={user} />
       <SidebarInset className="overflow-x-hidden">
         <header className="flex h-auto sm:h-16 shrink-0 items-center gap-2 border-b px-3 sm:px-4 py-2 sm:py-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 overflow-x-hidden">
           <SidebarTrigger className="-ml-1 flex-shrink-0" />

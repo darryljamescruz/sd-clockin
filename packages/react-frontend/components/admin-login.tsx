@@ -6,19 +6,23 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Shield, X } from "lucide-react"
 import { useState, useEffect } from "react"
+import { api } from "@/lib/api"
 
 interface AdminLoginProps {
   isOpen: boolean
   onToggle: () => void
-  onLogin: (username: string, password: string) => boolean
+  onLogin: (user: { id: string; name: string; email: string; isAdmin: boolean }) => void
 }
 
 export function AdminLogin({ isOpen, onToggle, onLogin }: AdminLoginProps) {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
+  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
   // Disable card swipe when modal is open
   useEffect(() => {
@@ -37,16 +41,24 @@ export function AdminLogin({ isOpen, onToggle, onLogin }: AdminLoginProps) {
     }
   }, [isOpen])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const success = onLogin(username, password)
-    if (!success) {
-      setError("Invalid credentials")
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const result = await api.auth.login(username, password, rememberMe)
+      if (result.success) {
+        setUsername("")
+        setPassword("")
+        setError("")
+        onLogin(result.user)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Invalid credentials")
       setPassword("")
-    } else {
-      setUsername("")
-      setPassword("")
-      setError("")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -102,10 +114,23 @@ export function AdminLogin({ isOpen, onToggle, onLogin }: AdminLoginProps) {
                     required
                   />
                 </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked === true)}
+                  />
+                  <Label
+                    htmlFor="rememberMe"
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    Remember this device
+                  </Label>
+                </div>
                 {error && <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</div>}
                 <div className="flex gap-2">
-                  <Button type="submit" className="flex-1">
-                    Login
+                  <Button type="submit" className="flex-1" disabled={isLoading}>
+                    {isLoading ? "Logging in..." : "Login"}
                   </Button>
                   <Button
                     type="button"

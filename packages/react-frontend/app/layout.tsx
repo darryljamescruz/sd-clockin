@@ -3,6 +3,7 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Analytics } from "@vercel/analytics/next"
+import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -35,6 +36,7 @@ html {
         >
             {children}
         </ThemeProvider>
+        <Toaster />
         <Analytics />
       </body>
     </html>

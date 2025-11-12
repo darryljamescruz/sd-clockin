@@ -113,13 +113,9 @@ export default function HomePage() {
     })
   }
 
-  const handleAdminLogin = (username: string, password: string) => {
-    if (username === "admin" && password === "admin123") {
-      setIsAdminLoginOpen(false)
-      router.push("/admin")
-      return true
-    }
-    return false
+  const handleAdminLogin = (user: { id: string; name: string; email: string; isAdmin: boolean }) => {
+    setIsAdminLoginOpen(false)
+    router.push("/admin")
   }
 
   const addClockEntry = async (staffId: string, type: "in" | "out", isManual = false) => {

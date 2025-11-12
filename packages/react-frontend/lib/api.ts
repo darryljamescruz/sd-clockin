@@ -66,6 +66,7 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
   try {
     const response = await fetch(url, {
       ...options,
+      credentials: 'include', // Include cookies for session management
       headers: {
         'Content-Type': 'application/json',
         ...options?.headers,
@@ -269,6 +270,57 @@ export const importAPI = {
   },
 };
 
+// ============ AUTH API ============
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  isAdmin: boolean;
+}
+
+export const authAPI = {
+  // Login
+  login: async (username: string, password: string, rememberMe: boolean = false): Promise<{ success: boolean; user: AdminUser }> => {
+    return fetchAPI<{ success: boolean; user: AdminUser }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password, rememberMe }),
+    });
+  },
+
+  // Logout
+  logout: async (): Promise<{ success: boolean }> => {
+    return fetchAPI<{ success: boolean }>('/auth/logout', {
+      method: 'POST',
+    });
+  },
+
+  // Verify session
+  verify: async (): Promise<{ authenticated: boolean; user?: { id: string; username: string; isAdmin: boolean } }> => {
+    return fetchAPI<{ authenticated: boolean; user?: { id: string; username: string; isAdmin: boolean } }>('/auth/verify');
+  },
+
+  // Create account (admin only)
+  createAccount: async (data: { name: string; email: string; password: string; isAdmin: boolean }): Promise<{ success: boolean; user: AdminUser }> => {
+    return fetchAPI<{ success: boolean; user: AdminUser }>('/auth/create-account', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Get all accounts (admin only)
+  getAccounts: async (): Promise<AdminUser[]> => {
+    return fetchAPI<AdminUser[]>('/auth/accounts');
+  },
+
+  // Delete account (admin only)
+  deleteAccount: async (id: string): Promise<{ success: boolean }> => {
+    return fetchAPI<{ success: boolean }>(`/auth/accounts/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 // ============ HEALTH CHECK ============
 
 export const healthAPI = {
@@ -284,6 +336,7 @@ export const api = {
   schedules: schedulesAPI,
   checkins: checkinsAPI,
   import: importAPI,
+  auth: authAPI,
   health: healthAPI,
 };
 

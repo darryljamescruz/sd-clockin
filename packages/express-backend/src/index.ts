@@ -1,5 +1,7 @@
 import express, { Application } from 'express';
 import cors from 'cors';
+import session from 'express-session';
+import cookieParser from 'cookie-parser';
 // import path from 'path';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
@@ -10,6 +12,7 @@ import termsRouter from './routes/terms.js';
 import schedulesRouter from './routes/schedules.js';
 import checkinsRouter from './routes/checkins.js';
 import importRouter from './routes/import.js';
+import authRouter from './routes/auth.js';
 
 // later implementation for backend build
 // import { fileURLToPath } from "url";
@@ -60,9 +63,24 @@ const corsOptions: cors.CorsOptions = {
 
 // Middleware
 app.use(cors(corsOptions));
+app.use(cookieParser());
 app.use(express.json());
 
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    httpOnly: true,
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days default
+    sameSite: 'lax',
+  },
+}));
+
 // API Routes
+app.use('/api/auth', authRouter);
 app.use('/api/students', studentsRouter);
 app.use('/api/terms', termsRouter);
 app.use('/api/schedules', schedulesRouter);
@@ -74,11 +92,36 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
+// Initialize demo account
+async function initializeDemoAccount(): Promise<void> {
+  try {
+    const AdminUser = (await import('./models/AdminUser.js')).default;
+    const demoUser = await AdminUser.findOne({ email: 'admin', name: 'admin' });
+    
+    if (!demoUser) {
+      // Create demo account with plain text password hash (we'll check plain text in auth)
+      const newDemoUser = new AdminUser({
+        name: 'admin',
+        email: 'admin',
+        passwordHash: 'demo_account_plain_text_password', // Special marker for demo account
+        isAdmin: true,
+      });
+      await newDemoUser.save();
+      console.log('✅ Demo account created (username: admin, password: admin123)');
+    }
+  } catch (error) {
+    console.error('❌ Error initializing demo account:', error);
+  }
+}
+
 // Start server function
 async function startServer(): Promise<void> {
   try {
     // Connect to database
     await connectDB();
+    
+    // Initialize demo account
+    await initializeDemoAccount();
     
     const PORT: number = parseInt(process.env.PORT || '8000', 10);
     app.listen(PORT, () => {
