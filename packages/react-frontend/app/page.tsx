@@ -316,8 +316,8 @@ export default function HomePage() {
               <Clock className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground">ClockedIn</h1>
-              <p className="text-muted-foreground text-xs sm:text-sm">IT Service Desk Clock-In System</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">ClockedIN</h1>
+              <p className="text-muted-foreground text-xs sm:text-sm">Service Desk Clock-In System</p>
             </div>
           </div>
 
@@ -388,7 +388,7 @@ export default function HomePage() {
                   <div>
                     <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">Quick Clock In/Out</h3>
                     <p className="text-sm sm:text-base text-muted-foreground">Swipe your ID card to clock in or out automatically</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">Or use manual clock in for backup</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">Or use manually clock in</p>
                   </div>
                 </div>
               </CardContent>
@@ -411,32 +411,36 @@ export default function HomePage() {
 
             {/* Manual Clock In/Out Buttons */}
             {!isLoading && (
-              <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-                <ClockInForm
-                  isOpen={isLoginOpen}
-                  onToggle={() => {
-                    setIsLoginOpen(!isLoginOpen)
-                    setIsCardSwipeDisabled(!isLoginOpen)
-                  }}
-                  onClockIn={handleManualClockIn}
-                  staffData={staffData}
-                  mode="in"
-                  title="Manual Clock In"
-                  buttonText="Manual Clock In"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8 max-w-md mx-auto">
+                <div className="flex justify-center">
+                  <ClockInForm
+                    isOpen={isLoginOpen}
+                    onToggle={() => {
+                      setIsLoginOpen(!isLoginOpen)
+                      setIsCardSwipeDisabled(!isLoginOpen)
+                    }}
+                    onClockIn={handleManualClockIn}
+                    staffData={staffData}
+                    mode="in"
+                    title="Manual Clock In"
+                    buttonText="Manual Clock In"
+                  />
+                </div>
 
-                <ClockInForm
-                  isOpen={isClockOutOpen}
-                  onToggle={() => {
-                    setIsClockOutOpen(!isClockOutOpen)
-                    setIsCardSwipeDisabled(!isClockOutOpen)
-                  }}
-                  onClockIn={handleManualClockOut}
-                  staffData={staffData}
-                  mode="out"
-                  title="Manual Clock Out"
-                  buttonText="Manual Clock Out"
-                />
+                <div className="flex justify-center">
+                  <ClockInForm
+                    isOpen={isClockOutOpen}
+                    onToggle={() => {
+                      setIsClockOutOpen(!isClockOutOpen)
+                      setIsCardSwipeDisabled(!isClockOutOpen)
+                    }}
+                    onClockIn={handleManualClockOut}
+                    staffData={staffData}
+                    mode="out"
+                    title="Manual Clock Out"
+                    buttonText="Manual Clock Out"
+                  />
+                </div>
               </div>
             )}
 

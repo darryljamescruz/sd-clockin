@@ -236,7 +236,7 @@ export function CSVImport({ termId, onImportComplete }: CSVImportProps) {
                   {previewData.studentsToCreate.map((s: any) => s.csvName).join(", ")}
                   <br />
                   <span className="text-xs mt-1 block text-blue-700 dark:text-blue-300">
-                    These students will be added to the system with placeholder card IDs (role: Assistant).
+                    These students will be added to the system with placeholder card IDs (role: Student Assistant).
                     You can update their details later in the Students page.
                   </span>
                 </AlertDescription>

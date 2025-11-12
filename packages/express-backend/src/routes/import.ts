@@ -91,7 +91,7 @@ router.post('/schedules', (async (req: Request, res: Response) => {
 
         // If student doesn't exist, create them
         if (!student.matched) {
-          console.log(`Creating new student: ${student.csvName}`);
+          console.log(`Creating new student: ${student.csvName} (default role: Student Assistant)`);
           
           // Generate a placeholder card ID (can be updated later)
           const placeholderCardId = `TEMP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -99,7 +99,7 @@ router.post('/schedules', (async (req: Request, res: Response) => {
           const newStudent = new Student({
             name: student.csvName,
             iso: placeholderCardId,
-            role: 'Assistant', // Default role, can be updated later
+            role: 'Student Assistant', // All CSV imports default to Student Assistant
             status: 'active',
           });
 

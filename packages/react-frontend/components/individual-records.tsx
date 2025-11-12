@@ -500,9 +500,9 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
       )
     } else {
       return (
-        <Badge className="bg-secondary text-secondary-foreground hover:bg-slate-100">
+        <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary/80">
           <UserCheck className="w-3 h-3 mr-1" />
-          Assistant
+          Student Assistant
         </Badge>
       )
     }
@@ -691,7 +691,12 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
   const filteredStaff = (() => {
     // If showAssistantsOnly is true and no search, show ALL assistants AND student leads
     if (showAssistantsOnly && !searchQuery) {
-      return staffData.filter(staff => staff.role === "Assistant" || staff.role === "Student Lead")
+      return staffData.filter(staff => staff.role === "Student Assistant" || staff.role === "Student Lead")
+    }
+    
+    // If no search and toggle is off, show ALL students
+    if (!searchQuery && !showAssistantsOnly) {
+      return staffData
     }
     
     // Otherwise, apply search and role filters
@@ -699,7 +704,7 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
       const matchesSearch = !searchQuery || 
         staff.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         staff.cardId.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesRole = !showAssistantsOnly || staff.role === "Assistant" || staff.role === "Student Lead"
+      const matchesRole = !showAssistantsOnly || staff.role === "Student Assistant" || staff.role === "Student Lead"
       return matchesSearch && matchesRole
     })
   })()
@@ -732,11 +737,11 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
               </Label>
             </div>
           </div>
-          {/* Show search results or all assistants when toggle is on */}
-          {(searchQuery || showAssistantsOnly) && filteredStaff.length > 0 && (
+          {/* Show all students, filtered students, or search results */}
+          {filteredStaff.length > 0 && (
             <div className="mt-4">
-              {showAssistantsOnly && !searchQuery ? (
-                // Grid layout for all assistants and student leads (like the old card selection)
+              {!searchQuery ? (
+                // Grid layout for all students (when toggle is on shows only students, when off shows all)
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                   {filteredStaff.map((staff) => (
                     <Button

@@ -77,9 +77,9 @@ export function ClockedInTable({ clockedInUsers }: ClockedInTableProps) {
       )
     } else {
       return (
-        <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary">
+        <Badge className="bg-slate-100 dark:bg-slate-900/30 text-slate-800 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900/30">
           <UserCheck className="w-3 h-3 mr-1" />
-          Assistant
+          Student Assistant
         </Badge>
       )
     }

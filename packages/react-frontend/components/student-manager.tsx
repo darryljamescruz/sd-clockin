@@ -118,7 +118,7 @@ export function StudentManager({
   const [formData, setFormData] = useState({
     name: editingStudent?.name || "",
     cardId: editingStudent?.cardId || "",
-    role: editingStudent?.role || "Assistant",
+    role: editingStudent?.role || "Student Assistant",
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -197,9 +197,9 @@ export function StudentManager({
       )
     } else {
       return (
-        <Badge className="bg-secondary text-secondary-foreground hover:bg-slate-100">
+        <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary/80">
           <UserCheck className="w-3 h-3 mr-1" />
-          Assistant
+          Student Assistant
         </Badge>
       )
     }
@@ -275,7 +275,7 @@ export function StudentManager({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Assistant">Assistant</SelectItem>
+                    <SelectItem value="Student Assistant">Student Assistant</SelectItem>
                     <SelectItem value="Student Lead">Student Lead</SelectItem>
                   </SelectContent>
                 </Select>

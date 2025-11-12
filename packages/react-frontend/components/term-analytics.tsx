@@ -264,7 +264,7 @@ export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndD
                     <TableCell>
                       <Badge
                         className={
-                          staff.role === "Student Lead" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400" : "bg-secondary text-secondary-foreground"
+                          staff.role === "Student Lead" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                         }
                       >
                         {staff.role}

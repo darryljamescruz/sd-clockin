@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Calendar, Edit, ArrowLeft, Users, Clock, Search, ArrowUpDown } from "lucide-react"
+import { Calendar, Edit, ArrowLeft, Users, Clock, Search, ArrowUpDown, Shield, UserCheck } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
 import { StudentScheduleManager } from "./student-schedule-manager"
 import { CSVImport } from "./csv-import"
@@ -271,9 +271,15 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
                           <TableCell className="font-medium">{student.name}</TableCell>
                           <TableCell>
                             {student.role === "Student Lead" ? (
-                              <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-100">Student Lead</Badge>
+                              <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30">
+                                <Shield className="w-3 h-3 mr-1" />
+                                Student Lead
+                              </Badge>
                             ) : (
-                              <Badge className="bg-secondary text-secondary-foreground hover:bg-slate-100">Assistant</Badge>
+                              <Badge className="bg-slate-100 dark:bg-slate-900/30 text-slate-800 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900/30">
+                                <UserCheck className="w-3 h-3 mr-1" />
+                                Student Assistant
+                              </Badge>
                             )}
                           </TableCell>
                           <TableCell>

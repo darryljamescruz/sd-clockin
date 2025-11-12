@@ -332,7 +332,7 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
     if (role === "Student Lead") {
       return <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400">Lead</Badge>
     }
-    return <Badge className="bg-secondary text-secondary-foreground">Assistant</Badge>
+    return <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary/80">Student Assistant</Badge>
   }
 
   // Calculate stats for the day

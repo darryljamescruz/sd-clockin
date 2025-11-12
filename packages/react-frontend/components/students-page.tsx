@@ -58,16 +58,16 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
       )
     } else {
       return (
-        <Badge className="bg-secondary text-secondary-foreground hover:bg-slate-100">
+        <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary/80">
           <UserCheck className="w-3 h-3 mr-1" />
-          Assistant
+          Student Assistant
         </Badge>
       )
     }
   }
 
   const studentLeads = staffData.filter((s) => s.role === "Student Lead").length
-  const assistants = staffData.filter((s) => s.role === "Assistant").length
+  const assistants = staffData.filter((s) => s.role === "Student Assistant").length
 
   return (
     <div className="space-y-6">
@@ -119,7 +119,7 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold text-foreground">{assistants}</div>
-                <div className="text-muted-foreground">Assistants</div>
+                <div className="text-muted-foreground">Student Assistants</div>
               </div>
               <UserCheck className="w-8 h-8 text-muted-foreground" />
             </div>

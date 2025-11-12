@@ -75,10 +75,50 @@ export function ClockInForm({ isOpen, onToggle, onClockIn, staffData, mode, titl
     setShowDropdown(false)
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && selectedStaff) {
+      e.preventDefault()
+      handleSubmit()
+    } else if (e.key === "Escape") {
+      handleClose()
+    }
+  }
+
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      if (selectedStaff) {
+        handleSubmit()
+      } else {
+        handleClose()
+      }
+    }
+  }
+
+  // Format role for display - convert "Assistant" to "Student Assistant"
+  const formatRoleForDisplay = (role: string) => {
+    if (role === "Assistant") {
+      return "Student Assistant"
+    }
+    return role
+  }
+
+  // Calculate dynamic max height based on search results
+  const getModalMaxHeight = () => {
+    if (showDropdown && searchTerm && filteredStaff.length > 0) {
+      // Allow modal to expand more when showing search results
+      // Each result is ~56px, show up to 10 results before scrolling
+      const resultCount = Math.min(filteredStaff.length, 10)
+      const baseHeight = 280 // Base modal height (header + search + buttons + padding)
+      const dropdownHeight = resultCount * 56 + 8 // Results + margin
+      return `min(95vh, ${baseHeight + dropdownHeight}px)`
+    }
+    return '90vh'
+  }
+
   return (
     <>
       {/* Always render the button */}
-      <Button onClick={onToggle} variant="outline" className="w-full sm:w-auto">
+      <Button onClick={onToggle} variant="outline" className="w-full sm:w-full sm:min-w-[180px]">
         <LogIn className="w-4 h-4 mr-2" />
         <span className="hidden sm:inline">{buttonText}</span>
         <span className="sm:hidden">{mode === "in" ? "Clock In" : "Clock Out"}</span>
@@ -86,8 +126,15 @@ export function ClockInForm({ isOpen, onToggle, onClockIn, staffData, mode, titl
 
       {/* Render modal when open */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={handleBackdropClick}
+        >
+          <Card 
+            className="w-full max-w-md shadow-xl overflow-visible"
+            style={{ maxHeight: getModalMaxHeight() }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <CardHeader className="pb-3 flex flex-row items-center justify-between sticky top-0 bg-card z-10">
               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <User className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -97,18 +144,24 @@ export function ClockInForm({ isOpen, onToggle, onClockIn, staffData, mode, titl
                 <X className="w-4 h-4" />
               </Button>
             </CardHeader>
-            <CardContent className="space-y-4 p-4 sm:p-6">
-              {/* Warning Banner */}
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 flex items-start gap-2">
+            <CardContent className="space-y-4 p-4 sm:p-6 overflow-visible">
+              {/* Warning Banner - Hidden for now */}
+              {/* <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
                 <div className="text-xs sm:text-sm text-yellow-800 dark:text-yellow-300">
-                  <strong>Manual Entry:</strong> This clock-{mode} will be flagged as manually entered for audit
-                  purposes.
+                  {mode === "in" ? (
+                    "please do a polycard swipe check in if you can :)"
+                  ) : (
+                    <>
+                      <strong>Manual Entry:</strong> This clock-{mode} will be flagged as manually entered for audit
+                      purposes.
+                    </>
+                  )}
                 </div>
-              </div>
+              </div> */}
 
               {/* Staff Search */}
-              <div className="relative">
+              <div className="relative z-50">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
@@ -121,13 +174,14 @@ export function ClockInForm({ isOpen, onToggle, onClockIn, staffData, mode, titl
                       setSelectedStaff(null)
                     }}
                     onFocus={() => setShowDropdown(true)}
+                    onKeyDown={handleKeyDown}
                     autoFocus
                   />
                 </div>
 
                 {/* Dropdown */}
                 {showDropdown && searchTerm && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-popover border rounded-lg shadow-lg max-h-48 overflow-y-auto z-10">
+                  <div className={`absolute top-full left-0 right-0 mt-1 bg-popover border rounded-lg shadow-lg z-50 ${filteredStaff.length > 10 ? 'max-h-[50vh] overflow-y-auto' : ''}`}>
                     {filteredStaff.length > 0 ? (
                       filteredStaff.map((staff) => (
                         <button
@@ -137,7 +191,7 @@ export function ClockInForm({ isOpen, onToggle, onClockIn, staffData, mode, titl
                         >
                           <div>
                             <div className="font-medium text-foreground">{staff.name}</div>
-                            <div className="text-sm text-muted-foreground">{staff.role}</div>
+                            <div className="text-sm text-muted-foreground">{formatRoleForDisplay(staff.role)}</div>
                           </div>
                         </button>
                       ))
@@ -155,7 +209,7 @@ export function ClockInForm({ isOpen, onToggle, onClockIn, staffData, mode, titl
                     <User className="w-4 h-4 text-green-600 dark:text-green-400" />
                     <div>
                       <div className="font-medium text-green-900 dark:text-green-200">{selectedStaff.name}</div>
-                      <div className="text-sm text-green-700 dark:text-green-300">{selectedStaff.role}</div>
+                      <div className="text-sm text-green-700 dark:text-green-300">{formatRoleForDisplay(selectedStaff.role)}</div>
                     </div>
                   </div>
                 </div>

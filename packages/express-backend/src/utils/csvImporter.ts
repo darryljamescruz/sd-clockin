@@ -25,23 +25,71 @@ export interface ProcessedSchedule {
 }
 
 /**
+ * Parse CSV line handling quoted values
+ */
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        // Escaped quote
+        current += '"';
+        i++; // Skip next quote
+      } else {
+        // Toggle quote state
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      // End of field
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  // Add last field
+  result.push(current);
+  
+  return result;
+}
+
+/**
  * Parse Teams CSV row
  * Format: Name,Email,Role,StartDate,StartTime,EndDate,EndTime,...
- * We only care about Name, StartDate, StartTime, EndTime
+ * We extract Name, StartDate, StartTime, EndDate, EndTime (ignoring Role column)
  */
 export function parseTeamsCSVRow(line: string): TeamsShiftRow | null {
-  const parts = line.split(',');
+  // Skip header row
+  if (line.trim().toLowerCase().startsWith('name')) {
+    return null;
+  }
+  
+  const parts = parseCSVLine(line);
   
   if (parts.length < 7) {
+    console.warn(`CSV row has insufficient columns (${parts.length}):`, line);
+    return null;
+  }
+  
+  const name = parts[0]?.trim() || '';
+  
+  if (!name) {
+    console.warn('Skipping row with empty name');
     return null;
   }
   
   return {
-    name: parts[0].trim(),
-    startDate: parts[3].trim(),
-    startTime: parts[4].trim(),
-    endDate: parts[5].trim(),
-    endTime: parts[6].trim(),
+    name: name,
+    startDate: parts[3]?.trim() || '',
+    startTime: parts[4]?.trim() || '',
+    endDate: parts[5]?.trim() || '',
+    endTime: parts[6]?.trim() || '',
   };
 }
 

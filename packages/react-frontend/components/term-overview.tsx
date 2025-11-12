@@ -422,7 +422,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     if (role === "Student Lead") {
       return <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30">Student Lead</Badge>
     } else {
-      return <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary">Assistant</Badge>
+      return <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary/80">Student Assistant</Badge>
     }
   }
 

@@ -13,7 +13,7 @@ const studentSchema: Schema<IStudent> = new mongoose.Schema({
   role: {
     type: String,
     required: true,
-    enum: ['Student Lead', 'Assistant'],
+    enum: ['Student Lead', 'Student Assistant'],
   },
   iso: {
     type: String,

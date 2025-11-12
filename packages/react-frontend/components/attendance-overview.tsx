@@ -45,9 +45,9 @@ export function AttendanceOverview({ staffData, selectedTerm }: AttendanceOvervi
       )
     } else {
       return (
-        <Badge className="bg-secondary text-secondary-foreground hover:bg-slate-100">
+        <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary/80">
           <UserCheck className="w-3 h-3 mr-1" />
-          Assistant
+          Student Assistant
         </Badge>
       )
     }
