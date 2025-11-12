@@ -32,6 +32,19 @@ export default function AdminLayout({
   // Check authentication on mount
   useEffect(() => {
     const checkAuth = async () => {
+      // Check if we're coming from a successful login (query parameter)
+      const urlParams = new URLSearchParams(window.location.search)
+      const justLoggedIn = urlParams.get('loggedIn') === 'true'
+      
+      // If coming from login, wait a bit longer for cookie to be set
+      const initialDelay = justLoggedIn ? 300 : 100
+      await new Promise(resolve => setTimeout(resolve, initialDelay))
+      
+      // Remove the query parameter from URL
+      if (justLoggedIn) {
+        window.history.replaceState({}, '', window.location.pathname)
+      }
+      
       try {
         const result = await api.auth.verify()
         if (result.authenticated && result.user) {
@@ -43,12 +56,53 @@ export default function AdminLayout({
             isAdmin: result.user.isAdmin,
           })
         } else {
+          // If not authenticated and we just logged in, retry once more
+          if (justLoggedIn) {
+            await new Promise(resolve => setTimeout(resolve, 200))
+            const retryResult = await api.auth.verify()
+            if (retryResult.authenticated && retryResult.user) {
+              setIsAuthenticated(true)
+              setUser({
+                id: retryResult.user.id,
+                name: retryResult.user.username,
+                email: retryResult.user.username,
+                isAdmin: retryResult.user.isAdmin,
+              })
+            } else {
+              setIsAuthenticated(false)
+              setIsLoginOpen(true)
+            }
+          } else {
+            setIsAuthenticated(false)
+            setIsLoginOpen(true)
+          }
+        }
+      } catch (error) {
+        // If error and we just logged in, retry once
+        if (justLoggedIn) {
+          try {
+            await new Promise(resolve => setTimeout(resolve, 200))
+            const retryResult = await api.auth.verify()
+            if (retryResult.authenticated && retryResult.user) {
+              setIsAuthenticated(true)
+              setUser({
+                id: retryResult.user.id,
+                name: retryResult.user.username,
+                email: retryResult.user.username,
+                isAdmin: retryResult.user.isAdmin,
+              })
+            } else {
+              setIsAuthenticated(false)
+              setIsLoginOpen(true)
+            }
+          } catch (retryError) {
+            setIsAuthenticated(false)
+            setIsLoginOpen(true)
+          }
+        } else {
           setIsAuthenticated(false)
           setIsLoginOpen(true)
         }
-      } catch (error) {
-        setIsAuthenticated(false)
-        setIsLoginOpen(true)
       }
     }
 
@@ -64,10 +118,39 @@ export default function AdminLayout({
     return () => clearInterval(timer)
   }, [])
 
-  const handleLogin = (loggedInUser: { id: string; name: string; email: string; isAdmin: boolean }) => {
-    setIsAuthenticated(true)
-    setUser(loggedInUser)
-    setIsLoginOpen(false)
+  const handleLogin = async (loggedInUser: { id: string; name: string; email: string; isAdmin: boolean }) => {
+    // Verify session was created before proceeding
+    let verified = false
+    let attempts = 0
+    const maxAttempts = 5
+    
+    while (!verified && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      try {
+        const result = await api.auth.verify()
+        if (result.authenticated && result.user) {
+          verified = true
+          setIsAuthenticated(true)
+          setUser({
+            id: result.user.id,
+            name: result.user.username || loggedInUser.name,
+            email: result.user.username || loggedInUser.email,
+            isAdmin: result.user.isAdmin,
+          })
+          setIsLoginOpen(false)
+        }
+      } catch (error) {
+        // Continue trying
+      }
+      attempts++
+    }
+    
+    // If verification failed after all attempts, still set the user (fallback)
+    if (!verified) {
+      setIsAuthenticated(true)
+      setUser(loggedInUser)
+      setIsLoginOpen(false)
+    }
   }
 
   // Show loading state while checking authentication

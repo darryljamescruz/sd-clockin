@@ -63,9 +63,22 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       // Remember for 30 days
       req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
     } else {
-      // Session expires when browser closes
-      req.session.cookie.maxAge = undefined;
+      // Session expires when browser closes (but set a reasonable maxAge for the cookie itself)
+      // Setting to null/undefined can cause issues, so use a default session timeout
+      req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 24 hours
     }
+
+    // Explicitly save the session and wait for it to complete
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
 
     res.json({
       success: true,

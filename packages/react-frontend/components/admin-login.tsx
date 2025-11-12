@@ -49,6 +49,9 @@ export function AdminLogin({ isOpen, onToggle, onLogin }: AdminLoginProps) {
     try {
       const result = await api.auth.login(username, password, rememberMe)
       if (result.success) {
+        // Wait a moment for the session cookie to be set by the browser
+        await new Promise(resolve => setTimeout(resolve, 150))
+        
         setUsername("")
         setPassword("")
         setError("")

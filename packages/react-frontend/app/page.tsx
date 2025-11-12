@@ -113,9 +113,29 @@ export default function HomePage() {
     })
   }
 
-  const handleAdminLogin = (user: { id: string; name: string; email: string; isAdmin: boolean }) => {
+  const handleAdminLogin = async (user: { id: string; name: string; email: string; isAdmin: boolean }) => {
     setIsAdminLoginOpen(false)
-    router.push("/admin")
+    
+    // Verify session was created before redirecting
+    let verified = false
+    let attempts = 0
+    const maxAttempts = 5
+    
+    while (!verified && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      try {
+        const result = await api.auth.verify()
+        if (result.authenticated) {
+          verified = true
+        }
+      } catch (error) {
+        // Continue trying
+      }
+      attempts++
+    }
+    
+    // Redirect with a flag to indicate we just logged in
+    router.push("/admin?loggedIn=true")
   }
 
   const addClockEntry = async (staffId: string, type: "in" | "out", isManual = false) => {
