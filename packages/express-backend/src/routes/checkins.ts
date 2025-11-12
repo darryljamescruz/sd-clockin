@@ -111,9 +111,9 @@ router.post('/', (async (req: Request, res: Response) => {
     const savedCheckIn = await newCheckIn.save();
 
     // Update or create shift
-    const checkInDate = new Date(savedCheckIn.timestamp);
+    const savedCheckInTimestamp = new Date(savedCheckIn.timestamp);
     // Create date at midnight UTC for consistent querying
-    const shiftDate = new Date(Date.UTC(checkInDate.getFullYear(), checkInDate.getMonth(), checkInDate.getDate()));
+    const shiftDate = new Date(Date.UTC(savedCheckInTimestamp.getFullYear(), savedCheckInTimestamp.getMonth(), savedCheckInTimestamp.getDate()));
     
     console.log('Creating/finding shift for date:', shiftDate, 'from check-in:', savedCheckIn.timestamp);
     
