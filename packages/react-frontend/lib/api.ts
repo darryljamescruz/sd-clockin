@@ -22,12 +22,18 @@ export interface Student {
   todayExpected?: string; // Computed field for display
 }
 
+export interface DayOffRange {
+  startDate: string;
+  endDate: string;
+}
+
 export interface Term {
   id: string;
   name: string;
   startDate: string;
   endDate: string;
   isActive: boolean;
+  daysOff?: DayOffRange[];
 }
 
 export interface ClockEntry {
@@ -136,7 +142,7 @@ export const termsAPI = {
   },
 
   // Create a new term
-  create: async (data: { name: string; startDate: string; endDate: string; isActive: boolean }): Promise<Term> => {
+  create: async (data: { name: string; startDate: string; endDate: string; isActive: boolean; daysOff?: DayOffRange[] }): Promise<Term> => {
     return fetchAPI<Term>('/terms', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -144,7 +150,7 @@ export const termsAPI = {
   },
 
   // Update a term
-  update: async (id: string, data: { name?: string; startDate?: string; endDate?: string; isActive?: boolean }): Promise<Term> => {
+  update: async (id: string, data: { name?: string; startDate?: string; endDate?: string; isActive?: boolean; daysOff?: DayOffRange[] }): Promise<Term> => {
     return fetchAPI<Term>(`/terms/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),

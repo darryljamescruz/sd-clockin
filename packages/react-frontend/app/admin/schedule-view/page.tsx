@@ -27,7 +27,8 @@ export default function ScheduleViewPage() {
         setStudents(fetchedStudents)
         setTerms(fetchedTerms)
 
-        // Fetch schedules for active term or first term
+        // Fetch schedules for active term (or first term if no active term)
+        // The ScheduleVisualization component will handle term selection
         const activeTerm = fetchedTerms.find((t) => t.isActive) || fetchedTerms[0]
         if (activeTerm) {
           const schedulesData: Record<string, Schedule> = {}
@@ -91,5 +92,6 @@ export default function ScheduleViewPage() {
     />
   )
 }
+
 
 

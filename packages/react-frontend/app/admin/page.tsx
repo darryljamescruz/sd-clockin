@@ -130,6 +130,29 @@ export default function AdminDashboard() {
     }
   }
 
+  // Helper function to check if a date is a day off
+  const isDayOff = (date: Date): boolean => {
+    const currentTerm = getCurrentTerm()
+    if (!currentTerm || !currentTerm.daysOff || currentTerm.daysOff.length === 0) {
+      return false
+    }
+
+    const dateStr = date.toISOString().split('T')[0]
+    
+    return currentTerm.daysOff.some((range) => {
+      const rangeStart = new Date(range.startDate)
+      const rangeEnd = new Date(range.endDate)
+      const checkDate = new Date(dateStr)
+      
+      // Set to midnight for accurate comparison
+      rangeStart.setHours(0, 0, 0, 0)
+      rangeEnd.setHours(23, 59, 59, 999)
+      checkDate.setHours(0, 0, 0, 0)
+      
+      return checkDate >= rangeStart && checkDate <= rangeEnd
+    })
+  }
+
   const getTermWeekdays = () => {
     const weekdays = []
     const currentTerm = getCurrentTerm()
@@ -145,7 +168,8 @@ export default function AdminDashboard() {
 
     while (current <= end) {
       const dayOfWeek = current.getDay()
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      // Only include weekdays (Monday-Friday) and exclude days off
+      if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isDayOff(current)) {
         weekdays.push(new Date(current))
       }
       current.setDate(current.getDate() + 1)
@@ -170,11 +194,37 @@ export default function AdminDashboard() {
 
   const goToToday = () => {
     const today = new Date()
+    today.setHours(0, 0, 0, 0)
     const termStatus = getTermStatus()
 
     if (termStatus.status === "future") {
       setDateError("Cannot view today's attendance for a future term. This term hasn't started yet.")
       setTimeout(() => setDateError(""), 5000)
+      return
+    }
+
+    // Check if today is a day off
+    if (isDayOff(today)) {
+      // Find the next available weekday after today
+      const nextDay = new Date(today)
+      nextDay.setDate(nextDay.getDate() + 1)
+      const nextAvailableDay = termWeekdays.find((date) => {
+        const dateStr = date.toDateString()
+        return dateStr >= today.toDateString()
+      })
+      
+      if (nextAvailableDay) {
+        setSelectedDate(nextAvailableDay)
+        setDateError("Today is a day off. Showing the next available day.")
+        setTimeout(() => setDateError(""), 5000)
+      } else {
+        // If no future days, go to the last available day
+        if (termWeekdays.length > 0) {
+          setSelectedDate(termWeekdays[termWeekdays.length - 1])
+          setDateError("Today is a day off and there are no future days in this term.")
+          setTimeout(() => setDateError(""), 5000)
+        }
+      }
       return
     }
 
@@ -197,6 +247,12 @@ export default function AdminDashboard() {
     const today = new Date()
     today.setHours(0, 0, 0, 0) // Set to midnight for date-only comparison
     const currentTerm = getCurrentTerm()
+    
+    // If no term is available, return current to avoid disabling the button
+    if (!currentTerm || !currentTerm.startDate || !currentTerm.endDate) {
+      return { status: "current" }
+    }
+    
     const startDate = parseDateString(currentTerm.startDate)
     startDate.setHours(0, 0, 0, 0)
     const endDate = parseDateString(currentTerm.endDate)

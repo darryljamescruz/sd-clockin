@@ -3,6 +3,15 @@ import Term from '../models/Term.js';
 
 const router = express.Router();
 
+// Helper function to format date ranges
+const formatDaysOff = (daysOff: any[]): any[] => {
+  if (!daysOff || !Array.isArray(daysOff)) return [];
+  return daysOff.map((range) => ({
+    startDate: range.startDate.toISOString().split('T')[0],
+    endDate: range.endDate.toISOString().split('T')[0],
+  }));
+};
+
 // GET all terms
 router.get('/', async (req: Request, res: Response) => {
   try {
@@ -14,6 +23,7 @@ router.get('/', async (req: Request, res: Response) => {
       startDate: term.startDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
       endDate: term.endDate.toISOString().split('T')[0],
       isActive: term.isActive,
+      daysOff: formatDaysOff(term.daysOff),
     }));
 
     res.json(termsFormatted);
@@ -38,6 +48,7 @@ router.get('/:id', (async (req: Request, res: Response) => {
       startDate: term.startDate.toISOString().split('T')[0],
       endDate: term.endDate.toISOString().split('T')[0],
       isActive: term.isActive,
+      daysOff: formatDaysOff(term.daysOff),
     });
   } catch (error) {
     console.error('Error fetching term:', error);
@@ -62,7 +73,7 @@ const parseDateString = (dateString: string): Date => {
 // POST - Create a new term
 router.post('/', (async (req: Request, res: Response) => {
   try {
-    const { name, startDate, endDate, isActive } = req.body;
+    const { name, startDate, endDate, isActive, daysOff } = req.body;
 
     if (!name || !startDate || !endDate) {
       return res.status(400).json({ message: 'Name, startDate, and endDate are required' });
@@ -77,6 +88,26 @@ router.post('/', (async (req: Request, res: Response) => {
 
     const year = start.getFullYear();
 
+    // Parse and validate days off
+    let parsedDaysOff: any[] = [];
+    if (daysOff && Array.isArray(daysOff)) {
+      parsedDaysOff = daysOff.map((range: any) => {
+        const rangeStart = parseDateString(range.startDate);
+        const rangeEnd = parseDateString(range.endDate);
+        if (rangeStart > rangeEnd) {
+          throw new Error('Day off start date must be before or equal to end date');
+        }
+        // Validate that days off are within term dates
+        if (rangeStart < start || rangeEnd > end) {
+          throw new Error('Days off must be within the term start and end dates');
+        }
+        return {
+          startDate: rangeStart,
+          endDate: rangeEnd,
+        };
+      });
+    }
+
     // If this term is being set as active, deactivate all other terms
     if (isActive) {
       await Term.updateMany({}, { isActive: false });
@@ -88,6 +119,7 @@ router.post('/', (async (req: Request, res: Response) => {
       endDate: end,
       year,
       isActive: isActive || false,
+      daysOff: parsedDaysOff,
     });
 
     await newTerm.save();
@@ -98,6 +130,7 @@ router.post('/', (async (req: Request, res: Response) => {
       startDate: newTerm.startDate.toISOString().split('T')[0],
       endDate: newTerm.endDate.toISOString().split('T')[0],
       isActive: newTerm.isActive,
+      daysOff: formatDaysOff(newTerm.daysOff),
     });
   } catch (error) {
     console.error('Error creating term:', error);
@@ -108,7 +141,7 @@ router.post('/', (async (req: Request, res: Response) => {
 // PUT - Update a term
 router.put('/:id', (async (req: Request, res: Response) => {
   try {
-    const { name, startDate, endDate, isActive } = req.body;
+    const { name, startDate, endDate, isActive, daysOff } = req.body;
 
     const term = await Term.findById(req.params.id);
     if (!term) {
@@ -143,6 +176,32 @@ router.put('/:id', (async (req: Request, res: Response) => {
 
     if (name) term.name = name;
 
+    // Update days off if provided
+    if (daysOff !== undefined) {
+      if (Array.isArray(daysOff)) {
+        const parsedDaysOff = daysOff.map((range: any) => {
+          const rangeStart = parseDateString(range.startDate);
+          const rangeEnd = parseDateString(range.endDate);
+          if (rangeStart > rangeEnd) {
+            throw new Error('Day off start date must be before or equal to end date');
+          }
+          // Validate that days off are within term dates
+          const termStart = term.startDate;
+          const termEnd = term.endDate;
+          if (rangeStart < termStart || rangeEnd > termEnd) {
+            throw new Error('Days off must be within the term start and end dates');
+          }
+          return {
+            startDate: rangeStart,
+            endDate: rangeEnd,
+          };
+        });
+        term.daysOff = parsedDaysOff;
+      } else {
+        return res.status(400).json({ message: 'daysOff must be an array' });
+      }
+    }
+
     // If this term is being set as active, deactivate all other terms
     if (isActive !== undefined) {
       if (isActive) {
@@ -159,6 +218,7 @@ router.put('/:id', (async (req: Request, res: Response) => {
       startDate: term.startDate.toISOString().split('T')[0],
       endDate: term.endDate.toISOString().split('T')[0],
       isActive: term.isActive,
+      daysOff: formatDaysOff(term.daysOff),
     });
   } catch (error) {
     console.error('Error updating term:', error);

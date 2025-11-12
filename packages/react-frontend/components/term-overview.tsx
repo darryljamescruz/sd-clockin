@@ -18,6 +18,29 @@ interface TermOverviewProps {
 }
 
 export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDate, onDateChange }: TermOverviewProps) {
+  
+  // Helper function to check if a date is a day off
+  const isDayOff = (date: Date): boolean => {
+    if (!currentTerm || !currentTerm.daysOff || currentTerm.daysOff.length === 0) {
+      return false
+    }
+
+    const dateStr = date.toISOString().split('T')[0]
+    
+    return currentTerm.daysOff.some((range) => {
+      const rangeStart = new Date(range.startDate)
+      const rangeEnd = new Date(range.endDate)
+      const checkDate = new Date(dateStr)
+      
+      // Set to midnight for accurate comparison
+      rangeStart.setHours(0, 0, 0, 0)
+      rangeEnd.setHours(23, 59, 59, 999)
+      checkDate.setHours(0, 0, 0, 0)
+      
+      return checkDate >= rangeStart && checkDate <= rangeEnd
+    })
+  }
+
   // Check if selected term is current, past, or future
   const getTermStatus = () => {
     const today = new Date()
@@ -545,10 +568,24 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
             <Users className="w-5 h-5" />
             Daily Attendance by Shift -{" "}
             {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+            {isDayOff(selectedDate) && (
+              <Badge className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400 border-orange-300 dark:border-orange-700 ml-2">
+                Day Off
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
+          {isDayOff(selectedDate) ? (
+            <div className="p-12 text-center">
+              <div className="text-orange-600 dark:text-orange-400 mb-2">
+                <Calendar className="w-12 h-12 mx-auto mb-4" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">Day Off</h3>
+              <p className="text-muted-foreground">No time tracking scheduled for this day.</p>
+            </div>
+          ) : (
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
@@ -595,6 +632,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
               ))}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
 

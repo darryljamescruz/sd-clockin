@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Shield, UserCheck, Clock, TrendingUp, Calendar, BarChart3, Edit, Plus, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ArrowUp } from "lucide-react"
-import { type Student, api, type ClockEntry } from "@/lib/api"
+import { type Student, api, type ClockEntry, type Term } from "@/lib/api"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { parseDateString } from "@/lib/utils"
 
@@ -22,10 +22,33 @@ interface IndividualRecordsProps {
   selectedTerm: string
   termStartDate: string
   termEndDate: string
+  currentTerm?: Term
   onRefreshStudent?: (studentId: string) => Promise<void>
 }
 
-export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, selectedTerm, termStartDate, termEndDate, onRefreshStudent }: IndividualRecordsProps) {
+export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, selectedTerm, termStartDate, termEndDate, currentTerm, onRefreshStudent }: IndividualRecordsProps) {
+  
+  // Helper function to check if a date is a day off
+  const isDayOff = (date: Date): boolean => {
+    if (!currentTerm || !currentTerm.daysOff || currentTerm.daysOff.length === 0) {
+      return false
+    }
+
+    const dateStr = date.toISOString().split('T')[0]
+    
+    return currentTerm.daysOff.some((range) => {
+      const rangeStart = new Date(range.startDate)
+      const rangeEnd = new Date(range.endDate)
+      const checkDate = new Date(dateStr)
+      
+      // Set to midnight for accurate comparison
+      rangeStart.setHours(0, 0, 0, 0)
+      rangeEnd.setHours(23, 59, 59, 999)
+      checkDate.setHours(0, 0, 0, 0)
+      
+      return checkDate >= rangeStart && checkDate <= rangeEnd
+    })
+  }
   const [editingEntry, setEditingEntry] = useState<{ entry: ClockEntry; index: number } | null>(null)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editTimestamp, setEditTimestamp] = useState("")
@@ -156,6 +179,9 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
     let totalMinutes = 0
 
     weekdays.forEach(day => {
+      // Skip days off
+      if (isDayOff(day)) return
+
       const dayNames: Array<keyof NonNullable<Student['weeklySchedule']> | null> = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null]
       const dayName = dayNames[day.getDay()]
       if (!dayName) return
@@ -399,11 +425,13 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
       expectedHours: number
       actualHours: number
       status: string
+      isDayOff: boolean
     }> = []
 
     const weekdays = getWeekdaysInRange(termStart, termEnd)
     
     weekdays.forEach(day => {
+      const isOffDay = isDayOff(day)
       const dayNames: Array<keyof NonNullable<Student['weeklySchedule']> | null> = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null]
       const dayName = dayNames[day.getDay()]
       if (!dayName) return
@@ -411,12 +439,12 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
       const daySchedule = staff.weeklySchedule?.[dayName] || []
       const dayStr = day.toDateString()
       
-      // Get expected times (first shift)
+      // Get expected times (first shift) - skip for days off
       let expectedStart: string | null = null
       let expectedEnd: string | null = null
       let expectedMinutes = 0
       
-      if (daySchedule.length > 0) {
+      if (!isOffDay && daySchedule.length > 0) {
         const firstShift = daySchedule[0]
         const [start, end] = firstShift.split("-")
         if (start && end) {
@@ -460,7 +488,9 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
 
       // Determine status
       let status = "not-scheduled"
-      if (daySchedule.length > 0) {
+      if (isOffDay) {
+        status = "day-off"
+      } else if (daySchedule.length > 0) {
         if (dayClockIns.length === 0) {
           status = "absent"
         } else if (!actualEnd) {
@@ -481,7 +511,8 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
         actualEnd,
         expectedHours: expectedMinutes / 60,
         actualHours: actualMinutes / 60,
-        status
+        status,
+        isDayOff: isOffDay
       })
     })
 
@@ -1084,6 +1115,8 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
                                     return <Badge className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 text-xs">✗</Badge>
                                   case "no-clock-out":
                                     return <Badge className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 text-xs">!</Badge>
+                                  case "day-off":
+                                    return <Badge className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400 text-xs">Day Off</Badge>
                                   case "not-scheduled":
                                     return <Badge className="bg-muted text-muted-foreground text-xs">—</Badge>
                                   case "unscheduled-work":
@@ -1104,39 +1137,54 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
 
                                 const diff = day.actualHours - day.expectedHours
                                 return (
-                                  <TableCell key={dayIndex} className="p-2">
+                                  <TableCell 
+                                    key={dayIndex} 
+                                    className={`p-2 ${
+                                      day.isDayOff
+                                        ? "bg-orange-50 dark:bg-orange-950/20"
+                                        : ""
+                                    }`}
+                                  >
                                     <div className="space-y-1 text-xs">
                                       <div className="font-medium text-muted-foreground">
                                         {day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                       </div>
-                                      <div className="space-y-0.5">
-                                        <div className="flex items-center justify-between gap-1">
-                                          <span className="text-muted-foreground">Expected:</span>
-                                          <span className="font-mono">{day.expectedStart || "—"}</span>
+                                      {day.isDayOff ? (
+                                        <div className="text-orange-700 dark:text-orange-400 italic text-xs">
+                                          Day Off
                                         </div>
-                                        {day.expectedEnd && (
-                                          <div className="flex items-center justify-between gap-1">
-                                            <span className="text-muted-foreground">to</span>
-                                            <span className="font-mono">{day.expectedEnd}</span>
+                                      ) : (
+                                        <>
+                                          <div className="space-y-0.5">
+                                            <div className="flex items-center justify-between gap-1">
+                                              <span className="text-muted-foreground">Expected:</span>
+                                              <span className="font-mono">{day.expectedStart || "—"}</span>
+                                            </div>
+                                            {day.expectedEnd && (
+                                              <div className="flex items-center justify-between gap-1">
+                                                <span className="text-muted-foreground">to</span>
+                                                <span className="font-mono">{day.expectedEnd}</span>
+                                              </div>
+                                            )}
+                                            <div className="flex items-center justify-between gap-1 pt-1 border-t">
+                                              <span className="text-muted-foreground">Actual:</span>
+                                              <span className="font-mono">{day.actualStart || "—"}</span>
+                                            </div>
+                                            {day.actualEnd && (
+                                              <div className="flex items-center justify-between gap-1">
+                                                <span className="text-muted-foreground">to</span>
+                                                <span className="font-mono">{day.actualEnd}</span>
+                                              </div>
+                                            )}
                                           </div>
-                                        )}
-                                        <div className="flex items-center justify-between gap-1 pt-1 border-t">
-                                          <span className="text-muted-foreground">Actual:</span>
-                                          <span className="font-mono">{day.actualStart || "—"}</span>
-                                        </div>
-                                        {day.actualEnd && (
-                                          <div className="flex items-center justify-between gap-1">
-                                            <span className="text-muted-foreground">to</span>
-                                            <span className="font-mono">{day.actualEnd}</span>
+                                          <div className="flex items-center justify-between pt-1 border-t">
+                                            <span className="text-muted-foreground">Hours:</span>
+                                            <span className={`font-mono ${day.actualHours > 0 ? (diff >= 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400') : 'text-muted-foreground'}`}>
+                                              {day.actualHours > 0 ? day.actualHours.toFixed(1) + "h" : "—"}
+                                            </span>
                                           </div>
-                                        )}
-                                      </div>
-                                      <div className="flex items-center justify-between pt-1 border-t">
-                                        <span className="text-muted-foreground">Hours:</span>
-                                        <span className={`font-mono ${day.actualHours > 0 ? (diff >= 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400') : 'text-muted-foreground'}`}>
-                                          {day.actualHours > 0 ? day.actualHours.toFixed(1) + "h" : "—"}
-                                        </span>
-                                      </div>
+                                        </>
+                                      )}
                                       <div className="pt-1">
                                         {getStatusBadge(day.status)}
                                       </div>
@@ -1237,6 +1285,8 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
                                         return <Badge className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 text-xs">✗</Badge>
                                       case "no-clock-out":
                                         return <Badge className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 text-xs">!</Badge>
+                                      case "day-off":
+                                        return <Badge className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400 text-xs">Day Off</Badge>
                                       case "not-scheduled":
                                         return <Badge className="bg-muted text-muted-foreground text-xs">—</Badge>
                                       case "unscheduled-work":
@@ -1259,7 +1309,11 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
                                   return (
                                     <div
                                       key={dayIndex}
-                                      className="min-h-[120px] border rounded-lg p-2 bg-card hover:bg-muted/50 transition-colors"
+                                      className={`min-h-[120px] border rounded-lg p-2 transition-colors ${
+                                        day.isDayOff
+                                          ? "bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800"
+                                          : "bg-card hover:bg-muted/50"
+                                      }`}
                                     >
                                       <div className="space-y-1">
                                         {/* Date Header */}
@@ -1271,7 +1325,11 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
                                         </div>
 
                                         {/* Expected Time */}
-                                        {day.expectedStart && day.expectedEnd ? (
+                                        {day.isDayOff ? (
+                                          <div className="text-xs text-orange-700 dark:text-orange-400 italic">
+                                            Day Off - No Tracking
+                                          </div>
+                                        ) : day.expectedStart && day.expectedEnd ? (
                                           <div className="text-xs space-y-0.5">
                                             <div className="text-muted-foreground">Expected:</div>
                                             <div className="font-mono">{day.expectedStart}</div>

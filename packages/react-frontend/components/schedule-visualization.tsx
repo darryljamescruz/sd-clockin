@@ -1,15 +1,15 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ArrowLeft, Calendar, Clock, Users, ChevronLeft, ChevronRight } from "lucide-react"
+import { ArrowLeft, Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Student, Term, Schedule } from "@/lib/api"
 import { api } from "@/lib/api"
-import { formatDateString, parseDateString } from "@/lib/utils"
+import { parseDateString } from "@/lib/utils"
 
 interface ScheduleVisualizationProps {
   students: Student[]
@@ -46,6 +46,26 @@ export function ScheduleVisualization({
     }
   }, [terms])
 
+  // Reset current date to term start when term changes
+  useEffect(() => {
+    const term = terms.find((t) => t.id === selectedTermId)
+    if (term) {
+      const termStart = parseDateString(term.startDate)
+      const termEnd = parseDateString(term.endDate)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      termStart.setHours(0, 0, 0, 0)
+      termEnd.setHours(23, 59, 59, 999)
+      
+      // If today is within term, use today; otherwise use term start
+      if (today >= termStart && today <= termEnd) {
+        setCurrentDate(today)
+      } else {
+        setCurrentDate(termStart)
+      }
+    }
+  }, [selectedTermId, terms])
+
   // Fetch schedules when term changes
   useEffect(() => {
     const fetchSchedules = async () => {
@@ -75,6 +95,43 @@ export function ScheduleVisualization({
   }, [selectedTermId, students])
 
   const selectedTerm = terms.find((t) => t.id === selectedTermId)
+
+  // Check if a date is within the term's date range
+  const isDateInTerm = (date: Date): boolean => {
+    if (!selectedTerm) return false
+    
+    const termStart = parseDateString(selectedTerm.startDate)
+    const termEnd = parseDateString(selectedTerm.endDate)
+    const checkDate = new Date(date)
+    
+    termStart.setHours(0, 0, 0, 0)
+    termEnd.setHours(23, 59, 59, 999)
+    checkDate.setHours(0, 0, 0, 0)
+    
+    return checkDate >= termStart && checkDate <= termEnd
+  }
+
+  // Check if a date is a day off
+  const isDayOff = (date: Date): boolean => {
+    if (!selectedTerm || !selectedTerm.daysOff || selectedTerm.daysOff.length === 0) {
+      return false
+    }
+
+    const dateStr = date.toISOString().split('T')[0]
+    
+    return selectedTerm.daysOff.some((range) => {
+      const rangeStart = new Date(range.startDate)
+      const rangeEnd = new Date(range.endDate)
+      const checkDate = new Date(dateStr)
+      
+      // Set to midnight for accurate comparison
+      rangeStart.setHours(0, 0, 0, 0)
+      rangeEnd.setHours(23, 59, 59, 999)
+      checkDate.setHours(0, 0, 0, 0)
+      
+      return checkDate >= rangeStart && checkDate <= rangeEnd
+    })
+  }
 
   // Parse time string to minutes from midnight
   const parseTime = (timeStr: string): number => {
@@ -194,6 +251,21 @@ export function ScheduleVisualization({
 
   // Render Day View
   const renderDayView = () => {
+    // Check if date is within term range
+    if (!isDateInTerm(currentDate)) {
+      return (
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+          <CardContent className="p-12 text-center">
+            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">Outside Term Period</h3>
+            <p className="text-muted-foreground">
+              This date is outside the selected term's date range ({selectedTerm?.startDate} - {selectedTerm?.endDate}).
+            </p>
+          </CardContent>
+        </Card>
+      )
+    }
+
     const dayName = getDayName(currentDate)
     if (!dayName) {
       return (
@@ -205,31 +277,47 @@ export function ScheduleVisualization({
       )
     }
 
+    const isOffDay = isDayOff(currentDate)
+
     return (
       <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-foreground">
             <Clock className="w-5 h-5" />
             {currentDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+            {isOffDay && (
+              <Badge variant="outline" className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400 border-orange-300 dark:border-orange-700">
+                Day Off - No Tracking
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {HOURS.map((hour) => {
-              const availableStudents = getStudentsAtHour(dayName, hour)
-              const studentLeads = availableStudents.filter(s => s.role === "Student Lead")
-              const assistants = availableStudents.filter(s => s.role !== "Student Lead")
-              const totalCount = availableStudents.length
+          {isOffDay ? (
+            <div className="p-12 text-center">
+              <div className="text-orange-600 dark:text-orange-400 mb-2">
+                <Calendar className="w-12 h-12 mx-auto mb-4" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">Day Off</h3>
+              <p className="text-muted-foreground">No time tracking scheduled for this day.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {HOURS.map((hour) => {
+                const availableStudents = getStudentsAtHour(dayName, hour)
+                const studentLeads = availableStudents.filter(s => s.role === "Student Lead")
+                const assistants = availableStudents.filter(s => s.role !== "Student Lead")
+                const totalCount = availableStudents.length
 
-              return (
-                <div
-                  key={hour}
-                  className={`border rounded-lg p-4 transition-all hover:shadow-sm ${
-                    totalCount > 0
-                      ? "bg-card"
-                      : "bg-slate-50 dark:bg-slate-950/20"
-                  }`}
-                >
+                return (
+                  <div
+                    key={hour}
+                    className={`border rounded-lg p-4 transition-all hover:shadow-sm ${
+                      totalCount > 0
+                        ? "bg-card"
+                        : "bg-slate-50 dark:bg-slate-950/20"
+                    }`}
+                  >
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                     <div className="font-semibold text-base text-foreground font-mono">{formatHour(hour)}</div>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -292,7 +380,8 @@ export function ScheduleVisualization({
                 </div>
               )
             })}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     )
@@ -301,6 +390,24 @@ export function ScheduleVisualization({
   // Render Week View
   const renderWeekView = () => {
     const weekDates = getWeekDates()
+    
+    // Filter to only show dates within term range
+    const validWeekDates = weekDates.filter(date => isDateInTerm(date))
+    
+    // Check if any dates in the week are within the term
+    if (validWeekDates.length === 0) {
+      return (
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+          <CardContent className="p-12 text-center">
+            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">Outside Term Period</h3>
+            <p className="text-muted-foreground">
+              This week is outside the selected term's date range ({selectedTerm?.startDate} - {selectedTerm?.endDate}).
+            </p>
+          </CardContent>
+        </Card>
+      )
+    }
 
     return (
       <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
@@ -317,12 +424,28 @@ export function ScheduleVisualization({
               {/* Header */}
               <div className="grid grid-cols-6 gap-2 md:gap-3 mb-3 pb-3 border-b">
                 <div className="font-semibold text-xs md:text-sm text-muted-foreground">Time</div>
-                {weekDates.map((date, idx) => (
-                  <div key={idx} className="font-semibold text-xs md:text-sm text-center text-foreground">
-                    <div>{DAY_LABELS[idx]}</div>
-                    <div className="text-[10px] md:text-xs text-muted-foreground mt-1">{date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
-                  </div>
-                ))}
+                {weekDates.map((date, idx) => {
+                  const isOffDay = isDayOff(date)
+                  const isInTerm = isDateInTerm(date)
+                  return (
+                    <div key={idx} className="font-semibold text-xs md:text-sm text-center text-foreground">
+                      <div className="flex items-center justify-center gap-1">
+                        {DAY_LABELS[idx]}
+                        {isOffDay && (
+                          <Badge variant="outline" className="text-[8px] md:text-[10px] px-1 py-0 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400 border-orange-300 dark:border-orange-700">
+                            Off
+                          </Badge>
+                        )}
+                        {!isInTerm && (
+                          <Badge variant="outline" className="text-[8px] md:text-[10px] px-1 py-0 bg-muted text-muted-foreground">
+                            Out
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-[10px] md:text-xs text-muted-foreground mt-1">{date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
+                    </div>
+                  )
+                })}
               </div>
 
               {/* Hour rows */}
@@ -334,7 +457,11 @@ export function ScheduleVisualization({
                     </div>
                     {weekDates.map((date, idx) => {
                       const dayName = DAYS[idx]
-                      const availableStudents = getStudentsAtHour(dayName, hour)
+                      const isOffDay = isDayOff(date)
+                      const isInTerm = isDateInTerm(date)
+                      
+                      // Only show schedules for dates within term range
+                      const availableStudents = isInTerm ? getStudentsAtHour(dayName, hour) : []
                       const studentLeads = availableStudents.filter(s => s.role === "Student Lead")
                       const assistants = availableStudents.filter(s => s.role !== "Student Lead")
                       const totalCount = availableStudents.length
@@ -343,12 +470,24 @@ export function ScheduleVisualization({
                         <div
                           key={idx}
                           className={`border rounded-lg p-2 md:p-3 min-h-[60px] md:min-h-[70px] transition-all hover:shadow-sm ${
-                            totalCount > 0
+                            !isInTerm
+                              ? "bg-muted/30 border-muted"
+                              : isOffDay
+                              ? "bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800"
+                              : totalCount > 0
                               ? "bg-card"
                               : "bg-slate-50 dark:bg-slate-950/20"
                           }`}
                         >
-                          {totalCount > 0 ? (
+                          {!isInTerm ? (
+                            <div className="text-[10px] md:text-xs text-muted-foreground italic flex items-center h-full justify-center text-center">
+                              Outside Term
+                            </div>
+                          ) : isOffDay ? (
+                            <div className="text-[10px] md:text-xs text-orange-700 dark:text-orange-400 italic flex items-center h-full justify-center text-center">
+                              Day Off
+                            </div>
+                          ) : totalCount > 0 ? (
                             <div className="space-y-1.5 md:space-y-2">
                               <div className="space-y-1">
                                 {studentLeads.length > 0 && (

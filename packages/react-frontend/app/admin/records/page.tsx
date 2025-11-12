@@ -155,6 +155,7 @@ export default function RecordsPage() {
           selectedTerm={selectedTerm}
           termStartDate={currentTerm.startDate}
           termEndDate={currentTerm.endDate}
+          currentTerm={currentTerm}
           onRefreshStudent={handleRefreshStudent}
         />
       )}

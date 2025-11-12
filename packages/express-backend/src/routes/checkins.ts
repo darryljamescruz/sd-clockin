@@ -52,6 +52,25 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// Helper function to check if a date is a day off
+const isDayOff = (date: Date, term: any): boolean => {
+  if (!term.daysOff || !Array.isArray(term.daysOff) || term.daysOff.length === 0) {
+    return false;
+  }
+
+  const checkDate = new Date(date);
+  checkDate.setHours(0, 0, 0, 0);
+
+  return term.daysOff.some((range: any) => {
+    const rangeStart = new Date(range.startDate);
+    const rangeEnd = new Date(range.endDate);
+    rangeStart.setHours(0, 0, 0, 0);
+    rangeEnd.setHours(23, 59, 59, 999);
+
+    return checkDate >= rangeStart && checkDate <= rangeEnd;
+  });
+};
+
 // POST - Create a new check-in (manual or card swipe)
 router.post('/', (async (req: Request, res: Response) => {
   try {
@@ -71,6 +90,14 @@ router.post('/', (async (req: Request, res: Response) => {
 
     if (!term) {
       return res.status(404).json({ message: 'Term not found' });
+    }
+
+    // Check if the check-in date is a day off
+    const checkInDate = timestamp ? new Date(timestamp) : new Date();
+    if (isDayOff(checkInDate, term)) {
+      return res.status(400).json({ 
+        message: 'Cannot check in on a day off. This date is marked as a day off for this term.' 
+      });
     }
 
     const newCheckIn = new CheckIn({
@@ -148,9 +175,22 @@ router.put('/:id', (async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Check-in not found' });
     }
 
+    // Get the term to check for days off
+    const term = await Term.findById(checkIn.termId);
+    if (!term) {
+      return res.status(404).json({ message: 'Term not found' });
+    }
+
     // Update timestamp if provided
     if (timestamp) {
-      checkIn.timestamp = new Date(timestamp);
+      const newTimestamp = new Date(timestamp);
+      // Check if the new timestamp is on a day off
+      if (isDayOff(newTimestamp, term)) {
+        return res.status(400).json({ 
+          message: 'Cannot update check-in to a day off. This date is marked as a day off for this term.' 
+        });
+      }
+      checkIn.timestamp = newTimestamp;
     }
 
     // Update type if provided

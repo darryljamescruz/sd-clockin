@@ -73,7 +73,7 @@ export function DashboardHeader({
             variant="outline"
             size="sm"
             onClick={onToday}
-            disabled={getTermStatus().status === "future"}
+            disabled={getTermStatus().status === "future" || termWeekdays.length === 0}
             className="ml-0 sm:ml-2 h-7 text-xs flex-shrink-0"
           >
             Today

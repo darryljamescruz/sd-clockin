@@ -6,16 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Calendar } from "lucide-react"
+import { Calendar, X, Plus } from "lucide-react"
 import { useState, useEffect } from "react"
-
-interface Term {
-  id: string
-  name: string
-  startDate: string
-  endDate: string
-  isActive: boolean
-}
+import type { DayOffRange, Term } from "@/lib/api"
 
 interface TermManagerProps {
   terms: Term[]
@@ -65,6 +58,12 @@ export function TermManager({
     endDate: editingTerm?.endDate ? formatDateForInput(editingTerm.endDate) : "",
     isActive: editingTerm?.isActive || false,
   })
+  const [daysOff, setDaysOff] = useState<DayOffRange[]>(
+    editingTerm?.daysOff?.map(range => ({
+      startDate: formatDateForInput(range.startDate),
+      endDate: formatDateForInput(range.endDate),
+    })) || []
+  )
 
   useEffect(() => {
     if (editingTerm) {
@@ -74,15 +73,41 @@ export function TermManager({
         endDate: formatDateForInput(editingTerm.endDate),
         isActive: editingTerm.isActive,
       })
+      setDaysOff(
+        editingTerm.daysOff?.map(range => ({
+          startDate: formatDateForInput(range.startDate),
+          endDate: formatDateForInput(range.endDate),
+        })) || []
+      )
     }
   }, [editingTerm])
 
+  const addDayOff = () => {
+    const termStart = formData.startDate || ""
+    const termEnd = formData.endDate || ""
+    setDaysOff([...daysOff, { startDate: termStart, endDate: termEnd }])
+  }
+
+  const removeDayOff = (index: number) => {
+    setDaysOff(daysOff.filter((_, i) => i !== index))
+  }
+
+  const updateDayOff = (index: number, field: "startDate" | "endDate", value: string) => {
+    const updated = [...daysOff]
+    updated[index] = { ...updated[index], [field]: value }
+    setDaysOff(updated)
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    const submitData = {
+      ...formData,
+      daysOff: daysOff.filter(range => range.startDate && range.endDate),
+    }
     if (editingTerm) {
-      onEditTerm(editingTerm.id, formData)
+      onEditTerm(editingTerm.id, submitData)
     } else {
-      onAddTerm(formData)
+      onAddTerm(submitData)
     }
   }
 
@@ -148,6 +173,67 @@ export function TermManager({
                 />
               </div>
             </div>
+
+            {/* Days Off Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Days Off / Weeks Off</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addDayOff}
+                  disabled={!formData.startDate || !formData.endDate}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Day Off
+                </Button>
+              </div>
+              {daysOff.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">
+                  No days off configured. Click "Add Day Off" to add holidays or breaks.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {daysOff.map((range, index) => (
+                    <div key={index} className="flex gap-2 items-end p-3 border rounded-lg bg-muted/30">
+                      <div className="flex-1 grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Start Date</Label>
+                          <Input
+                            type="date"
+                            value={range.startDate}
+                            onChange={(e) => updateDayOff(index, "startDate", e.target.value)}
+                            min={formData.startDate}
+                            max={formData.endDate}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">End Date</Label>
+                          <Input
+                            type="date"
+                            value={range.endDate}
+                            onChange={(e) => updateDayOff(index, "endDate", e.target.value)}
+                            min={range.startDate || formData.startDate}
+                            max={formData.endDate}
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeDayOff(index)}
+                        className="shrink-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-2">
               <Button type="submit">
                 {editingTerm ? "Update Term" : "Add Term"}
