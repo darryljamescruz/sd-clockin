@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, RequestHandler } from 'express';
 import Student from '../models/Student.js';
 import Schedule from '../models/Schedule.js';
 import Term from '../models/Term.js';
@@ -8,8 +8,7 @@ import { normalizeSchedule } from '../utils/scheduleParser.js';
 const router = express.Router();
 
 // POST - Preview CSV import (doesn't save, just shows what would be imported)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.post('/preview', async (req: Request, res: Response): Promise<any> => {
+router.post('/preview', (async (req: Request, res: Response) => {
   try {
     const { csvContent } = req.body;
 
@@ -51,11 +50,10 @@ router.post('/preview', async (req: Request, res: Response): Promise<any> => {
       error: (error as Error).message 
     });
   }
-});
+}) as RequestHandler);
 
 // POST - Import CSV and save schedules
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.post('/schedules', async (req: Request, res: Response): Promise<any> => {
+router.post('/schedules', (async (req: Request, res: Response) => {
   try {
     const { csvContent, termId } = req.body;
 
@@ -173,7 +171,7 @@ router.post('/schedules', async (req: Request, res: Response): Promise<any> => {
       error: (error as Error).message 
     });
   }
-});
+}) as RequestHandler);
 
 export default router;
 

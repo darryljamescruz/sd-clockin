@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, RequestHandler } from 'express';
 import Student from '../models/Student.js';
 import Schedule, { ISchedule } from '../models/Schedule.js';
 import CheckIn from '../models/CheckIn.js';
@@ -7,8 +7,7 @@ import Shift from '../models/Shift.js';
 const router = express.Router();
 
 // GET all students with their schedules for a specific term
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.get('/', async (req: Request, res: Response): Promise<any> => {
+router.get('/', (async (req: Request, res: Response) => {
   try {
     const { termId } = req.query;
     // Admin panel (no termId): Get ALL students for management
@@ -310,11 +309,10 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
     console.error('Error fetching students:', error);
     res.status(500).json({ message: 'Error fetching students', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 // GET a single student by ID
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.get('/:id', async (req: Request, res: Response): Promise<any> => {
+router.get('/:id', (async (req: Request, res: Response) => {
   try {
     const student = await Student.findById(req.params.id).lean();
 
@@ -333,11 +331,10 @@ router.get('/:id', async (req: Request, res: Response): Promise<any> => {
     console.error('Error fetching student:', error);
     res.status(500).json({ message: 'Error fetching student', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 // POST - Create a new student
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.post('/', async (req: Request, res: Response): Promise<any> => {
+router.post('/', (async (req: Request, res: Response) => {
   try {
     const { name, cardId, role } = req.body;
 
@@ -370,11 +367,10 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
     console.error('Error creating student:', error);
     res.status(500).json({ message: 'Error creating student', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 // PUT - Update a student
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.put('/:id', async (req: Request, res: Response): Promise<any> => {
+router.put('/:id', (async (req: Request, res: Response) => {
   try {
     const { name, cardId, role } = req.body;
 
@@ -408,11 +404,10 @@ router.put('/:id', async (req: Request, res: Response): Promise<any> => {
     console.error('Error updating student:', error);
     res.status(500).json({ message: 'Error updating student', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 // DELETE - Delete a student
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.delete('/:id', async (req: Request, res: Response): Promise<any> => {
+router.delete('/:id', (async (req: Request, res: Response) => {
   try {
     const student = await Student.findByIdAndDelete(req.params.id);
 
@@ -429,7 +424,7 @@ router.delete('/:id', async (req: Request, res: Response): Promise<any> => {
     console.error('Error deleting student:', error);
     res.status(500).json({ message: 'Error deleting student', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 export default router;
 

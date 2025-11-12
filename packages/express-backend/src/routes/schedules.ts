@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, RequestHandler } from 'express';
 import Schedule from '../models/Schedule.js';
 import Student from '../models/Student.js';
 import Term from '../models/Term.js';
@@ -7,8 +7,7 @@ import { normalizeSchedule } from '../utils/scheduleParser.js';
 const router = express.Router();
 
 // GET schedule for a student in a specific term
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.get('/', async (req: Request, res: Response): Promise<any> => {
+router.get('/', (async (req: Request, res: Response) => {
   try {
     const { studentId, termId } = req.query;
 
@@ -42,11 +41,10 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
     console.error('Error fetching schedule:', error);
     res.status(500).json({ message: 'Error fetching schedule', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 // POST - Create or update a schedule
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.post('/', async (req: Request, res: Response): Promise<any> => {
+router.post('/', (async (req: Request, res: Response) => {
   try {
     const { studentId, termId, availability } = req.body;
 
@@ -96,11 +94,10 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
     console.error('Error creating/updating schedule:', error);
     res.status(500).json({ message: 'Error creating/updating schedule', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 // DELETE - Delete a schedule
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.delete('/', async (req: Request, res: Response): Promise<any> => {
+router.delete('/', (async (req: Request, res: Response) => {
   try {
     const { studentId, termId } = req.query;
 
@@ -119,7 +116,7 @@ router.delete('/', async (req: Request, res: Response): Promise<any> => {
     console.error('Error deleting schedule:', error);
     res.status(500).json({ message: 'Error deleting schedule', error: (error as Error).message });
   }
-});
+}) as RequestHandler);
 
 export default router;
 

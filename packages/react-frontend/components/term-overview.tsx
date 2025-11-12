@@ -58,7 +58,14 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
   // Get attendance data for a specific date - now creates separate entries for each shift
   const getDayAttendance = (date: Date) => {
     const dateStr = date.toDateString()
-    const dayData = []
+    const dayData: Array<Student & {
+      status: string
+      actualTime: string | null
+      isManual: boolean
+      currentShift: string | null
+      shiftNumber: number
+      totalShifts?: number
+    }> = []
 
     staffData.forEach((staff) => {
       const expectedSchedule = getTodayScheduleForDate(staff, date)
@@ -75,7 +82,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
         })
       } else {
         // Create separate entry for each shift
-        expectedSchedule.forEach((shift, shiftIndex) => {
+        expectedSchedule.forEach((shift: string, shiftIndex: number) => {
           const shiftStartTime = getExpectedStartTimeFromSchedule(shift)
           const shiftEndTime = getExpectedEndTimeFromSchedule(shift)
 
@@ -183,7 +190,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     })
 
     // Sort by start time first, then alphabetically by first name, then by shift number
-    dayData.sort((a, b) => {
+    dayData.sort((a: typeof dayData[0], b: typeof dayData[0]) => {
       // Get expected start times
       const aStartTime = a.currentShift ? getExpectedStartTimeFromSchedule(a.currentShift) : null
       const bStartTime = b.currentShift ? getExpectedStartTimeFromSchedule(b.currentShift) : null
@@ -227,10 +234,10 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     return totalMinutes
   }
 
-  const getTodayScheduleForDate = (staff, date) => {
+  const getTodayScheduleForDate = (staff: Student, date: Date): string[] => {
     // Map getDay() (0=Sunday, 1=Monday...6=Saturday) to schedule keys
     // Weekends (0=Sunday, 6=Saturday) return null
-    const dayNames = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null]
+    const dayNames: Array<keyof NonNullable<Student['weeklySchedule']> | null> = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null]
     const dayName = dayNames[date.getDay()]
     
     // Return empty array for weekends or if no schedule exists
@@ -238,7 +245,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     return staff.weeklySchedule?.[dayName] || []
   }
 
-  const getExpectedStartTimeFromSchedule = (scheduleBlock) => {
+  const getExpectedStartTimeFromSchedule = (scheduleBlock: string): string | null => {
     if (!scheduleBlock) return null
     let startTime = scheduleBlock.split("-")[0].trim()
 
@@ -253,7 +260,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     
     if (hasAMPM) {
       // Standardize: ensure space before AM/PM, uppercase, and add :00 if no minutes
-      let normalized = startTime.replace(/([ap]m)/gi, (match) => ` ${match.toUpperCase()}`)
+      let normalized = startTime.replace(/([ap]m)/gi, (match: string) => ` ${match.toUpperCase()}`)
         .replace(/\s+/g, ' ') // Remove any duplicate spaces
       
       // If no colon, add :00 for minutes
@@ -272,7 +279,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     }
   }
 
-  const getExpectedEndTimeFromSchedule = (scheduleBlock) => {
+  const getExpectedEndTimeFromSchedule = (scheduleBlock: string): string | null => {
     if (!scheduleBlock) return null
     let endTime = scheduleBlock.split("-")[1]?.trim()
     if (!endTime) return null
@@ -288,7 +295,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     
     if (hasAMPM) {
       // Standardize: ensure space before AM/PM, uppercase, and add :00 if no minutes
-      let normalized = endTime.replace(/([ap]m)/gi, (match) => ` ${match.toUpperCase()}`)
+      let normalized = endTime.replace(/([ap]m)/gi, (match: string) => ` ${match.toUpperCase()}`)
         .replace(/\s+/g, ' ') // Remove any duplicate spaces
       
       // If no colon, add :00 for minutes
@@ -557,7 +564,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
                 <TableRow key={`${staff.id}-${staff.shiftNumber || 0}-${index}`}>
                   <TableCell className="font-medium">
                     {staff.name}
-                    {staff.totalShifts > 1 && (
+                    {(staff.totalShifts ?? 0) > 1 && (
                       <span className="text-xs text-muted-foreground ml-2">
                         (Shift {staff.shiftNumber}/{staff.totalShifts})
                       </span>

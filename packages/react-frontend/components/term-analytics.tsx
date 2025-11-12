@@ -21,15 +21,16 @@ export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndD
     const startDate = parseDateString(termStartDate)
     const endDate = parseDateString(termEndDate)
 
-    return staff.clockEntries.filter((entry) => {
+    return (staff.clockEntries || []).filter((entry) => {
       const entryDate = new Date(entry.timestamp)
       return entryDate >= startDate && entryDate <= endDate
     })
   }
 
-  const getExpectedStartTimeForDate = (staff: Staff, date: Date) => {
-    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+  const getExpectedStartTimeForDate = (staff: Student, date: Date) => {
+    const dayNames: Array<keyof NonNullable<Student['weeklySchedule']> | null> = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null]
     const dayName = dayNames[date.getDay()]
+    if (!dayName) return null
     const daySchedule = staff.weeklySchedule?.[dayName] || []
 
     if (daySchedule.length === 0) return null
@@ -52,7 +53,7 @@ export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndD
   }
 
   // Calculate analytics for each staff member
-  const getStaffAnalytics = (staff: Staff) => {
+  const getStaffAnalytics = (staff: Student) => {
     const termEntries = getTermClockEntries(staff)
     const clockInEntries = termEntries.filter((entry) => entry.type === "in")
     const manualEntries = termEntries.filter((entry) => entry.isManual)

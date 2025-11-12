@@ -249,9 +249,42 @@ export default function HomePage() {
       return a.name.localeCompare(b.name)
     })
 
+  // Helper function to convert time string (HH:MM) to minutes
+  function timeToMinutes(timeStr: string): number {
+    const [hours, minutes] = timeStr.split(':').map(Number)
+    return hours * 60 + minutes
+  }
+
   // Sort expected arrivals: by shift start time (chronological), then by first name
+  // Only show people within 2 hours from current time who are pending
   const expectedArrivals = staffData
-    .filter((staff) => staff.currentStatus === "incoming")
+    .filter((staff) => {
+      // Must be in incoming/pending status
+      if (staff.currentStatus !== "incoming") return false
+      
+      // Must have a valid shift time
+      if (!staff.expectedStartShift || staff.expectedStartShift === "No schedule") return false
+      
+      // Calculate current time in minutes
+      const currentHour = currentTime.getHours()
+      const currentMinute = currentTime.getMinutes()
+      const currentTotalMinutes = currentHour * 60 + currentMinute
+      
+      // Calculate shift start time in minutes
+      const shiftStartMinutes = timeToMinutes(staff.expectedStartShift)
+      
+      // Calculate minutes until shift starts
+      let minutesUntilShift = shiftStartMinutes - currentTotalMinutes
+      
+      // Handle case where shift is tomorrow (e.g., if it's 11pm and shift is at 8am)
+      // If shift time is earlier than current time, assume it's tomorrow
+      if (minutesUntilShift < 0) {
+        minutesUntilShift += 24 * 60 // Add 24 hours (1440 minutes)
+      }
+      
+      // Only include if shift starts within 2 hours (120 minutes) from now
+      return minutesUntilShift >= 0 && minutesUntilShift <= 120
+    })
     .sort((a, b) => {
       // First, separate scheduled from non-scheduled
       const aHasShift = a.expectedStartShift && a.expectedStartShift !== "No schedule"
@@ -272,12 +305,6 @@ export default function HomePage() {
       const bFirstName = b.name.split(" ")[0]
       return aFirstName.localeCompare(bFirstName)
     })
-
-  // Helper function to convert time string (HH:MM) to minutes
-  function timeToMinutes(timeStr: string): number {
-    const [hours, minutes] = timeStr.split(':').map(Number)
-    return hours * 60 + minutes
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-6">

@@ -124,12 +124,12 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
     let totalMinutes = 0
 
     weekdays.forEach(day => {
-      const dayNames = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null]
+      const dayNames: Array<keyof NonNullable<Student['weeklySchedule']> | null> = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null]
       const dayName = dayNames[day.getDay()]
       if (!dayName) return
 
       const daySchedule = staff.weeklySchedule?.[dayName] || []
-      daySchedule.forEach(shiftBlock => {
+      daySchedule.forEach((shiftBlock: string) => {
         const [start, end] = shiftBlock.split("-")
         if (!start || !end) return
 
@@ -145,8 +145,8 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
   }
 
   const calculateActualHours = (staff: Student, startDate: Date, endDate: Date) => {
-    const clockIns = staff.clockEntries.filter(e => e.type === "in")
-    const clockOuts = staff.clockEntries.filter(e => e.type === "out")
+    const clockIns = (staff.clockEntries || []).filter(e => e.type === "in")
+    const clockOuts = (staff.clockEntries || []).filter(e => e.type === "out")
     
     let totalMinutes = 0
     clockIns.forEach(clockIn => {
@@ -170,7 +170,7 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
   }
 
   const calculatePunctuality = (staff: Student) => {
-    const clockInEntries = staff.clockEntries.filter(e => e.type === "in")
+    const clockInEntries = (staff.clockEntries || []).filter(e => e.type === "in")
     const termStart = parseDateString(termStartDate)
     const termEnd = parseDateString(termEndDate)
     
@@ -187,7 +187,7 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
 
     relevantEntries.forEach(entry => {
       const entryDate = new Date(entry.timestamp)
-      const dayNames = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null]
+      const dayNames: Array<keyof NonNullable<Student['weeklySchedule']> | null> = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null]
       const dayName = dayNames[entryDate.getDay()]
       if (!dayName) return
 
@@ -237,7 +237,7 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
       const expectedHours = calculateExpectedHours(staff, currentWeekStart, weekEndCapped)
       const actualHours = calculateActualHours(staff, currentWeekStart, weekEndCapped)
       
-      const weekClockIns = staff.clockEntries.filter(e => {
+      const weekClockIns = (staff.clockEntries || []).filter(e => {
         const date = new Date(e.timestamp)
         return e.type === "in" && date >= currentWeekStart && date <= weekEndCapped
       })
@@ -372,7 +372,7 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
     const weekdays = getWeekdaysInRange(termStart, termEnd)
     
     weekdays.forEach(day => {
-      const dayNames = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null]
+      const dayNames: Array<keyof NonNullable<Student['weeklySchedule']> | null> = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null]
       const dayName = dayNames[day.getDay()]
       if (!dayName) return
 
@@ -395,11 +395,11 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
       }
 
       // Get actual clock-in/out for this day
-      const dayClockIns = staff.clockEntries.filter(e => {
+      const dayClockIns = (staff.clockEntries || []).filter(e => {
         const date = new Date(e.timestamp)
         return e.type === "in" && date.toDateString() === dayStr
       })
-      const dayClockOuts = staff.clockEntries.filter(e => {
+      const dayClockOuts = (staff.clockEntries || []).filter(e => {
         const date = new Date(e.timestamp)
         return e.type === "out" && date.toDateString() === dayStr
       })
@@ -624,8 +624,8 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
   const findMissingClockOuts = () => {
     if (!selectedStaff) return []
     
-    const clockIns = selectedStaff.clockEntries?.filter(e => e.type === "in") || []
-    const clockOuts = selectedStaff.clockEntries?.filter(e => e.type === "out") || []
+    const clockIns = (selectedStaff.clockEntries || []).filter(e => e.type === "in")
+    const clockOuts = (selectedStaff.clockEntries || []).filter(e => e.type === "out")
     
     const missing: Array<{ clockIn: ClockEntry; date: Date }> = []
     
@@ -1330,14 +1330,14 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {selectedStaff.clockEntries.length > 0 ? (
-                    selectedStaff.clockEntries
+                  {(selectedStaff.clockEntries || []).length > 0 ? (
+                    (selectedStaff.clockEntries || [])
                       .slice()
                       .reverse()
                       .map((entry, index) => {
                         const date = new Date(entry.timestamp)
                         const weekNum = getWeekNumber(date)
-                        const originalIndex = selectedStaff.clockEntries.length - 1 - index
+                        const originalIndex = (selectedStaff.clockEntries || []).length - 1 - index
                         return (
                           <TableRow key={index}>
                             <TableCell className="font-mono">{date.toLocaleString()}</TableCell>
@@ -1373,7 +1373,7 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
         </Card>
 
           {/* Edit Dialog */}
-          <Dialog open={!!editingEntry} onOpenChange={(open) => !open && setEditingEntry(null)}>
+          <Dialog open={!!editingEntry} onOpenChange={(open: boolean) => !open && setEditingEntry(null)}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Edit Clock Entry</DialogTitle>
