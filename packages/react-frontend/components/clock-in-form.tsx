@@ -78,29 +78,30 @@ export function ClockInForm({ isOpen, onToggle, onClockIn, staffData, mode, titl
   return (
     <>
       {/* Always render the button */}
-      <Button onClick={onToggle} variant="outline">
+      <Button onClick={onToggle} variant="outline" className="w-full sm:w-auto">
         <LogIn className="w-4 h-4 mr-2" />
-        {buttonText}
+        <span className="hidden sm:inline">{buttonText}</span>
+        <span className="sm:hidden">{mode === "in" ? "Clock In" : "Clock Out"}</span>
       </Button>
 
       {/* Render modal when open */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-96 shadow-xl">
-            <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <User className="w-5 h-5" />
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
+            <CardHeader className="pb-3 flex flex-row items-center justify-between sticky top-0 bg-card z-10">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                <User className="w-4 h-4 sm:w-5 sm:h-5" />
                 {title}
               </CardTitle>
               <Button variant="ghost" size="sm" onClick={handleClose}>
                 <X className="w-4 h-4" />
               </Button>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-4 sm:p-6">
               {/* Warning Banner */}
               <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-yellow-800 dark:text-yellow-300">
+                <div className="text-xs sm:text-sm text-yellow-800 dark:text-yellow-300">
                   <strong>Manual Entry:</strong> This clock-{mode} will be flagged as manually entered for audit
                   purposes.
                 </div>
@@ -161,17 +162,18 @@ export function ClockInForm({ isOpen, onToggle, onClockIn, staffData, mode, titl
               )}
 
               {/* Action Buttons */}
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   onClick={handleSubmit}
                   className="flex-1"
                   disabled={!selectedStaff}
                 >
-                  Clock {mode === "in" ? "In" : "Out"} {selectedStaff?.name || ""}
+                  <span className="truncate">Clock {mode === "in" ? "In" : "Out"} {selectedStaff?.name || ""}</span>
                 </Button>
                 <Button
                   variant="outline"
                   onClick={handleClose}
+                  className="sm:w-auto"
                 >
                   Cancel
                 </Button>

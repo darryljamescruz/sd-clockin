@@ -87,36 +87,48 @@ export function ClockedInTable({ clockedInUsers }: ClockedInTableProps) {
 
   return (
     <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-foreground">
-          <div className="w-3 h-3 bg-green-500 dark:bg-green-400 rounded-full"></div>
-          Currently Clocked In
-          <Badge variant="secondary" className="ml-auto bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-foreground">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-green-500 dark:bg-green-400 rounded-full"></div>
+            <span className="text-base sm:text-lg">Currently Clocked In</span>
+          </div>
+          <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 sm:ml-auto">
             {clockedInUsers.length} Active
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Clock In</TableHead>
-              <TableHead>Shift End</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {clockedInUsers.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell>{getRoleBadge(user.role)}</TableCell>
-                <TableCell className="font-mono">{formatClockInTime(user.todayActual || null)}</TableCell>
-                <TableCell>{getShiftEndTime(user)}</TableCell>
+      <CardContent className="p-0 sm:p-6">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-[120px]">Name</TableHead>
+                <TableHead className="min-w-[100px]">Role</TableHead>
+                <TableHead className="min-w-[100px]">Clock In</TableHead>
+                <TableHead className="min-w-[100px]">Shift End</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {clockedInUsers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    No one is currently clocked in
+                  </TableCell>
+                </TableRow>
+              ) : (
+                clockedInUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell>{getRoleBadge(user.role)}</TableCell>
+                    <TableCell className="font-mono text-sm">{formatClockInTime(user.todayActual || null)}</TableCell>
+                    <TableCell className="text-sm">{getShiftEndTime(user)}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   )

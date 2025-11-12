@@ -215,29 +215,29 @@ export default function AdminDashboard() {
   const isLoading = isLoadingTerms || isLoadingStudents
 
   return (
-    <>
+    <div className="w-full max-w-full overflow-x-hidden min-w-0">
       {/* Loading State */}
       {isLoading && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-            <span className="text-blue-800 font-medium">Loading data...</span>
+        <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 w-full max-w-full">
+          <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 animate-spin flex-shrink-0" />
+            <span className="text-sm sm:text-base text-blue-800 dark:text-blue-300 font-medium">Loading data...</span>
           </CardContent>
         </Card>
       )}
 
       {/* Error State */}
       {error && !isLoading && (
-        <Card className="bg-red-50 border-red-200">
-          <CardContent className="p-4 flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
-            <span className="text-red-800 font-medium">{error}</span>
+        <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 w-full max-w-full">
+          <CardContent className="p-3 sm:p-4 flex items-start sm:items-center gap-2 sm:gap-3">
+            <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5 sm:mt-0" />
+            <span className="text-sm sm:text-base text-red-800 dark:text-red-300 font-medium break-words">{error}</span>
           </CardContent>
         </Card>
       )}
 
       {!isLoading && !error && (
-        <>
+        <div className="w-full max-w-full overflow-x-hidden space-y-4 sm:space-y-6 min-w-0">
           <StatsCards
             totalStaff={stats.totalStaff}
             presentStaff={stats.presentStaff}
@@ -246,10 +246,10 @@ export default function AdminDashboard() {
           />
 
           {dateError && (
-            <Card className="bg-red-50 border-red-200">
-              <CardContent className="p-4 flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-                <span className="text-red-800 font-medium">{dateError}</span>
+            <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 w-full max-w-full">
+              <CardContent className="p-3 sm:p-4 flex items-start sm:items-center gap-2 sm:gap-3">
+                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5 sm:mt-0" />
+                <span className="text-sm sm:text-base text-red-800 dark:text-red-300 font-medium break-words">{dateError}</span>
               </CardContent>
             </Card>
           )}
@@ -271,8 +271,8 @@ export default function AdminDashboard() {
             staffData={staffData}
             selectedDate={selectedDate}
           />
-        </>
+        </div>
       )}
-    </>
+    </div>
   )
 }

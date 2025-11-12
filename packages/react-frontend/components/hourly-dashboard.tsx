@@ -362,132 +362,139 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
   }, [shiftsByHour])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
       {/* Day Stats */}
-      <div className="grid md:grid-cols-5 gap-4">
-        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-foreground">{dayStats.totalShifts}</div>
-                <div className="text-muted-foreground">Total Shifts</div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 w-full max-w-full min-w-0">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full overflow-hidden">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="text-xl sm:text-2xl font-bold text-foreground">{dayStats.totalShifts}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground truncate">Total Shifts</div>
               </div>
-              <Users className="w-8 h-8 text-muted-foreground" />
+              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{dayStats.onTimeShifts}</div>
-                <div className="text-muted-foreground">On Time</div>
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full overflow-hidden">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">{dayStats.onTimeShifts}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground truncate">On Time</div>
               </div>
-              <CheckCircle2 className="w-8 h-8 text-green-600 dark:text-green-400" />
+              <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 dark:text-green-400 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{dayStats.lateShifts}</div>
-                <div className="text-muted-foreground">Late</div>
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full overflow-hidden">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400">{dayStats.lateShifts}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground truncate">Late</div>
               </div>
-              <AlertCircle className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+              <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 dark:text-orange-400 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-red-600 dark:text-red-400">{dayStats.absentShifts}</div>
-                <div className="text-muted-foreground">Absent</div>
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full overflow-hidden">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400">{dayStats.absentShifts}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground truncate">Absent</div>
               </div>
-              <XCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+              <XCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-600 dark:text-red-400 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{dayStats.incomingShifts}</div>
-                <div className="text-muted-foreground">Incoming</div>
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full overflow-hidden">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{dayStats.incomingShifts}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground truncate">Incoming</div>
               </div>
-              <Clock className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Hour by Hour View */}
-      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5" />
-            Hour-by-Hour Schedule - {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full overflow-hidden">
+          <CardHeader className="pb-3 px-4 sm:px-6">
+          <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-base sm:text-lg">
+            <div className="flex items-center gap-2 min-w-0">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+              <span className="truncate">Hour-by-Hour Schedule</span>
+            </div>
+            <span className="text-sm sm:text-base text-muted-foreground sm:ml-2 truncate">
+              {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+            </span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
+        <CardContent className="p-0 sm:p-6 w-full max-w-full overflow-x-hidden min-w-0">
+          <div className="space-y-4 sm:space-y-6">
             {hours.map((hour) => {
               const shifts = shiftsByHour[hour]
               if (!shifts || shifts.length === 0) return null
 
               return (
-                <div key={hour} className="border-b last:border-b-0 pb-6 last:pb-0">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="text-lg font-semibold text-foreground min-w-[80px]">
+                <div key={hour} className="border-b last:border-b-0 pb-4 sm:pb-6 last:pb-0">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4 px-4 sm:px-0">
+                    <div className="text-base sm:text-lg font-semibold text-foreground">
                       {formatHour(hour)}
                     </div>
-                    <div className="flex-1 border-t border-dashed border-muted-foreground/30" />
-                    <div className="text-sm text-muted-foreground">
+                    <div className="hidden sm:block flex-1 border-t border-dashed border-muted-foreground/30" />
+                    <div className="text-xs sm:text-sm text-muted-foreground">
                       {shifts.length} {shifts.length === 1 ? "shift" : "shifts"}
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[150px]">Name</TableHead>
-                          <TableHead className="w-[100px]">Role</TableHead>
-                          <TableHead className="w-[180px]">Expected Time</TableHead>
-                          <TableHead className="w-[140px]">Actual Clock-In</TableHead>
-                          <TableHead className="w-[140px]">Actual Clock-Out</TableHead>
-                          <TableHead className="w-[120px]">Status</TableHead>
-                          <TableHead className="w-[120px]">Shift Length</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {shifts.map((shiftData, index) => (
-                          <TableRow key={`${shiftData.staff.id}-${index}`}>
-                            <TableCell className="font-medium">{shiftData.staff.name}</TableCell>
-                            <TableCell>{getRoleBadge(shiftData.staff.role)}</TableCell>
-                            <TableCell className="font-mono text-sm">
-                              {formatTimeForDisplay(shiftData.expectedStart)}
-                              {shiftData.expectedEnd && ` - ${formatTimeForDisplay(shiftData.expectedEnd)}`}
-                            </TableCell>
-                            <TableCell className="font-mono">
-                              {shiftData.actualStart || "—"}
-                            </TableCell>
-                            <TableCell className="font-mono">
-                              {shiftData.actualEnd || "—"}
-                            </TableCell>
-                            <TableCell>
-                              {getStatusBadge(shiftData.status, shiftData.isOnTime)}
-                            </TableCell>
-                            <TableCell className="font-mono">{shiftData.shiftLength}</TableCell>
+                  <div className="w-full overflow-x-auto -mx-4 sm:mx-0">
+                    <div className="px-4 sm:px-0 min-w-[600px]">
+                      <Table className="w-full table-fixed">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[150px]">Name</TableHead>
+                            <TableHead className="w-[100px]">Role</TableHead>
+                            <TableHead className="w-[180px]">Expected Time</TableHead>
+                            <TableHead className="w-[140px]">Actual Clock-In</TableHead>
+                            <TableHead className="w-[140px]">Actual Clock-Out</TableHead>
+                            <TableHead className="w-[120px]">Status</TableHead>
+                            <TableHead className="w-[120px]">Shift Length</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {shifts.map((shiftData, index) => (
+                            <TableRow key={`${shiftData.staff.id}-${index}`}>
+                              <TableCell className="font-medium text-sm truncate" style={{ width: '150px', maxWidth: '150px' }}>{shiftData.staff.name}</TableCell>
+                              <TableCell style={{ width: '100px', maxWidth: '100px' }}>{getRoleBadge(shiftData.staff.role)}</TableCell>
+                              <TableCell className="font-mono text-xs sm:text-sm truncate" style={{ width: '180px', maxWidth: '180px' }}>
+                                {formatTimeForDisplay(shiftData.expectedStart)}
+                                {shiftData.expectedEnd && ` - ${formatTimeForDisplay(shiftData.expectedEnd)}`}
+                              </TableCell>
+                              <TableCell className="font-mono text-xs sm:text-sm truncate" style={{ width: '140px', maxWidth: '140px' }}>
+                                {shiftData.actualStart || "—"}
+                              </TableCell>
+                              <TableCell className="font-mono text-xs sm:text-sm truncate" style={{ width: '140px', maxWidth: '140px' }}>
+                                {shiftData.actualEnd || "—"}
+                              </TableCell>
+                              <TableCell style={{ width: '120px', maxWidth: '120px' }}>
+                                {getStatusBadge(shiftData.status, shiftData.isOnTime)}
+                              </TableCell>
+                              <TableCell className="font-mono text-xs sm:text-sm truncate" style={{ width: '120px', maxWidth: '120px' }}>{shiftData.shiftLength}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 </div>
               )
@@ -495,9 +502,9 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
           </div>
 
           {Object.values(shiftsByHour).every(shifts => shifts.length === 0) && (
-            <div className="text-center text-muted-foreground py-12">
-              <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg">No shifts scheduled for this day</p>
+            <div className="text-center text-muted-foreground py-8 sm:py-12 px-4">
+              <Clock className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 opacity-50" />
+              <p className="text-base sm:text-lg">No shifts scheduled for this day</p>
             </div>
           )}
         </CardContent>

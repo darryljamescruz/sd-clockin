@@ -92,25 +92,27 @@ export default function AdminLayout({
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
+      <SidebarInset className="overflow-x-hidden">
+        <header className="flex h-auto sm:h-16 shrink-0 items-center gap-2 border-b px-3 sm:px-4 py-2 sm:py-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 overflow-x-hidden">
+          <SidebarTrigger className="-ml-1 flex-shrink-0" />
+          <Separator orientation="vertical" className="mr-2 h-4 hidden sm:block" />
+          <Breadcrumb className="flex-1 min-w-0 overflow-x-hidden">
+            <BreadcrumbList className="flex-wrap">
               {getBreadcrumbs()}
             </BreadcrumbList>
           </Breadcrumb>
-          <div className="ml-auto flex items-center gap-4">
-            <div className="text-right">
+          <div className="ml-auto flex items-center gap-2 sm:gap-4 flex-shrink-0">
+            <div className="text-right hidden sm:block">
               <div className="text-sm font-medium tabular-nums">{formatTime(currentTime)}</div>
               <div className="text-xs text-muted-foreground">{formatDate(currentTime)}</div>
             </div>
             <ThemeToggle />
           </div>
         </header>
-        <div className="relative flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6 lg:p-8">
-          {children}
+        <div className="relative flex flex-1 flex-col gap-4 p-3 sm:p-4 md:gap-6 md:p-6 lg:p-8 overflow-x-hidden w-full max-w-full">
+          <div className="w-full max-w-full overflow-x-hidden min-w-0">
+            {children}
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>

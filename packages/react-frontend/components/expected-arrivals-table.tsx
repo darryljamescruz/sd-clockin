@@ -54,42 +54,54 @@ export function ExpectedArrivalsTable({ expectedArrivals }: ExpectedArrivalsTabl
 
   return (
     <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-foreground">
-          <div className="w-3 h-3 bg-blue-500 dark:bg-blue-400 rounded-full"></div>
-          Expected Arrivals
-          <Badge variant="secondary" className="ml-auto bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-foreground">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-blue-500 dark:bg-blue-400 rounded-full"></div>
+            <span className="text-base sm:text-lg">Expected Arrivals</span>
+          </div>
+          <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 sm:ml-auto">
             {expectedArrivals.length} Pending
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Today's Schedule</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {expectedArrivals.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell>{getRoleBadge(user.role)}</TableCell>
-                <TableCell>
-                  {formatShiftTime(user.expectedStartShift, user.expectedEndShift) ? (
-                    <div className="text-xs bg-card border px-2 py-1 rounded shadow-sm inline-block">
-                      {formatShiftTime(user.expectedStartShift, user.expectedEndShift)}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground italic text-xs">No schedule</span>
-                  )}
-                </TableCell>
+      <CardContent className="p-0 sm:p-6">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-[120px]">Name</TableHead>
+                <TableHead className="min-w-[100px]">Role</TableHead>
+                <TableHead className="min-w-[140px]">Today's Schedule</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {expectedArrivals.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                    No expected arrivals in the next 2 hours
+                  </TableCell>
+                </TableRow>
+              ) : (
+                expectedArrivals.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell>{getRoleBadge(user.role)}</TableCell>
+                    <TableCell>
+                      {formatShiftTime(user.expectedStartShift, user.expectedEndShift) ? (
+                        <div className="text-xs bg-card border px-2 py-1 rounded shadow-sm inline-block">
+                          {formatShiftTime(user.expectedStartShift, user.expectedEndShift)}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground italic text-xs">No schedule</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   )
