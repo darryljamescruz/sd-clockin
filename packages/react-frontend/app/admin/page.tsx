@@ -4,9 +4,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { AlertTriangle, Loader2 } from "lucide-react"
 import { useState, useEffect } from "react"
 
-import { DashboardHeader } from "@/components/dashboard-header"
-import { StatsCards } from "@/components/stats-cards"
-import { HourlyDashboard } from "@/components/hourly-dashboard"
+import { DashboardHeader } from "@/components/features/dashboard/dashboard-header"
+import { StatsCards } from "@/components/features/dashboard/stats-cards"
+import { HourlyDashboard } from "@/components/features/dashboard/hourly-dashboard"
 import { api, type Student, type Term } from "@/lib/api"
 import { parseDateString } from "@/lib/utils"
 

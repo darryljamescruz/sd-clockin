@@ -1,10 +1,10 @@
 "use client"
 
+import React, { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Calendar, Users, TrendingUp, AlertCircle } from "lucide-react"
-import React, { useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { type Student, type Term } from "@/lib/api"
 import { formatDateString, parseDateString } from "@/lib/utils"
@@ -37,8 +37,8 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
   }
 
   // Get all weekdays in the term
-  const getTermWeekdays = () => {
-    const weekdays = []
+  const getTermWeekdays = (): Date[] => {
+    const weekdays: Date[] = []
     const start = parseDateString(currentTerm.startDate)
     const end = parseDateString(currentTerm.endDate)
     const current = new Date(start)
@@ -426,7 +426,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     }
   }
 
-  // Convert 24-hour time to 12-hour format with am/pm (e.g., "08:00-12:00" -> "8am-12pm")
+  // Convert time to 12-hour format with am/pm (handles both 24-hour and 12-hour formats)
   const formatShiftTime = (shift: string) => {
     if (!shift || shift === "Not scheduled") return shift
     
@@ -434,19 +434,46 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     if (parts.length !== 2) return shift
     
     const formatTime = (time: string) => {
-      const [hourStr, minute] = time.trim().split(":")
-      const hour = parseInt(hourStr, 10)
+      const trimmed = time.trim()
       
-      if (isNaN(hour)) return time
+      // Check if already has AM/PM
+      const upperTime = trimmed.toUpperCase()
+      const hasAMPM = upperTime.includes("AM") || upperTime.includes("PM")
       
-      const period = hour >= 12 ? "pm" : "am"
-      const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
-      
-      // Only show minutes if they're not :00
-      if (minute && minute !== "00") {
-        return `${hour12}:${minute}${period}`
+      if (hasAMPM) {
+        // Already in 12-hour format, just normalize and simplify
+        // Remove AM/PM temporarily to parse
+        const timeWithoutPeriod = trimmed.replace(/\s*(AM|PM)/gi, "").trim()
+        const [hourStr, minute] = timeWithoutPeriod.split(":")
+        const hour = parseInt(hourStr, 10)
+        const period = upperTime.includes("PM") ? "pm" : "am"
+        
+        if (isNaN(hour)) return trimmed
+        
+        // Hour is already in 12-hour format (1-12), just use it directly
+        const hour12 = hour === 0 ? 12 : hour
+        
+        // Only show minutes if they're not :00
+        if (minute && minute !== "00") {
+          return `${hour12}:${minute}${period}`
+        }
+        return `${hour12}${period}`
+      } else {
+        // 24-hour format - convert to 12-hour
+        const [hourStr, minute] = trimmed.split(":")
+        const hour = parseInt(hourStr, 10)
+        
+        if (isNaN(hour)) return trimmed
+        
+        const period = hour >= 12 ? "pm" : "am"
+        const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+        
+        // Only show minutes if they're not :00
+        if (minute && minute !== "00") {
+          return `${hour12}:${minute}${period}`
+        }
+        return `${hour12}${period}`
       }
-      return `${hour12}${period}`
     }
     
     return `${formatTime(parts[0])}-${formatTime(parts[1])}`

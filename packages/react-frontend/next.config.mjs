@@ -6,6 +6,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  transpilePackages: ['@sd-clockin/shared'],
 }
 
 export default nextConfig

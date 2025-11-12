@@ -11,6 +11,9 @@ import schedulesRouter from './routes/schedules.js';
 import checkinsRouter from './routes/checkins.js';
 import importRouter from './routes/import.js';
 
+// Import middleware
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+
 // later implementation for backend build
 // import { fileURLToPath } from "url";
 // const __filename = fileURLToPath(import.meta.url);
@@ -73,6 +76,10 @@ app.use('/api/import', importRouter);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
+
+// Error handling middleware (must be last)
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 // Start server function
 async function startServer(): Promise<void> {
