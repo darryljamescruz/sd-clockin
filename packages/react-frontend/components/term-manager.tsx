@@ -62,6 +62,7 @@ export function TermManager({
     editingTerm?.daysOff?.map(range => ({
       startDate: formatDateForInput(range.startDate),
       endDate: formatDateForInput(range.endDate),
+      notes: range.notes || '',
     })) || []
   )
 
@@ -77,6 +78,7 @@ export function TermManager({
         editingTerm.daysOff?.map(range => ({
           startDate: formatDateForInput(range.startDate),
           endDate: formatDateForInput(range.endDate),
+          notes: range.notes || '',
         })) || []
       )
     }
@@ -85,14 +87,14 @@ export function TermManager({
   const addDayOff = () => {
     const termStart = formData.startDate || ""
     const termEnd = formData.endDate || ""
-    setDaysOff([...daysOff, { startDate: termStart, endDate: termEnd }])
+    setDaysOff([...daysOff, { startDate: termStart, endDate: termEnd, notes: '' }])
   }
 
   const removeDayOff = (index: number) => {
     setDaysOff(daysOff.filter((_, i) => i !== index))
   }
 
-  const updateDayOff = (index: number, field: "startDate" | "endDate", value: string) => {
+  const updateDayOff = (index: number, field: "startDate" | "endDate" | "notes", value: string) => {
     const updated = [...daysOff]
     updated[index] = { ...updated[index], [field]: value }
     setDaysOff(updated)
@@ -196,38 +198,50 @@ export function TermManager({
               ) : (
                 <div className="space-y-2">
                   {daysOff.map((range, index) => (
-                    <div key={index} className="flex gap-2 items-end p-3 border rounded-lg bg-muted/30">
-                      <div className="flex-1 grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-xs">Start Date</Label>
-                          <Input
-                            type="date"
-                            value={range.startDate}
-                            onChange={(e) => updateDayOff(index, "startDate", e.target.value)}
-                            min={formData.startDate}
-                            max={formData.endDate}
-                          />
+                    <div key={index} className="flex flex-col gap-2 p-3 border rounded-lg bg-muted/30">
+                      <div className="flex gap-2 items-end">
+                        <div className="flex-1 grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">Start Date</Label>
+                            <Input
+                              type="date"
+                              value={range.startDate}
+                              onChange={(e) => updateDayOff(index, "startDate", e.target.value)}
+                              min={formData.startDate}
+                              max={formData.endDate}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">End Date</Label>
+                            <Input
+                              type="date"
+                              value={range.endDate}
+                              onChange={(e) => updateDayOff(index, "endDate", e.target.value)}
+                              min={range.startDate || formData.startDate}
+                              max={formData.endDate}
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <Label className="text-xs">End Date</Label>
-                          <Input
-                            type="date"
-                            value={range.endDate}
-                            onChange={(e) => updateDayOff(index, "endDate", e.target.value)}
-                            min={range.startDate || formData.startDate}
-                            max={formData.endDate}
-                          />
-                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeDayOff(index)}
+                          className="shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeDayOff(index)}
-                        className="shrink-0"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
+                      <div>
+                        <Label className="text-xs">Notes (e.g., Holiday name)</Label>
+                        <Input
+                          type="text"
+                          value={range.notes || ''}
+                          onChange={(e) => updateDayOff(index, "notes", e.target.value)}
+                          placeholder="e.g., Thanksgiving Break, Winter Holiday..."
+                          className="mt-1"
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>

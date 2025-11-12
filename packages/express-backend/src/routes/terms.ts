@@ -9,6 +9,7 @@ const formatDaysOff = (daysOff: any[]): any[] => {
   return daysOff.map((range) => ({
     startDate: range.startDate.toISOString().split('T')[0],
     endDate: range.endDate.toISOString().split('T')[0],
+    notes: range.notes || '',
   }));
 };
 
@@ -24,6 +25,7 @@ router.get('/', async (req: Request, res: Response) => {
       endDate: term.endDate.toISOString().split('T')[0],
       isActive: term.isActive,
       daysOff: formatDaysOff(term.daysOff),
+      notes: term.notes || '',
     }));
 
     res.json(termsFormatted);
@@ -49,6 +51,7 @@ router.get('/:id', (async (req: Request, res: Response) => {
       endDate: term.endDate.toISOString().split('T')[0],
       isActive: term.isActive,
       daysOff: formatDaysOff(term.daysOff),
+      notes: term.notes || '',
     });
   } catch (error) {
     console.error('Error fetching term:', error);
@@ -73,7 +76,7 @@ const parseDateString = (dateString: string): Date => {
 // POST - Create a new term
 router.post('/', (async (req: Request, res: Response) => {
   try {
-    const { name, startDate, endDate, isActive, daysOff } = req.body;
+    const { name, startDate, endDate, isActive, daysOff, notes } = req.body;
 
     if (!name || !startDate || !endDate) {
       return res.status(400).json({ message: 'Name, startDate, and endDate are required' });
@@ -104,6 +107,7 @@ router.post('/', (async (req: Request, res: Response) => {
         return {
           startDate: rangeStart,
           endDate: rangeEnd,
+          notes: range.notes || '',
         };
       });
     }
@@ -120,6 +124,7 @@ router.post('/', (async (req: Request, res: Response) => {
       year,
       isActive: isActive || false,
       daysOff: parsedDaysOff,
+      notes: notes || '',
     });
 
     await newTerm.save();
@@ -131,6 +136,7 @@ router.post('/', (async (req: Request, res: Response) => {
       endDate: newTerm.endDate.toISOString().split('T')[0],
       isActive: newTerm.isActive,
       daysOff: formatDaysOff(newTerm.daysOff),
+      notes: newTerm.notes || '',
     });
   } catch (error) {
     console.error('Error creating term:', error);
@@ -141,7 +147,7 @@ router.post('/', (async (req: Request, res: Response) => {
 // PUT - Update a term
 router.put('/:id', (async (req: Request, res: Response) => {
   try {
-    const { name, startDate, endDate, isActive, daysOff } = req.body;
+    const { name, startDate, endDate, isActive, daysOff, notes } = req.body;
 
     const term = await Term.findById(req.params.id);
     if (!term) {
@@ -175,6 +181,7 @@ router.put('/:id', (async (req: Request, res: Response) => {
     }
 
     if (name) term.name = name;
+    if (notes !== undefined) term.notes = notes || '';
 
     // Update days off if provided
     if (daysOff !== undefined) {
@@ -219,6 +226,7 @@ router.put('/:id', (async (req: Request, res: Response) => {
       endDate: term.endDate.toISOString().split('T')[0],
       isActive: term.isActive,
       daysOff: formatDaysOff(term.daysOff),
+      notes: term.notes || '',
     });
   } catch (error) {
     console.error('Error updating term:', error);
