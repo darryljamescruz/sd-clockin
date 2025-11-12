@@ -10,9 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Shield, UserCheck, Clock, TrendingUp, Calendar, BarChart3, Edit, Plus, Search, Users, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ArrowUp } from "lucide-react"
+import { Shield, UserCheck, Clock, TrendingUp, Calendar, BarChart3, Edit, Plus, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ArrowUp } from "lucide-react"
 import { type Student, api, type ClockEntry } from "@/lib/api"
-import { Switch } from "@/components/ui/switch"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { parseDateString } from "@/lib/utils"
 
@@ -34,7 +33,6 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
   const [isSaving, setIsSaving] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [searchQuery, setSearchQuery] = useState("")
-  const [showAssistantsOnly, setShowAssistantsOnly] = useState(false)
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0)
   const [currentMonthIndex, setCurrentMonthIndex] = useState(0)
   const [isWeeklyBreakdownOpen, setIsWeeklyBreakdownOpen] = useState(true)
@@ -687,26 +685,24 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
   const totalExpected = weeklyBreakdown.reduce((sum, week) => sum + week.expectedHours, 0)
   const totalActual = weeklyBreakdown.reduce((sum, week) => sum + week.actualHours, 0)
 
-  // Filter staff based on search query and role filter
+  // Filter staff based on search query
+  // Always only show Student Lead and Student Assistant roles
   const filteredStaff = (() => {
-    // If showAssistantsOnly is true and no search, show ALL assistants AND student leads
-    if (showAssistantsOnly && !searchQuery) {
-      return staffData.filter(staff => staff.role === "Student Assistant" || staff.role === "Student Lead")
+    // First, filter to only include Student Lead and Student Assistant
+    const eligibleStaff = staffData.filter(staff => 
+      staff.role === "Student Assistant" || staff.role === "Student Lead"
+    )
+    
+    // If no search query, show all eligible staff
+    if (!searchQuery) {
+      return eligibleStaff
     }
     
-    // If no search and toggle is off, show ALL students
-    if (!searchQuery && !showAssistantsOnly) {
-      return staffData
-    }
-    
-    // Otherwise, apply search and role filters
-    return staffData.filter(staff => {
-      const matchesSearch = !searchQuery || 
-        staff.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        staff.cardId.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesRole = !showAssistantsOnly || staff.role === "Student Assistant" || staff.role === "Student Lead"
-      return matchesSearch && matchesRole
-    })
+    // Otherwise, apply search filter on eligible staff
+    return eligibleStaff.filter(staff => 
+      staff.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      staff.cardId.toLowerCase().includes(searchQuery.toLowerCase())
+    )
   })()
 
   return (
@@ -725,23 +721,12 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
                 className="pl-10"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="assistants-only"
-                checked={showAssistantsOnly}
-                onCheckedChange={setShowAssistantsOnly}
-              />
-              <Label htmlFor="assistants-only" className="cursor-pointer flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Show All Students (Assistants & Leads)
-              </Label>
-            </div>
           </div>
           {/* Show all students, filtered students, or search results */}
           {filteredStaff.length > 0 && (
             <div className="mt-4">
               {!searchQuery ? (
-                // Grid layout for all students (when toggle is on shows only students, when off shows all)
+                // Grid layout for all students (Student Lead and Student Assistant only)
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                   {filteredStaff.map((staff) => (
                     <Button
@@ -789,10 +774,10 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
           )}
           {searchQuery && filteredStaff.length === 0 && (
             <div className="mt-4 text-center text-muted-foreground text-sm">
-              No staff members found matching "{searchQuery}"{showAssistantsOnly && " (Students only)"}
+              No staff members found matching "{searchQuery}"
             </div>
           )}
-          {!searchQuery && !showAssistantsOnly && selectedStaff && (
+          {!searchQuery && selectedStaff && (
             <div className="mt-4 p-3 bg-muted rounded-lg">
               <div className="flex items-center gap-2">
                 {selectedStaff.role === "Student Lead" ? (

@@ -50,3 +50,4 @@ Thumbs.db
 # Temporary folders
 tmp/
 temp/
+packages/react-frontend/next-env.d.ts
