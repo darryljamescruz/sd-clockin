@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import mongoose from 'mongoose';
 import AdminUser from '../models/AdminUser.js';
 
 const router = express.Router();
@@ -14,12 +15,13 @@ declare module 'express-session' {
 }
 
 // Login endpoint
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, password, rememberMe } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({ message: 'Username and password are required' });
+      res.status(400).json({ message: 'Username and password are required' });
+      return;
     }
 
     // Find user by username (email or username)
@@ -31,7 +33,8 @@ router.post('/login', async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      res.status(401).json({ message: 'Invalid credentials' });
+      return;
     }
 
     // Check password (for demo account, allow plain text check)
@@ -45,11 +48,13 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     if (!passwordValid) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      res.status(401).json({ message: 'Invalid credentials' });
+      return;
     }
 
     // Set session data
-    req.session.userId = user._id.toString();
+    const userId = (user._id as mongoose.Types.ObjectId).toString();
+    req.session.userId = userId;
     req.session.username = user.name;
     req.session.isAdmin = user.isAdmin;
 
@@ -65,7 +70,7 @@ router.post('/login', async (req: Request, res: Response) => {
     res.json({
       success: true,
       user: {
-        id: user._id.toString(),
+        id: userId,
         name: user.name,
         email: user.email,
         isAdmin: user.isAdmin,
@@ -78,11 +83,12 @@ router.post('/login', async (req: Request, res: Response) => {
 });
 
 // Logout endpoint
-router.post('/logout', (req: Request, res: Response) => {
+router.post('/logout', (req: Request, res: Response): void => {
   req.session.destroy((err) => {
     if (err) {
       console.error('Logout error:', err);
-      return res.status(500).json({ message: 'Error logging out' });
+      res.status(500).json({ message: 'Error logging out' });
+      return;
     }
     res.clearCookie('connect.sid');
     res.json({ success: true });
@@ -90,7 +96,7 @@ router.post('/logout', (req: Request, res: Response) => {
 });
 
 // Verify session endpoint
-router.get('/verify', (req: Request, res: Response) => {
+router.get('/verify', (req: Request, res: Response): void => {
   if (req.session.userId) {
     res.json({
       authenticated: true,
@@ -106,17 +112,19 @@ router.get('/verify', (req: Request, res: Response) => {
 });
 
 // Create admin/staff account (protected - admin only)
-router.post('/create-account', async (req: Request, res: Response) => {
+router.post('/create-account', async (req: Request, res: Response): Promise<void> => {
   try {
     // Check if user is authenticated and is admin
     if (!req.session.userId || !req.session.isAdmin) {
-      return res.status(403).json({ message: 'Unauthorized: Admin access required' });
+      res.status(403).json({ message: 'Unauthorized: Admin access required' });
+      return;
     }
 
     const { name, email, password, isAdmin } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Name, email, and password are required' });
+      res.status(400).json({ message: 'Name, email, and password are required' });
+      return;
     }
 
     // Check if user already exists
@@ -125,7 +133,8 @@ router.post('/create-account', async (req: Request, res: Response) => {
     });
 
     if (existingUser) {
-      return res.status(400).json({ message: 'User with this email or name already exists' });
+      res.status(400).json({ message: 'User with this email or name already exists' });
+      return;
     }
 
     // Hash password
@@ -142,10 +151,11 @@ router.post('/create-account', async (req: Request, res: Response) => {
 
     await newUser.save();
 
+    const userId = (newUser._id as mongoose.Types.ObjectId).toString();
     res.json({
       success: true,
       user: {
-        id: newUser._id.toString(),
+        id: userId,
         name: newUser.name,
         email: newUser.email,
         isAdmin: newUser.isAdmin,
@@ -158,11 +168,12 @@ router.post('/create-account', async (req: Request, res: Response) => {
 });
 
 // Get all admin/staff accounts (protected - admin only)
-router.get('/accounts', async (req: Request, res: Response) => {
+router.get('/accounts', async (req: Request, res: Response): Promise<void> => {
   try {
     // Check if user is authenticated and is admin
     if (!req.session.userId || !req.session.isAdmin) {
-      return res.status(403).json({ message: 'Unauthorized: Admin access required' });
+      res.status(403).json({ message: 'Unauthorized: Admin access required' });
+      return;
     }
 
     const users = await AdminUser.find({}, { passwordHash: 0 }).sort({ name: 1 });
@@ -174,24 +185,27 @@ router.get('/accounts', async (req: Request, res: Response) => {
 });
 
 // Delete account (protected - admin only, cannot delete self)
-router.delete('/accounts/:id', async (req: Request, res: Response) => {
+router.delete('/accounts/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     // Check if user is authenticated and is admin
     if (!req.session.userId || !req.session.isAdmin) {
-      return res.status(403).json({ message: 'Unauthorized: Admin access required' });
+      res.status(403).json({ message: 'Unauthorized: Admin access required' });
+      return;
     }
 
     const accountId = req.params.id;
 
     // Prevent self-deletion
     if (accountId === req.session.userId) {
-      return res.status(400).json({ message: 'Cannot delete your own account' });
+      res.status(400).json({ message: 'Cannot delete your own account' });
+      return;
     }
 
     // Prevent deleting demo account
     const user = await AdminUser.findById(accountId);
     if (user && user.email === 'admin' && user.name === 'admin') {
-      return res.status(400).json({ message: 'Cannot delete demo account' });
+      res.status(400).json({ message: 'Cannot delete demo account' });
+      return;
     }
 
     await AdminUser.findByIdAndDelete(accountId);
