@@ -78,8 +78,8 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h2 className="text-2xl font-bold text-foreground">Manage Students & Staff</h2>
-            <p className="text-muted-foreground">Add, edit, and manage student assistants and leads</p>
+            <h2 className="text-2xl font-bold text-foreground">Manage Student Assistants</h2>
+            <p className="text-muted-foreground">Add, edit, and manage student assistant information</p>
           </div>
         </div>
         <Button onClick={() => setShowAddModal(true)} className="">

@@ -323,36 +323,6 @@ export default function HomePage() {
 
           {/* Login Area */}
           <div className="flex items-center gap-4">
-            {!isLoading && (
-              <>
-                <ClockInForm
-                  isOpen={isLoginOpen}
-                  onToggle={() => {
-                    setIsLoginOpen(!isLoginOpen)
-                    setIsCardSwipeDisabled(!isLoginOpen)
-                  }}
-                  onClockIn={handleManualClockIn}
-                  staffData={staffData}
-                  mode="in"
-                  title="Manual Clock In"
-                  buttonText="Manual Clock In"
-                />
-
-                <ClockInForm
-                  isOpen={isClockOutOpen}
-                  onToggle={() => {
-                    setIsClockOutOpen(!isClockOutOpen)
-                    setIsCardSwipeDisabled(!isClockOutOpen)
-                  }}
-                  onClockIn={handleManualClockOut}
-                  staffData={staffData}
-                  mode="out"
-                  title="Manual Clock Out"
-                  buttonText="Manual Clock Out"
-                />
-              </>
-            )}
-
             <ThemeToggle />
 
             <AdminLogin
@@ -438,6 +408,37 @@ export default function HomePage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Manual Clock In/Out Buttons */}
+            {!isLoading && (
+              <div className="flex justify-center gap-4 mb-8">
+                <ClockInForm
+                  isOpen={isLoginOpen}
+                  onToggle={() => {
+                    setIsLoginOpen(!isLoginOpen)
+                    setIsCardSwipeDisabled(!isLoginOpen)
+                  }}
+                  onClockIn={handleManualClockIn}
+                  staffData={staffData}
+                  mode="in"
+                  title="Manual Clock In"
+                  buttonText="Manual Clock In"
+                />
+
+                <ClockInForm
+                  isOpen={isClockOutOpen}
+                  onToggle={() => {
+                    setIsClockOutOpen(!isClockOutOpen)
+                    setIsCardSwipeDisabled(!isClockOutOpen)
+                  }}
+                  onClockIn={handleManualClockOut}
+                  staffData={staffData}
+                  mode="out"
+                  title="Manual Clock Out"
+                  buttonText="Manual Clock Out"
+                />
+              </div>
+            )}
 
             {/* Tables Grid */}
             <div className="grid lg:grid-cols-2 gap-8">

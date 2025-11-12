@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Shield, UserCheck, Clock, TrendingUp, Calendar, BarChart3, Edit, Plus, Search, Users, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react"
+import { Shield, UserCheck, Clock, TrendingUp, Calendar, BarChart3, Edit, Plus, Search, Users, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ArrowUp } from "lucide-react"
 import { type Student, api, type ClockEntry } from "@/lib/api"
 import { Switch } from "@/components/ui/switch"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -40,12 +40,46 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
   const [isWeeklyBreakdownOpen, setIsWeeklyBreakdownOpen] = useState(true)
   const [isDailyBreakdownOpen, setIsDailyBreakdownOpen] = useState(true)
   const [dailyViewMode, setDailyViewMode] = useState<"week" | "month">("week")
+  const [showScrollToTop, setShowScrollToTop] = useState(false)
+  
+  // Refs for scrolling
+  const studentInfoRef = useRef<HTMLDivElement>(null)
+  const searchSectionRef = useRef<HTMLDivElement>(null)
 
   // Reset week/month index when staff changes
   useEffect(() => {
     setCurrentWeekIndex(0)
     setCurrentMonthIndex(0)
   }, [selectedStaff?.id])
+
+  // Scroll to student info when a student is selected
+  useEffect(() => {
+    if (selectedStaff && studentInfoRef.current) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        studentInfoRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        })
+      }, 150)
+    }
+  }, [selectedStaff?.id])
+
+  // Show/hide scroll to top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollToTop(window.scrollY > 400)
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  const scrollToSearch = () => {
+    searchSectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    })
+  }
 
   // Helper functions
   const timeToMinutes = (timeStr: string) => {
@@ -673,7 +707,7 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
   return (
     <div className="space-y-6">
       {/* Staff Selection - Search Bar */}
-      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+      <Card ref={searchSectionRef} className="bg-card/70 backdrop-blur-sm shadow-lg">
         <CardContent className="pt-6">
           <div className="space-y-4">
             <div className="relative">
@@ -772,7 +806,7 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
       {selectedStaff && punctuality && (
         <>
           {/* Staff Header */}
-          <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+          <Card ref={studentInfoRef} className="bg-card/70 backdrop-blur-sm shadow-lg scroll-mt-4">
             <CardHeader>
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center">
@@ -1069,10 +1103,10 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
                                 }
                               }
 
-                              const renderDayCell = (day: typeof dailyBreakdown[0] | null) => {
+                              const renderDayCell = (day: typeof dailyBreakdown[0] | null, dayIndex: number) => {
                                 if (!day) {
                                   return (
-                                    <TableCell className="text-center text-muted-foreground text-sm py-4">
+                                    <TableCell key={dayIndex} className="text-center text-muted-foreground text-sm py-4">
                                       —
                                     </TableCell>
                                   )
@@ -1080,7 +1114,7 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
 
                                 const diff = day.actualHours - day.expectedHours
                                 return (
-                                  <TableCell className="p-2">
+                                  <TableCell key={dayIndex} className="p-2">
                                     <div className="space-y-1 text-xs">
                                       <div className="font-medium text-muted-foreground">
                                         {day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -1123,7 +1157,7 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
 
                               return (
                                 <TableRow key={week.weekNum}>
-                                  {week.days.map((day, dayIndex) => renderDayCell(day))}
+                                  {week.days.map((day, dayIndex) => renderDayCell(day, dayIndex))}
                                 </TableRow>
                               )
                             })()}
@@ -1458,6 +1492,18 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
             </DialogContent>
           </Dialog>
         </>
+      )}
+
+      {/* Scroll to Top Button */}
+      {showScrollToTop && (
+        <Button
+          onClick={scrollToSearch}
+          className="fixed bottom-8 right-8 rounded-full shadow-lg z-50 h-12 w-12 p-0"
+          size="icon"
+          variant="default"
+        >
+          <ArrowUp className="w-5 h-5" />
+        </Button>
       )}
     </div>
   )
