@@ -284,6 +284,7 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
               friday: [],
             },
             clockEntries: checkIns.map((entry) => ({
+              id: entry._id.toString(),
               timestamp: entry.timestamp,
               type: entry.type,
               isManual: entry.isManual,

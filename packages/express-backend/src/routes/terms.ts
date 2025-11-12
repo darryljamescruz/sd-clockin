@@ -46,6 +46,20 @@ router.get('/:id', async (req: Request, res: Response): Promise<any> => {
   }
 });
 
+// Helper function to parse date string without timezone issues
+const parseDateString = (dateString: string): Date => {
+  // If dateString is in YYYY-MM-DD format, parse it as local date
+  const parts = dateString.split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+    const day = parseInt(parts[2], 10);
+    return new Date(year, month, day);
+  }
+  // Fallback to standard parsing
+  return new Date(dateString);
+};
+
 // POST - Create a new term
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 router.post('/', async (req: Request, res: Response): Promise<any> => {
@@ -56,8 +70,8 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
       return res.status(400).json({ message: 'Name, startDate, and endDate are required' });
     }
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = parseDateString(startDate);
+    const end = parseDateString(endDate);
 
     if (start >= end) {
       return res.status(400).json({ message: 'Start date must be before end date' });
@@ -105,8 +119,8 @@ router.put('/:id', async (req: Request, res: Response): Promise<any> => {
     }
 
     if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
+      const start = parseDateString(startDate);
+      const end = parseDateString(endDate);
 
       if (start >= end) {
         return res.status(400).json({ message: 'Start date must be before end date' });
@@ -116,14 +130,14 @@ router.put('/:id', async (req: Request, res: Response): Promise<any> => {
       term.endDate = end;
       term.year = start.getFullYear();
     } else if (startDate) {
-      const start = new Date(startDate);
+      const start = parseDateString(startDate);
       if (start >= term.endDate) {
         return res.status(400).json({ message: 'Start date must be before end date' });
       }
       term.startDate = start;
       term.year = start.getFullYear();
     } else if (endDate) {
-      const end = new Date(endDate);
+      const end = parseDateString(endDate);
       if (term.startDate >= end) {
         return res.status(400).json({ message: 'Start date must be before end date' });
       }

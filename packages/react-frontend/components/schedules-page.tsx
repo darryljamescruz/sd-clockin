@@ -12,6 +12,7 @@ import { StudentScheduleManager } from "./student-schedule-manager"
 import { CSVImport } from "./csv-import"
 import type { Term, Student, Schedule } from "@/lib/api"
 import { api } from "@/lib/api"
+import { formatDateString } from "@/lib/utils"
 
 interface SchedulesPageProps {
   students: Student[]
@@ -169,8 +170,8 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
             </div>
             {selectedTerm && (
               <div className="text-sm text-muted-foreground">
-                {new Date(selectedTerm.startDate).toLocaleDateString()} -{" "}
-                {new Date(selectedTerm.endDate).toLocaleDateString()}
+                {formatDateString(selectedTerm.startDate)} -{" "}
+                {formatDateString(selectedTerm.endDate)}
               </div>
             )}
           </div>

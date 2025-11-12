@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar, Plus, Edit, Trash2, ArrowLeft } from "lucide-react"
 import { useState } from "react"
 import { TermManager } from "./term-manager"
+import { formatDateString, parseDateString } from "@/lib/utils"
 
 interface Term {
   id: string
@@ -99,7 +100,13 @@ export function TermsPage({ terms, onAddTerm, onEditTerm, onDeleteTerm, onBack }
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {terms.filter((t) => new Date(t.startDate) > new Date()).length}
+                  {terms.filter((t) => {
+                    const today = new Date()
+                    today.setHours(0, 0, 0, 0)
+                    const termStart = parseDateString(t.startDate)
+                    termStart.setHours(0, 0, 0, 0)
+                    return termStart > today
+                  }).length}
                 </div>
                 <div className="text-muted-foreground">Upcoming Terms</div>
               </div>
@@ -130,15 +137,15 @@ export function TermsPage({ terms, onAddTerm, onEditTerm, onDeleteTerm, onBack }
             </TableHeader>
             <TableBody>
               {terms.map((term) => {
-                const startDate = new Date(term.startDate)
-                const endDate = new Date(term.endDate)
+                const startDate = parseDateString(term.startDate)
+                const endDate = parseDateString(term.endDate)
                 const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
 
                 return (
                   <TableRow key={term.id}>
                     <TableCell className="font-medium">{term.name}</TableCell>
-                    <TableCell>{startDate.toLocaleDateString()}</TableCell>
-                    <TableCell>{endDate.toLocaleDateString()}</TableCell>
+                    <TableCell>{formatDateString(term.startDate)}</TableCell>
+                    <TableCell>{formatDateString(term.endDate)}</TableCell>
                     <TableCell>{duration} days</TableCell>
                     <TableCell>
                       {term.isActive ? (

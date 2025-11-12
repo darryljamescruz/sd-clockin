@@ -11,6 +11,7 @@ import { IndividualRecords } from "@/components/individual-records"
 import { TermAnalytics } from "@/components/term-analytics"
 import { TermOverview } from "@/components/term-overview"
 import { api, type Student, type Term } from "@/lib/api"
+import { parseDateString } from "@/lib/utils"
 
 export default function AdminDashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -64,6 +65,13 @@ export default function AdminDashboard() {
         if (currentTerm) {
           const fetchedStudents = await api.students.getAll(currentTerm.id)
           setStaffData(fetchedStudents)
+          // Update selectedStaff if it exists in the new data
+          if (selectedStaff) {
+            const updatedStaff = fetchedStudents.find((s) => s.id === selectedStaff.id)
+            if (updatedStaff) {
+              setSelectedStaff(updatedStaff)
+            }
+          }
         }
       } catch (err) {
         console.error("Error fetching students:", err)
@@ -75,6 +83,29 @@ export default function AdminDashboard() {
 
     fetchStudents()
   }, [selectedTerm, terms])
+
+  // Refresh a specific student's data
+  const handleRefreshStudent = async (studentId: string) => {
+    if (!selectedTerm) return
+
+    try {
+      const currentTerm = terms.find((t) => t.name === selectedTerm)
+      if (currentTerm) {
+        // Refetch all students to get updated clock entries (getById doesn't include clock entries)
+        // Then filter to update just the one we need
+        const fetchedStudents = await api.students.getAll(currentTerm.id)
+        setStaffData(fetchedStudents)
+        
+        // Update selectedStaff if it's the one being refreshed
+        const updatedStaff = fetchedStudents.find((s) => s.id === studentId)
+        if (updatedStaff && selectedStaff?.id === studentId) {
+          setSelectedStaff(updatedStaff)
+        }
+      }
+    } catch (err) {
+      console.error("Error refreshing student data:", err)
+    }
+  }
 
   const getWeeklyStats = () => {
     const totalStaff = staffData.length
@@ -127,8 +158,8 @@ export default function AdminDashboard() {
       return []
     }
     
-    const start = new Date(currentTerm.startDate)
-    const end = new Date(currentTerm.endDate)
+    const start = parseDateString(currentTerm.startDate)
+    const end = parseDateString(currentTerm.endDate)
     const current = new Date(start)
 
     while (current <= end) {
@@ -183,9 +214,12 @@ export default function AdminDashboard() {
 
   const getTermStatus = () => {
     const today = new Date()
+    today.setHours(0, 0, 0, 0) // Set to midnight for date-only comparison
     const currentTerm = getCurrentTerm()
-    const startDate = new Date(currentTerm.startDate)
-    const endDate = new Date(currentTerm.endDate)
+    const startDate = parseDateString(currentTerm.startDate)
+    startDate.setHours(0, 0, 0, 0)
+    const endDate = parseDateString(currentTerm.endDate)
+    endDate.setHours(23, 59, 59, 999) // Set to end of day for inclusive comparison
 
     if (today < startDate) {
       return { status: "future" }
@@ -253,7 +287,7 @@ export default function AdminDashboard() {
           />
 
           <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="bg-white/70 backdrop-blur-sm border-slate-200">
+            <TabsList className="bg-muted/70 dark:bg-muted/80 backdrop-blur-sm border">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="analytics">Term Analytics</TabsTrigger>
               <TabsTrigger value="individual">Individual Records</TabsTrigger>
@@ -284,6 +318,9 @@ export default function AdminDashboard() {
                 selectedStaff={selectedStaff}
                 onSelectStaff={setSelectedStaff}
                 selectedTerm={selectedTerm}
+                termStartDate={getCurrentTerm().startDate}
+                termEndDate={getCurrentTerm().endDate}
+                onRefreshStudent={handleRefreshStudent}
               />
             </TabsContent>
           </Tabs>

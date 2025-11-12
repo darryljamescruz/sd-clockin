@@ -124,6 +124,73 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
   }
 });
 
+// PUT - Update a check-in
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+router.put('/:id', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { timestamp, type } = req.body;
+    const { id } = req.params;
+
+    // Validate ID format
+    if (!id || id.trim() === '') {
+      return res.status(400).json({ message: 'Invalid check-in ID provided' });
+    }
+
+    const checkIn = await CheckIn.findById(id);
+
+    if (!checkIn) {
+      return res.status(404).json({ message: 'Check-in not found' });
+    }
+
+    // Update timestamp if provided
+    if (timestamp) {
+      checkIn.timestamp = new Date(timestamp);
+    }
+
+    // Update type if provided
+    if (type) {
+      checkIn.type = type;
+    }
+
+    // Mark as manual since it's being edited
+    checkIn.isManual = true;
+
+    const updatedCheckIn = await checkIn.save();
+
+    // Update shift if it exists
+    const checkInDate = new Date(updatedCheckIn.timestamp);
+    const shiftDate = new Date(Date.UTC(checkInDate.getFullYear(), checkInDate.getMonth(), checkInDate.getDate()));
+    
+    const shift = await Shift.findOne({
+      studentId: updatedCheckIn.studentId,
+      termId: updatedCheckIn.termId,
+      date: shiftDate,
+    });
+
+    if (shift) {
+      if (updatedCheckIn.type === 'in') {
+        shift.actualStart = updatedCheckIn.timestamp;
+      } else if (updatedCheckIn.type === 'out') {
+        shift.actualEnd = updatedCheckIn.timestamp;
+        shift.status = 'completed';
+      }
+      await shift.save();
+    }
+
+    res.json({
+      id: updatedCheckIn._id,
+      studentId: updatedCheckIn.studentId,
+      termId: updatedCheckIn.termId,
+      type: updatedCheckIn.type,
+      timestamp: updatedCheckIn.timestamp,
+      isManual: updatedCheckIn.isManual,
+    });
+  } catch (error) {
+    console.error('Error updating check-in:', error);
+    res.status(500).json({ message: 'Error updating check-in', error: (error as Error).message });
+  }
+});
+
 // DELETE - Delete a check-in
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 router.delete('/:id', async (req: Request, res: Response): Promise<any> => {

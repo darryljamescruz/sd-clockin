@@ -31,6 +31,7 @@ export interface Term {
 }
 
 export interface ClockEntry {
+  id?: string;
   timestamp: string;
   type: 'in' | 'out';
   isManual?: boolean;
@@ -206,6 +207,14 @@ export const checkinsAPI = {
   create: async (data: { studentId: string; termId: string; type: 'in' | 'out'; timestamp?: string; isManual: boolean }): Promise<CheckIn> => {
     return fetchAPI<CheckIn>('/checkins', {
       method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Update a check-in
+  update: async (id: string, data: { timestamp?: string; type?: 'in' | 'out' }): Promise<CheckIn> => {
+    return fetchAPI<CheckIn>(`/checkins/${id}`, {
+      method: 'PUT',
       body: JSON.stringify(data),
     });
   },

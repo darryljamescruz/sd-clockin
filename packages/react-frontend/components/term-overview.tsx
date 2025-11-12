@@ -7,6 +7,7 @@ import { Calendar, Users, TrendingUp, AlertCircle } from "lucide-react"
 import { useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { type Student, type Term } from "@/lib/api"
+import { formatDateString, parseDateString } from "@/lib/utils"
 
 interface TermOverviewProps {
   staffData: Student[]
@@ -20,8 +21,11 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
   // Check if selected term is current, past, or future
   const getTermStatus = () => {
     const today = new Date()
-    const termStart = new Date(currentTerm.startDate)
-    const termEnd = new Date(currentTerm.endDate)
+    today.setHours(0, 0, 0, 0) // Set to midnight for date-only comparison
+    const termStart = parseDateString(currentTerm.startDate)
+    termStart.setHours(0, 0, 0, 0)
+    const termEnd = parseDateString(currentTerm.endDate)
+    termEnd.setHours(23, 59, 59, 999) // Set to end of day for inclusive comparison
 
     if (today >= termStart && today <= termEnd) {
       return { status: "current", label: "Current Term", color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400" }
@@ -35,8 +39,8 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
   // Get all weekdays in the term
   const getTermWeekdays = () => {
     const weekdays = []
-    const start = new Date(currentTerm.startDate)
-    const end = new Date(currentTerm.endDate)
+    const start = parseDateString(currentTerm.startDate)
+    const end = parseDateString(currentTerm.endDate)
     const current = new Date(start)
 
     while (current <= end) {
@@ -452,8 +456,8 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
               <div>
                 <CardTitle className="text-xl">{selectedTerm}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(currentTerm.startDate).toLocaleDateString()} -{" "}
-                  {new Date(currentTerm.endDate).toLocaleDateString()}
+                  {formatDateString(currentTerm.startDate)} -{" "}
+                  {formatDateString(currentTerm.endDate)}
                 </p>
               </div>
             </div>
