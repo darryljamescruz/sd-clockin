@@ -101,9 +101,10 @@ export const studentsAPI = {
     return fetchAPI<Student[]>(`/students${query}`);
   },
 
-  // Get a single student by ID
-  getById: async (id: string): Promise<Student> => {
-    return fetchAPI<Student>(`/students/${id}`);
+  // Get a single student by ID, optionally with term-specific data
+  getById: async (id: string, termId?: string): Promise<Student> => {
+    const query = termId ? `?termId=${termId}` : '';
+    return fetchAPI<Student>(`/students/${id}${query}`);
   },
 
   // Create a new student

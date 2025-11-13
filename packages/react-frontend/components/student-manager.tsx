@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Users, Trash2, Shield, UserCheck, X, AlertTriangle } from "lucide-react"
 import { useState, useEffect } from "react"
 
@@ -30,77 +31,6 @@ interface StudentManagerProps {
   isAddMode?: boolean
 }
 
-interface DeleteConfirmationModalProps {
-  isOpen: boolean
-  student: Staff | null
-  onConfirm: () => void
-  onCancel: () => void
-}
-
-function DeleteConfirmationModal({ isOpen, student, onConfirm, onCancel }: DeleteConfirmationModalProps) {
-  if (!isOpen || !student) return null
-
-  return (
-    <div 
-      className="absolute inset-0 bg-background/30 backdrop-blur-sm flex items-center justify-center z-[60]"
-      onClick={onCancel}
-    >
-      <Card 
-        className="w-full max-w-md shadow-xl "
-        onClick={(e) => e.stopPropagation()}
-      >
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-red-700">
-            <AlertTriangle className="w-5 h-5" />
-            Confirm Deletion
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-              <div className="space-y-2">
-                <p className="text-red-800 font-medium">
-                  Are you sure you want to delete <strong>{student.name}</strong>?
-                </p>
-                <div className="text-sm text-red-700 space-y-1">
-                  <p>• All clock-in history will be permanently removed</p>
-                  <p>• This action cannot be undone</p>
-                  <p>• Card ID: {student.cardId}</p>
-                  <p>• Role: {student.role}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-slate-50 border  rounded-lg p-3">
-            <p className="text-sm text-muted-foreground">
-              <strong>Clock-in History:</strong> {student.clockEntries.length} entries will be deleted
-            </p>
-          </div>
-
-          <div className="flex gap-3">
-            <Button onClick={onConfirm} className="flex-1 bg-red-600 hover:bg-red-700 text-white">
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete Student
-            </Button>
-            <Button
-              onClick={onCancel}
-              variant="outline"
-              className="flex-1   bg-transparent"
-            >
-              Cancel
-            </Button>
-          </div>
-
-          <div className="text-xs text-muted-foreground text-center">
-            Type the student's name to confirm deletion (coming soon)
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
 
 export function StudentManager({
   staffData,
@@ -292,13 +222,56 @@ export function StudentManager({
           </CardContent>
         </Card>
 
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        isOpen={deleteModal.isOpen}
-        student={deleteModal.student}
-        onConfirm={handleDeleteConfirm}
-        onCancel={handleDeleteCancel}
-      />
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteModal.isOpen} onOpenChange={(open) => !open && handleDeleteCancel()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Confirm Deletion
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              {deleteModal.student && (
+                <div className="space-y-4 mt-2">
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
+                      <div className="space-y-2">
+                        <div className="font-medium text-foreground">
+                          Are you sure you want to delete <strong>{deleteModal.student.name}</strong>?
+                        </div>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <div>• All clock-in history will be permanently removed</div>
+                          <div>• This action cannot be undone</div>
+                          <div>• Card ID: {deleteModal.student.cardId}</div>
+                          <div>• Role: {deleteModal.student.role}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {deleteModal.student.clockEntries && deleteModal.student.clockEntries.length > 0 && (
+                    <div className="bg-muted rounded-lg p-3">
+                      <div className="text-sm text-muted-foreground">
+                        <strong>Clock-in History:</strong> {deleteModal.student.clockEntries.length} entries will be deleted
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Student
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </div>
   )
 }

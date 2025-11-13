@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Plus, Edit, Trash2, ArrowLeft } from "lucide-react"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { Calendar, Plus, Edit, Trash2, ArrowLeft, AlertTriangle } from "lucide-react"
 import { useState } from "react"
 import { TermManager } from "./term-manager"
 import { formatDateString, parseDateString } from "@/lib/utils"
@@ -28,6 +29,7 @@ interface TermsPageProps {
 export function TermsPage({ terms, onAddTerm, onEditTerm, onDeleteTerm, onBack }: TermsPageProps) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingTerm, setEditingTerm] = useState<Term | null>(null)
+  const [deletingTerm, setDeletingTerm] = useState<Term | null>(null)
 
   const handleEdit = (term: Term) => {
     setEditingTerm(term)
@@ -46,6 +48,17 @@ export function TermsPage({ terms, onAddTerm, onEditTerm, onDeleteTerm, onBack }
   const handleCloseModal = () => {
     setShowAddModal(false)
     setEditingTerm(null)
+  }
+
+  const handleDeleteClick = (term: Term) => {
+    setDeletingTerm(term)
+  }
+
+  const handleDeleteConfirm = () => {
+    if (deletingTerm) {
+      onDeleteTerm(deletingTerm.id)
+      setDeletingTerm(null)
+    }
   }
 
   return (
@@ -162,7 +175,7 @@ export function TermsPage({ terms, onAddTerm, onEditTerm, onDeleteTerm, onBack }
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => onDeleteTerm(term.id)}
+                          onClick={() => handleDeleteClick(term)}
                           className="text-destructive hover:text-destructive"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -189,6 +202,53 @@ export function TermsPage({ terms, onAddTerm, onEditTerm, onDeleteTerm, onBack }
           isAddMode={showAddModal}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingTerm} onOpenChange={(open) => !open && setDeletingTerm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Confirm Deletion
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              {deletingTerm && (
+                <div className="space-y-4 mt-2">
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
+                      <div className="space-y-2">
+                        <div className="font-medium text-foreground">
+                          Are you sure you want to delete <strong>{deletingTerm.name}</strong>?
+                        </div>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <div>• All schedules and check-ins for this term will be permanently removed</div>
+                          <div>• This action cannot be undone</div>
+                          <div>• Start Date: {formatDateString(deletingTerm.startDate)}</div>
+                          <div>• End Date: {formatDateString(deletingTerm.endDate)}</div>
+                          {deletingTerm.isActive && (
+                            <div className="text-destructive font-medium">• This is currently an active term</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Term
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

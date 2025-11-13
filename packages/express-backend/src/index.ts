@@ -58,6 +58,11 @@ const corsOptions: cors.CorsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ message: 'hello service desk' });
+});
+
 // API Routes
 app.use('/api/students', studentsRouter);
 app.use('/api/terms', termsRouter);

@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Users, Plus, Edit, Trash2, ArrowLeft, Shield, UserCheck } from "lucide-react"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { Users, Plus, Edit, Trash2, ArrowLeft, Shield, UserCheck, AlertTriangle } from "lucide-react"
 import { useState } from "react"
 import { StudentManager } from "./student-manager"
 
@@ -28,6 +29,7 @@ interface StudentsPageProps {
 export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteStudent, onBack }: StudentsPageProps) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingStudent, setEditingStudent] = useState<Staff | null>(null)
+  const [deletingStudent, setDeletingStudent] = useState<Staff | null>(null)
 
   const handleEdit = (student: Staff) => {
     setEditingStudent(student)
@@ -46,6 +48,17 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
   const handleCloseModal = () => {
     setShowAddModal(false)
     setEditingStudent(null)
+  }
+
+  const handleDeleteClick = (staff: Staff) => {
+    setDeletingStudent(staff)
+  }
+
+  const handleDeleteConfirm = () => {
+    if (deletingStudent) {
+      onDeleteStudent(deletingStudent.id)
+      setDeletingStudent(null)
+    }
   }
 
   const getRoleBadge = (role: string) => {
@@ -156,7 +169,7 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => onDeleteStudent(staff.id)}
+                        onClick={() => handleDeleteClick(staff)}
                         className="text-red-600 hover:text-destructive"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -182,6 +195,57 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
           isAddMode={showAddModal}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingStudent} onOpenChange={(open) => !open && setDeletingStudent(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Confirm Deletion
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              {deletingStudent && (
+                <div className="space-y-4 mt-2">
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
+                      <div className="space-y-2">
+                        <div className="font-medium text-foreground">
+                          Are you sure you want to delete <strong>{deletingStudent.name}</strong>?
+                        </div>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <div>• All clock-in history will be permanently removed</div>
+                          <div>• This action cannot be undone</div>
+                          <div>• Card ID: {deletingStudent.cardId}</div>
+                          <div>• Role: {deletingStudent.role}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {deletingStudent.clockEntries && deletingStudent.clockEntries.length > 0 && (
+                    <div className="bg-muted rounded-lg p-3">
+                      <div className="text-sm text-muted-foreground">
+                        <strong>Clock-in History:</strong> {deletingStudent.clockEntries.length} entries will be deleted
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Student
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
