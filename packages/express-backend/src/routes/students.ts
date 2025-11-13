@@ -3,6 +3,7 @@ import Student from '../models/Student.js';
 import Schedule, { ISchedule } from '../models/Schedule.js';
 import CheckIn from '../models/CheckIn.js';
 import Shift from '../models/Shift.js';
+import { getPSTDayBoundaries, getPSTDateComponents } from '../utils/timezone.js';
 
 const router = express.Router();
 
@@ -17,8 +18,11 @@ router.get('/', (async (req: Request, res: Response) => {
     // If termId is provided, get schedules and check-ins for that term
     if (termId) {
       const now = new Date();
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      
+      // Use PST timezone for determining "today" since schedules are in PST
+      // This ensures consistent behavior across different server timezones (local vs Vercel UTC)
+      const { startOfDay, endOfDay } = getPSTDayBoundaries(now);
+      const { pstYear, pstMonth, pstDate } = getPSTDateComponents(now);
 
       const studentsWithData = await Promise.all(
         students.map(async (student) => {
@@ -28,8 +32,8 @@ router.get('/', (async (req: Request, res: Response) => {
           }).lean();
 
           // Get today's shift for this student (simplest approach using Shift model)
-          // Create date at midnight UTC for consistent querying
-          const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+          // Use PST date for consistent querying (matches the day boundaries above)
+          const today = new Date(Date.UTC(pstYear, pstMonth, pstDate));
           
           const todayShift = await Shift.findOne({
             studentId: student._id,

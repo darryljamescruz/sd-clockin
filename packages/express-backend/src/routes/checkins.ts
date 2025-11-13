@@ -3,6 +3,7 @@ import CheckIn from '../models/CheckIn.js';
 import Student from '../models/Student.js';
 import Term from '../models/Term.js';
 import Shift from '../models/Shift.js';
+import { getPSTDateAsUTC } from '../utils/timezone.js';
 
 const router = express.Router();
 
@@ -111,9 +112,9 @@ router.post('/', (async (req: Request, res: Response) => {
     const savedCheckIn = await newCheckIn.save();
 
     // Update or create shift
+    // Use PST date to ensure consistency with how shifts are queried in students route
     const savedCheckInTimestamp = new Date(savedCheckIn.timestamp);
-    // Create date at midnight UTC for consistent querying
-    const shiftDate = new Date(Date.UTC(savedCheckInTimestamp.getFullYear(), savedCheckInTimestamp.getMonth(), savedCheckInTimestamp.getDate()));
+    const shiftDate = getPSTDateAsUTC(savedCheckInTimestamp);
     
     console.log('Creating/finding shift for date:', shiftDate, 'from check-in:', savedCheckIn.timestamp);
     
@@ -204,8 +205,9 @@ router.put('/:id', (async (req: Request, res: Response) => {
     const updatedCheckIn = await checkIn.save();
 
     // Update shift if it exists
+    // Use PST date to ensure consistency with how shifts are queried in students route
     const checkInDate = new Date(updatedCheckIn.timestamp);
-    const shiftDate = new Date(Date.UTC(checkInDate.getFullYear(), checkInDate.getMonth(), checkInDate.getDate()));
+    const shiftDate = getPSTDateAsUTC(checkInDate);
     
     const shift = await Shift.findOne({
       studentId: updatedCheckIn.studentId,

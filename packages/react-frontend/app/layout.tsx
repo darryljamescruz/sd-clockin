@@ -7,7 +7,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next"
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'SD ClockedIn',
+  title: 'ClockedIN',
   description: 'Service Desk Clock In System',
 }
 
