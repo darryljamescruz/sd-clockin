@@ -223,21 +223,26 @@ export function ScheduleVisualization({
     return `${hour - 12}p`
   }
 
-  // Get date for a specific day of the week
-  const getDateForDay = (dayIndex: number): Date => {
-    const date = new Date(currentDate)
-    const currentDay = date.getDay()
-    const diff = dayIndex - (currentDay === 0 ? 7 : currentDay) + 1 // Monday = 1
-    date.setDate(date.getDate() + diff)
-    return date
-  }
-
-  // Get week dates
+  // Get week dates (Monday-Friday of the week containing currentDate)
   const getWeekDates = (): Date[] => {
     const dates: Date[] = []
+    const date = new Date(currentDate)
+    const currentDay = date.getDay() // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    
+    // Find Monday of the current week
+    // If it's Sunday (0), go back 6 days; if it's Monday (1), go back 0 days; etc.
+    const daysToMonday = currentDay === 0 ? -6 : 1 - currentDay
+    const monday = new Date(date)
+    monday.setDate(date.getDate() + daysToMonday)
+    monday.setHours(0, 0, 0, 0)
+    
+    // Generate Monday through Friday
     for (let i = 0; i < 5; i++) {
-      dates.push(getDateForDay(i + 1)) // Monday = 1
+      const dayDate = new Date(monday)
+      dayDate.setDate(monday.getDate() + i)
+      dates.push(dayDate)
     }
+    
     return dates
   }
 

@@ -236,19 +236,37 @@ router.get('/', (async (req: Request, res: Response) => {
               const shiftStartMinute = parseInt(startMinuteStr, 10);
               const shiftStartTotalMinutes = shiftStartHour * 60 + shiftStartMinute;
 
-              console.log('Shift start time:', `${shiftStartHour}:${shiftStartMinute}`, '(', shiftStartTotalMinutes, 'minutes)');
+              const [endHourStr, endMinuteStr] = endTime.trim().split(':');
+              const shiftEndHour = parseInt(endHourStr, 10);
+              const shiftEndMinute = parseInt(endMinuteStr, 10);
+              const shiftEndTotalMinutes = shiftEndHour * 60 + shiftEndMinute;
 
+              console.log('Shift time:', `${shiftStartHour}:${shiftStartMinute}`, '-', `${shiftEndHour}:${shiftEndMinute}`);
+              console.log('Shift minutes:', shiftStartTotalMinutes, '-', shiftEndTotalMinutes);
+              console.log('Current time minutes:', currentTotalMinutes);
+
+              // Check if we're currently within an active shift window
+              const isCurrentlyInShift = currentTotalMinutes >= shiftStartTotalMinutes && currentTotalMinutes < shiftEndTotalMinutes;
+              
               // Check if shift starts within next 3 hours (180 minutes)
               const minutesUntilShift = shiftStartTotalMinutes - currentTotalMinutes;
               
+              console.log('Is currently in shift?', isCurrentlyInShift);
               console.log('Minutes until shift:', minutesUntilShift);
               console.log('Is within 3 hours?', minutesUntilShift >= 0 && minutesUntilShift <= 180);
 
-              if (minutesUntilShift >= 0 && minutesUntilShift <= 180) {
+              // If currently in an active shift, mark as incoming (they should be here)
+              if (isCurrentlyInShift) {
+                currentStatus = 'incoming'; // Currently in shift window but not clocked in
+                expectedStartShift = startTime.trim();
+                expectedEndShift = endTime.trim();
+                console.log('✓ Setting as INCOMING (currently in shift) with shift:', expectedStartShift, '-', expectedEndShift);
+                break; // Use the first matching shift
+              } else if (minutesUntilShift >= 0 && minutesUntilShift <= 180) {
                 currentStatus = 'incoming'; // Expected to arrive within 3 hours
                 expectedStartShift = startTime.trim();
                 expectedEndShift = endTime.trim();
-                console.log('✓ Setting as INCOMING with shift:', expectedStartShift, '-', expectedEndShift);
+                console.log('✓ Setting as INCOMING (shift starting soon) with shift:', expectedStartShift, '-', expectedEndShift);
                 break; // Use the first matching shift
               }
             }
