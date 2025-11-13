@@ -38,10 +38,12 @@ router.get('/', (async (req: Request, res: Response) => {
           }).lean();
 
           // Determine current status from shift and schedule
+          // IMPORTANT: For main page, status should be based on ACTUAL clock-in, not schedule
           let currentStatus = 'off';
           let todayActual: string | null = null;
           let expectedStartShift: string | null = null;
           let expectedEndShift: string | null = null;
+          let isClockedIn = false; // Track if they actually clocked in
 
           // First check if there's an actual shift record (clocked in)
           if (todayShift) {
@@ -55,6 +57,7 @@ router.get('/', (async (req: Request, res: Response) => {
             // Map shift status to frontend status
             if (todayShift.status === 'started') {
               currentStatus = 'present'; // Currently clocked in
+              isClockedIn = true;
             } else if (todayShift.status === 'completed') {
               currentStatus = 'clocked_out'; // Finished shift
             } else if (todayShift.status === 'missed') {
@@ -66,7 +69,7 @@ router.get('/', (async (req: Request, res: Response) => {
               todayActual = todayShift.actualStart.toISOString();
             }
 
-            // Get expected start and end times from shift
+            // Get expected start and end times from shift (if available)
             expectedStartShift = todayShift.scheduledStart || null;
             expectedEndShift = todayShift.scheduledEnd || null;
           } else {
@@ -85,6 +88,7 @@ router.get('/', (async (req: Request, res: Response) => {
               const lastCheckIn = todayCheckIns[0];
               if (lastCheckIn.type === 'in') {
                 currentStatus = 'present'; // Currently clocked in
+                isClockedIn = true;
                 todayActual = lastCheckIn.timestamp.toISOString();
               } else if (lastCheckIn.type === 'out') {
                 currentStatus = 'clocked_out'; // Already clocked out
@@ -92,102 +96,104 @@ router.get('/', (async (req: Request, res: Response) => {
             }
           }
 
-          // If currently present but no expected end time, calculate from schedule
-          console.log('Checking if should calculate shift end:', {
-            name: student.name,
-            currentStatus,
-            hasExpectedEndShift: !!expectedEndShift,
-            hasSchedule: !!schedule,
-            hasTodayActual: !!todayActual,
-          });
-
-          if (currentStatus === 'present' && !expectedEndShift && schedule && todayActual) {
-            console.log('>>> Calculating shift end for clocked-in user:', student.name);
-            const dayOfWeek = now.getDay();
-            const dayNames: Record<number, keyof ISchedule['availability'] | null> = {
-              0: null, 1: 'monday', 2: 'tuesday', 3: 'wednesday', 4: 'thursday', 5: 'friday', 6: null,
-            };
-            const dayName = dayNames[dayOfWeek];
-            const todaySchedule = dayName ? (schedule.availability[dayName] || []) : [];
-
-            console.log('Server time (now):', now.toString());
-            console.log('Day of week:', dayOfWeek, '(', dayName, ')');
-            console.log('Clock-in time (ISO):', todayActual);
-            console.log('Today schedule:', todaySchedule);
-
-            if (todaySchedule.length > 0) {
-              // Get the clock-in time in minutes (convert UTC to PST/PDT: UTC-8 or UTC-7)
-              const clockInTime = new Date(todayActual);
+          // If currently clocked in, calculate shift end time from schedule for display
+          // Status should remain 'present' - we're just getting the end time to show
+          if (isClockedIn && currentStatus === 'present' && schedule && todayActual) {
+            // If we don't have expectedEndShift, calculate it from schedule
+            if (!expectedEndShift) {
+              console.log('>>> Calculating shift end for clocked-in user:', student.name);
               
-              // Get the time in PST by using toLocaleString with America/Los_Angeles timezone
-              const pstTime = new Date(clockInTime.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-              const clockInMinutes = pstTime.getHours() * 60 + pstTime.getMinutes();
-              
-              console.log('Clock-in time (UTC):', clockInTime.toISOString());
-              console.log('Clock-in time (PST):', pstTime.toString());
-              console.log('Clock-in hours (PST):', pstTime.getHours(), 'minutes:', pstTime.getMinutes());
-              console.log('Clock-in total minutes (PST):', clockInMinutes);
+              // Use PST timezone for schedule matching
+              const nowPST = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+              const dayOfWeek = nowPST.getDay();
+              const dayNames: Record<number, keyof ISchedule['availability'] | null> = {
+                0: null, 1: 'monday', 2: 'tuesday', 3: 'wednesday', 4: 'thursday', 5: 'friday', 6: null,
+              };
+              const dayName = dayNames[dayOfWeek];
+              const todaySchedule = dayName ? (schedule.availability[dayName] || []) : [];
 
-              // Find the shift they clocked into (match to closest shift for multiple shifts per day)
-              let bestMatch: { startTime: string; endTime: string; distance: number } | null = null;
-              
-              for (const shiftBlock of todaySchedule) {
-                const [startTime, endTime] = shiftBlock.split('-');
-                if (!startTime || !endTime) continue;
+              console.log('Server time (now):', now.toString());
+              console.log('Current time (PST):', nowPST.toString());
+              console.log('Day of week:', dayOfWeek, '(', dayName, ')');
+              console.log('Clock-in time (ISO):', todayActual);
+              console.log('Today schedule:', todaySchedule);
 
-                const [startHourStr, startMinuteStr] = startTime.trim().split(':');
-                const shiftStartHour = parseInt(startHourStr, 10);
-                const shiftStartMinute = parseInt(startMinuteStr, 10);
-                const shiftStartMinutes = shiftStartHour * 60 + shiftStartMinute;
+              if (todaySchedule.length > 0) {
+                // Get the clock-in time in PST
+                const clockInTime = new Date(todayActual);
+                const clockInPST = new Date(clockInTime.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+                const clockInMinutes = clockInPST.getHours() * 60 + clockInPST.getMinutes();
+                
+                console.log('Clock-in time (UTC):', clockInTime.toISOString());
+                console.log('Clock-in time (PST):', clockInPST.toString());
+                console.log('Clock-in total minutes (PST):', clockInMinutes);
 
-                const [endHourStr, endMinuteStr] = endTime.trim().split(':');
-                const shiftEndHour = parseInt(endHourStr, 10);
-                const shiftEndMinute = parseInt(endMinuteStr, 10);
-                const shiftEndMinutes = shiftEndHour * 60 + shiftEndMinute;
+                // Find the shift they clocked into (match to closest shift for multiple shifts per day)
+                // For longer shifts, we need to check if they're within ANY shift window, not just starting soon
+                let bestMatch: { startTime: string; endTime: string; distance: number } | null = null;
+                
+                for (const shiftBlock of todaySchedule) {
+                  const [startTime, endTime] = shiftBlock.split('-');
+                  if (!startTime || !endTime) continue;
 
-                console.log(`Checking shift ${shiftBlock}: start=${shiftStartMinutes}, end=${shiftEndMinutes}`);
-                console.log(`Clock-in is ${clockInMinutes - shiftStartMinutes} minutes from shift start`);
+                  const [startHourStr, startMinuteStr] = startTime.trim().split(':');
+                  const shiftStartHour = parseInt(startHourStr, 10);
+                  const shiftStartMinute = parseInt(startMinuteStr, 10);
+                  const shiftStartMinutes = shiftStartHour * 60 + shiftStartMinute;
 
-                // Check if clocked in within 4 hours (240 min) before shift start or during shift
-                if (clockInMinutes >= shiftStartMinutes - 240 && clockInMinutes <= shiftEndMinutes) {
-                  // Calculate distance to shift start (prefer closest shift)
-                  const distance = Math.abs(clockInMinutes - shiftStartMinutes);
-                  
-                  if (!bestMatch || distance < bestMatch.distance) {
-                    bestMatch = {
-                      startTime: startTime.trim(),
-                      endTime: endTime.trim(),
-                      distance
-                    };
-                    console.log(`  → Potential match (distance: ${distance} min)`);
+                  const [endHourStr, endMinuteStr] = endTime.trim().split(':');
+                  const shiftEndHour = parseInt(endHourStr, 10);
+                  const shiftEndMinute = parseInt(endMinuteStr, 10);
+                  const shiftEndMinutes = shiftEndHour * 60 + shiftEndMinute;
+
+                  console.log(`Checking shift ${shiftBlock}: start=${shiftStartMinutes}, end=${shiftEndMinutes}`);
+
+                  // Check if clocked in within the shift window (including up to 4 hours before start)
+                  // This handles longer shifts better - if they're anywhere in the shift, match it
+                  if (clockInMinutes >= shiftStartMinutes - 240 && clockInMinutes <= shiftEndMinutes) {
+                    // Calculate distance to shift start (prefer closest shift)
+                    const distance = Math.abs(clockInMinutes - shiftStartMinutes);
+                    
+                    if (!bestMatch || distance < bestMatch.distance) {
+                      bestMatch = {
+                        startTime: startTime.trim(),
+                        endTime: endTime.trim(),
+                        distance
+                      };
+                      console.log(`  → Potential match (distance: ${distance} min)`);
+                    }
                   }
                 }
-              }
-              
-              if (bestMatch) {
-                expectedStartShift = bestMatch.startTime;
-                expectedEndShift = bestMatch.endTime;
-                console.log('✓ Best match:', expectedStartShift, '-', expectedEndShift);
-              }
-
-              // If no matching shift found, they clocked in too early or outside schedule
-              if (!expectedEndShift) {
+                
+                if (bestMatch) {
+                  expectedStartShift = bestMatch.startTime;
+                  expectedEndShift = bestMatch.endTime;
+                  console.log('✓ Best match:', expectedStartShift, '-', expectedEndShift);
+                } else {
+                  // If no matching shift found, they clocked in outside schedule
+                  expectedEndShift = 'No schedule';
+                  console.log('✗ No matching shift found (clocked in outside schedule)');
+                }
+              } else {
+                // No schedule for today
                 expectedEndShift = 'No schedule';
-                console.log('✗ No matching shift found (clocked in too early or outside schedule)');
+                console.log('✗ No schedule for today');
               }
-            } else {
-              // No schedule for today
-              expectedEndShift = 'No schedule';
-              console.log('✗ No schedule for today');
             }
           }
 
-          // If still 'off', check weekly schedule for expected arrivals
+          // IMPORTANT: If someone is clocked in, their status should be based on clock-in, NOT schedule
+          // Only check schedule for expected arrivals if they're NOT clocked in
+          // If they're clocked in, status stays 'present' regardless of schedule
+          
+          // If still 'off' (not clocked in), check weekly schedule for expected arrivals
           console.log('=== Checking expected arrivals for:', student.name);
           console.log('Current status:', currentStatus);
+          console.log('Is clocked in?', isClockedIn);
           console.log('Has schedule?', !!schedule);
           
-          if (currentStatus === 'off' && schedule) {
+          // Only check schedule if they're NOT clocked in
+          if (!isClockedIn && currentStatus === 'off' && schedule) {
             // Convert current time to PST for comparison with schedules
             const nowPST = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
             
@@ -272,7 +278,17 @@ router.get('/', (async (req: Request, res: Response) => {
             }
           }
           
+          // CRITICAL: If they're clocked in, ensure status stays 'present'
+          // This is a final safeguard - status should already be 'present' if isClockedIn is true
+          if (isClockedIn && currentStatus !== 'present') {
+            console.log('⚠ WARNING: Clocked in but status is', currentStatus, 'for', student.name);
+            console.log('⚠ Correcting status to present (they are clocked in)');
+            currentStatus = 'present';
+          }
+          
           console.log('Final status for', student.name, ':', currentStatus);
+          console.log('Is clocked in:', isClockedIn);
+          console.log('Expected shift end:', expectedEndShift);
           console.log('---');
 
           // Get all check-ins for historical data (limited for performance)
