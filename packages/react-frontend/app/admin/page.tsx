@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { AlertTriangle, Loader2 } from "lucide-react"
 import { useState, useEffect } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import { DashboardHeader } from "@/components/dashboard-header"
 import { StatsCards } from "@/components/stats-cards"
@@ -292,41 +293,102 @@ export default function AdminDashboard() {
         </Card>
       )}
 
-      {!isLoading && !error && (
+      {!isLoadingTerms && !error && (
         <div className="w-full max-w-full overflow-x-hidden space-y-4 sm:space-y-6 min-w-0">
-          <StatsCards
-            totalStaff={stats.totalStaff}
-            presentStaff={stats.presentStaff}
-            studentLeadsPresent={stats.studentLeadsPresent}
-            lateToday={stats.lateToday}
-          />
+          {isLoadingStudents ? (
+            <>
+              {/* Stats Cards Skeleton */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8 w-full max-w-full min-w-0">
+                {[1, 2, 3, 4].map((i) => (
+                  <Card key={i} className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full overflow-hidden">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <Skeleton className="h-7 sm:h-8 w-16 mb-2" />
+                          <Skeleton className="h-4 w-20" />
+                        </div>
+                        <Skeleton className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex-shrink-0" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
 
-          {dateError && (
-            <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 w-full max-w-full">
-              <CardContent className="p-3 sm:p-4 flex items-start sm:items-center gap-2 sm:gap-3">
-                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5 sm:mt-0" />
-                <span className="text-sm sm:text-base text-red-800 dark:text-red-300 font-medium break-words">{dateError}</span>
-              </CardContent>
-            </Card>
+              {/* Dashboard Header Skeleton */}
+              <Card className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <Skeleton className="h-6 w-32" />
+                    <Skeleton className="h-6 w-48" />
+                    <Skeleton className="h-10 w-24 ml-auto" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Hourly Dashboard Skeleton */}
+              <Card className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full overflow-hidden">
+                <CardContent className="p-0 sm:p-6 w-full max-w-full overflow-x-hidden min-w-0">
+                  <div className="space-y-4 sm:space-y-6">
+                    {[1, 2, 3].map((hour) => (
+                      <div key={hour} className="border-b last:border-b-0 pb-4 sm:pb-6 last:pb-0">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4 px-4 sm:px-0">
+                          <Skeleton className="h-6 w-20" />
+                          <div className="hidden sm:block flex-1 border-t border-dashed border-muted-foreground/30" />
+                          <Skeleton className="h-4 w-16" />
+                        </div>
+                        <div className="w-full overflow-x-auto -mx-4 sm:mx-0">
+                          <div className="px-4 sm:px-0 min-w-[900px]">
+                            <div className="space-y-2">
+                              <Skeleton className="h-10 w-full" />
+                              {[1, 2, 3].map((row) => (
+                                <Skeleton key={row} className="h-12 w-full" />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <>
+              <StatsCards
+                totalStaff={stats.totalStaff}
+                presentStaff={stats.presentStaff}
+                studentLeadsPresent={stats.studentLeadsPresent}
+                lateToday={stats.lateToday}
+              />
+
+              {dateError && (
+                <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 w-full max-w-full">
+                  <CardContent className="p-3 sm:p-4 flex items-start sm:items-center gap-2 sm:gap-3">
+                    <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5 sm:mt-0" />
+                    <span className="text-sm sm:text-base text-red-800 dark:text-red-300 font-medium break-words">{dateError}</span>
+                  </CardContent>
+                </Card>
+              )}
+
+              <DashboardHeader
+                terms={terms}
+                selectedTerm={selectedTerm}
+                onTermChange={setSelectedTerm}
+                selectedDate={selectedDate}
+                currentDateIndex={currentDateIndex}
+                termWeekdays={termWeekdays}
+                onPreviousDay={goToPreviousDay}
+                onNextDay={goToNextDay}
+                onToday={goToToday}
+                getTermStatus={getTermStatus}
+              />
+
+              <HourlyDashboard
+                staffData={staffData}
+                selectedDate={selectedDate}
+              />
+            </>
           )}
-
-          <DashboardHeader
-            terms={terms}
-            selectedTerm={selectedTerm}
-            onTermChange={setSelectedTerm}
-            selectedDate={selectedDate}
-            currentDateIndex={currentDateIndex}
-            termWeekdays={termWeekdays}
-            onPreviousDay={goToPreviousDay}
-            onNextDay={goToNextDay}
-            onToday={goToToday}
-            getTermStatus={getTermStatus}
-          />
-
-          <HourlyDashboard
-            staffData={staffData}
-            selectedDate={selectedDate}
-          />
         </div>
       )}
     </div>

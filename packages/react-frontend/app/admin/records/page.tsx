@@ -13,6 +13,7 @@ export default function RecordsPage() {
   const [selectedTerm, setSelectedTerm] = useState("")
   const [selectedStaff, setSelectedStaff] = useState<Student | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingStudent, setIsLoadingStudent] = useState(false)
   const [error, setError] = useState("")
 
   // Fetch terms on component mount
@@ -41,27 +42,14 @@ export default function RecordsPage() {
     fetchTerms()
   }, [])
 
-  // Fetch students when selected term changes
+  // Fetch basic student list for selection UI (without term-specific data)
   useEffect(() => {
     const fetchStudents = async () => {
-      if (!selectedTerm) return
-
       try {
         setIsLoading(true)
-        const currentTerm = terms.find((t) => t.name === selectedTerm)
-        if (currentTerm) {
-          const fetchedStudents = await api.students.getAll(currentTerm.id)
-          setStaffData(fetchedStudents)
-          // Update selectedStaff if it exists in the new data
-          if (selectedStaff) {
-            const updatedStaff = fetchedStudents.find((s) => s.id === selectedStaff.id)
-            if (updatedStaff) {
-              setSelectedStaff(updatedStaff)
-            } else {
-              setSelectedStaff(null)
-            }
-          }
-        }
+        // Fetch basic student list without termId for selection UI
+        const fetchedStudents = await api.students.getAll()
+        setStaffData(fetchedStudents)
       } catch (err) {
         console.error("Error fetching students:", err)
         setError("Failed to load student data. Please refresh the page.")
@@ -71,7 +59,36 @@ export default function RecordsPage() {
     }
 
     fetchStudents()
-  }, [selectedTerm, terms])
+  }, [])
+
+  // Clear selected staff when term changes
+  useEffect(() => {
+    setSelectedStaff(null)
+  }, [selectedTerm])
+
+  // Fetch a specific student with term-specific data when selected
+  useEffect(() => {
+    const fetchSelectedStudent = async () => {
+      if (!selectedStaff || !selectedTerm) return
+
+      try {
+        setIsLoadingStudent(true)
+        const currentTerm = terms.find((t) => t.name === selectedTerm)
+        if (currentTerm) {
+          // Fetch only the selected student with term-specific data
+          const fetchedStudent = await api.students.getById(selectedStaff.id, currentTerm.id)
+          setSelectedStaff(fetchedStudent)
+        }
+      } catch (err) {
+        console.error("Error fetching student data:", err)
+        setError("Failed to load student data. Please refresh the page.")
+      } finally {
+        setIsLoadingStudent(false)
+      }
+    }
+
+    fetchSelectedStudent()
+  }, [selectedStaff?.id, selectedTerm, terms])
 
   // Refresh a specific student's data
   const handleRefreshStudent = async (studentId: string) => {
@@ -80,12 +97,9 @@ export default function RecordsPage() {
     try {
       const currentTerm = terms.find((t) => t.name === selectedTerm)
       if (currentTerm) {
-        const fetchedStudents = await api.students.getAll(currentTerm.id)
-        setStaffData(fetchedStudents)
-        
-        // Update selectedStaff if it's the one being refreshed
-        const updatedStaff = fetchedStudents.find((s) => s.id === studentId)
-        if (updatedStaff && selectedStaff?.id === studentId) {
+        // Fetch only the specific student with term-specific data
+        const updatedStaff = await api.students.getById(studentId, currentTerm.id)
+        if (selectedStaff?.id === studentId) {
           setSelectedStaff(updatedStaff)
         }
       }
@@ -157,6 +171,7 @@ export default function RecordsPage() {
           termEndDate={currentTerm.endDate}
           currentTerm={currentTerm}
           onRefreshStudent={handleRefreshStudent}
+          isLoadingStudent={isLoadingStudent}
         />
       )}
     </div>

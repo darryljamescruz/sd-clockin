@@ -10,9 +10,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Shield, UserCheck, Clock, TrendingUp, Calendar, BarChart3, Edit, Plus, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ArrowUp } from "lucide-react"
+import { Shield, UserCheck, Clock, TrendingUp, Calendar, BarChart3, Edit, Plus, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ArrowUp, Loader2 } from "lucide-react"
 import { type Student, api, type ClockEntry, type Term } from "@/lib/api"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Skeleton } from "@/components/ui/skeleton"
 import { parseDateString } from "@/lib/utils"
 
 interface IndividualRecordsProps {
@@ -24,9 +25,10 @@ interface IndividualRecordsProps {
   termEndDate: string
   currentTerm?: Term
   onRefreshStudent?: (studentId: string) => Promise<void>
+  isLoadingStudent?: boolean
 }
 
-export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, selectedTerm, termStartDate, termEndDate, currentTerm, onRefreshStudent }: IndividualRecordsProps) {
+export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, selectedTerm, termStartDate, termEndDate, currentTerm, onRefreshStudent, isLoadingStudent = false }: IndividualRecordsProps) {
   
   // Helper function to check if a date is a day off
   const isDayOff = (date: Date): boolean => {
@@ -78,9 +80,12 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
     if (selectedStaff && studentInfoRef.current) {
       // Small delay to ensure DOM is updated
       setTimeout(() => {
-        studentInfoRef.current?.scrollIntoView({
+        // Scroll to position the student header at the top of the viewport
+        const elementTop = studentInfoRef.current?.offsetTop || 0
+        const offset = 20 // Small offset from top
+        window.scrollTo({
+          top: elementTop - offset,
           behavior: "smooth",
-          block: "start",
         })
       }, 150)
     }
@@ -156,9 +161,42 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
 
   const getWeekNumber = (date: Date) => {
     const startDate = parseDateString(termStartDate)
-    const diffTime = date.getTime() - startDate.getTime()
+    const termEnd = parseDateString(termEndDate)
+    
+    // Find the Monday of the week containing the term start date
+    const termStartMonday = new Date(startDate)
+    const startDayOfWeek = termStartMonday.getDay()
+    const daysToMonday = startDayOfWeek === 0 ? -6 : 1 - startDayOfWeek
+    termStartMonday.setDate(termStartMonday.getDate() + daysToMonday)
+    termStartMonday.setHours(0, 0, 0, 0)
+    
+    // Find the Monday of the week containing the given date
+    const dateMonday = new Date(date)
+    const dateDayOfWeek = dateMonday.getDay()
+    const daysToDateMonday = dateDayOfWeek === 0 ? -6 : 1 - dateDayOfWeek
+    dateMonday.setDate(dateMonday.getDate() + daysToDateMonday)
+    dateMonday.setHours(0, 0, 0, 0)
+    
+    // Calculate the week number (1-based)
+    const diffTime = dateMonday.getTime() - termStartMonday.getTime()
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-    return Math.floor(diffDays / 7) + 1
+    const weekNum = Math.floor(diffDays / 7) + 1
+    
+    return weekNum
+  }
+  
+  // Get the actual Monday date for a given week number
+  const getWeekStartDate = (weekNum: number): Date => {
+    const startDate = parseDateString(termStartDate)
+    const termStartMonday = new Date(startDate)
+    const startDayOfWeek = termStartMonday.getDay()
+    const daysToMonday = startDayOfWeek === 0 ? -6 : 1 - startDayOfWeek
+    termStartMonday.setDate(termStartMonday.getDate() + daysToMonday)
+    termStartMonday.setHours(0, 0, 0, 0)
+    
+    const weekStart = new Date(termStartMonday)
+    weekStart.setDate(weekStart.getDate() + (weekNum - 1) * 7)
+    return weekStart
   }
 
   const getWeekdaysInRange = (startDate: Date, endDate: Date) => {
@@ -284,32 +322,52 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
       shifts: number
     }> = []
 
-    let currentWeekStart = new Date(termStart)
+    // Find the Monday of the week containing the term start date
+    const termStartMonday = new Date(termStart)
+    const startDayOfWeek = termStartMonday.getDay()
+    const daysToMonday = startDayOfWeek === 0 ? -6 : 1 - startDayOfWeek
+    termStartMonday.setDate(termStartMonday.getDate() + daysToMonday)
+    termStartMonday.setHours(0, 0, 0, 0)
+    
+    // Find the Sunday of the week containing the term end date
+    const termEndSunday = new Date(termEnd)
+    const endDayOfWeek = termEndSunday.getDay()
+    const daysToSunday = endDayOfWeek === 0 ? 0 : 7 - endDayOfWeek
+    termEndSunday.setDate(termEndSunday.getDate() + daysToSunday)
+    termEndSunday.setHours(23, 59, 59, 999)
+
+    let currentMonday = new Date(termStartMonday)
     let weekNum = 1
 
-    while (currentWeekStart <= termEnd) {
-      const currentWeekEnd = new Date(currentWeekStart)
-      currentWeekEnd.setDate(currentWeekEnd.getDate() + 6)
-      const weekEndCapped = currentWeekEnd > termEnd ? termEnd : currentWeekEnd
-
-      const expectedHours = calculateExpectedHours(staff, currentWeekStart, weekEndCapped)
-      const actualHours = calculateActualHours(staff, currentWeekStart, weekEndCapped)
+    while (currentMonday <= termEndSunday) {
+      const weekSunday = new Date(currentMonday)
+      weekSunday.setDate(weekSunday.getDate() + 6)
+      weekSunday.setHours(23, 59, 59, 999)
       
-      const weekClockIns = (staff.clockEntries || []).filter(e => {
-        const date = new Date(e.timestamp)
-        return e.type === "in" && date >= currentWeekStart && date <= weekEndCapped
-      })
+      // Cap the week end to term end
+      const weekEndCapped = weekSunday > termEnd ? termEnd : weekSunday
+      
+      // Only calculate for weeks that overlap with the term
+      if (currentMonday <= termEnd && weekEndCapped >= termStart) {
+        const expectedHours = calculateExpectedHours(staff, currentMonday, weekEndCapped)
+        const actualHours = calculateActualHours(staff, currentMonday, weekEndCapped)
+        
+        const weekClockIns = (staff.clockEntries || []).filter(e => {
+          const date = new Date(e.timestamp)
+          return e.type === "in" && date >= currentMonday && date <= weekEndCapped
+        })
 
-      weeks.push({
-        weekNum,
-        startDate: new Date(currentWeekStart),
-        endDate: new Date(weekEndCapped),
-        expectedHours,
-        actualHours,
-        shifts: weekClockIns.length
-      })
+        weeks.push({
+          weekNum,
+          startDate: new Date(currentMonday),
+          endDate: new Date(weekEndCapped),
+          expectedHours,
+          actualHours,
+          shifts: weekClockIns.length
+        })
+      }
 
-      currentWeekStart.setDate(currentWeekStart.getDate() + 7)
+      currentMonday.setDate(currentMonday.getDate() + 7)
       weekNum++
     }
 
@@ -319,28 +377,71 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
   const groupDaysByWeek = (days: ReturnType<typeof getDailyBreakdown>) => {
     const weeks: Array<{
       weekNum: number
+      startDate: Date
+      endDate: Date
       days: Array<typeof days[0] | null>
     }> = []
 
-    let currentWeek: typeof weeks[0] | null = null
-    const dayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    if (days.length === 0) return weeks
 
-    days.forEach(day => {
-      const weekNum = getWeekNumber(day.date)
+    const termStart = parseDateString(termStartDate)
+    const termEnd = parseDateString(termEndDate)
+    
+    // Find the Monday of the week containing the term start date
+    const termStartMonday = new Date(termStart)
+    const startDayOfWeek = termStartMonday.getDay()
+    const daysToMonday = startDayOfWeek === 0 ? -6 : 1 - startDayOfWeek
+    termStartMonday.setDate(termStartMonday.getDate() + daysToMonday)
+    termStartMonday.setHours(0, 0, 0, 0)
+    
+    // Find the Sunday of the week containing the term end date
+    const termEndSunday = new Date(termEnd)
+    const endDayOfWeek = termEndSunday.getDay()
+    const daysToSunday = endDayOfWeek === 0 ? 0 : 7 - endDayOfWeek
+    termEndSunday.setDate(termEndSunday.getDate() + daysToSunday)
+    termEndSunday.setHours(23, 59, 59, 999)
+    
+    // Create weeks from Monday to Sunday within term bounds
+    let currentMonday = new Date(termStartMonday)
+    let weekNum = 1
+    
+    while (currentMonday <= termEndSunday) {
+      const weekSunday = new Date(currentMonday)
+      weekSunday.setDate(weekSunday.getDate() + 6)
+      weekSunday.setHours(23, 59, 59, 999)
       
-      if (!currentWeek || currentWeek.weekNum !== weekNum) {
-        currentWeek = {
-          weekNum,
-          days: [null, null, null, null, null] // Monday-Friday slots
+      // Cap the week end to term end
+      const weekEndCapped = weekSunday > termEnd ? termEnd : weekSunday
+      
+      const weekDays: Array<typeof days[0] | null> = [null, null, null, null, null] // Monday-Friday slots
+      const dayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+      
+      // Find days that fall within this calendar week
+      days.forEach(day => {
+        const dayDate = new Date(day.date)
+        dayDate.setHours(0, 0, 0, 0)
+        
+        if (dayDate >= currentMonday && dayDate <= weekEndCapped) {
+          const dayIndex = dayOrder.indexOf(day.dayName)
+          if (dayIndex >= 0) {
+            weekDays[dayIndex] = day
+          }
         }
-        weeks.push(currentWeek)
+      })
+      
+      // Only add week if it has at least one day or is within term bounds
+      if (weekDays.some(d => d !== null) || (currentMonday <= termEnd && weekEndCapped >= termStart)) {
+        weeks.push({
+          weekNum,
+          startDate: new Date(currentMonday),
+          endDate: new Date(weekEndCapped),
+          days: weekDays
+        })
       }
-
-      const dayIndex = dayOrder.indexOf(day.dayName)
-      if (dayIndex >= 0) {
-        currentWeek.days[dayIndex] = day
-      }
-    })
+      
+      currentMonday.setDate(currentMonday.getDate() + 7)
+      weekNum++
+    }
 
     return weeks
   }
@@ -707,12 +808,15 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
     return missing
   }
 
+  // Check if selectedStaff has term-specific data (clockEntries indicates full data loaded)
+  const hasFullStudentData = selectedStaff && (selectedStaff.clockEntries !== undefined || selectedStaff.weeklySchedule !== undefined)
+  
   // Calculate analytics for selected staff
-  const punctuality = selectedStaff ? calculatePunctuality(selectedStaff) : null
-  const weeklyBreakdown = selectedStaff ? getWeeklyBreakdown(selectedStaff) : []
-  const dailyBreakdown = selectedStaff ? getDailyBreakdown(selectedStaff) : []
-  const dailyBreakdownByWeek = selectedStaff ? groupDaysByWeek(dailyBreakdown) : []
-  const dailyBreakdownByMonth = selectedStaff ? groupDaysByMonth(dailyBreakdown) : []
+  const punctuality = hasFullStudentData ? calculatePunctuality(selectedStaff!) : null
+  const weeklyBreakdown = hasFullStudentData ? getWeeklyBreakdown(selectedStaff!) : []
+  const dailyBreakdown = hasFullStudentData ? getDailyBreakdown(selectedStaff!) : []
+  const dailyBreakdownByWeek = hasFullStudentData ? groupDaysByWeek(dailyBreakdown) : []
+  const dailyBreakdownByMonth = hasFullStudentData ? groupDaysByMonth(dailyBreakdown) : []
   const totalExpected = weeklyBreakdown.reduce((sum, week) => sum + week.expectedHours, 0)
   const totalActual = weeklyBreakdown.reduce((sum, week) => sum + week.actualHours, 0)
 
@@ -808,23 +912,10 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
               No staff members found matching "{searchQuery}"
             </div>
           )}
-          {!searchQuery && selectedStaff && (
-            <div className="mt-4 p-3 bg-muted rounded-lg">
-              <div className="flex items-center gap-2">
-                {selectedStaff.role === "Student Lead" ? (
-                  <Shield className="w-4 h-4 text-blue-600" />
-                ) : (
-                  <UserCheck className="w-4 h-4 text-muted-foreground" />
-                )}
-                <span className="font-medium">{selectedStaff.name}</span>
-                <Badge variant="outline" className="ml-auto">{selectedStaff.role}</Badge>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {selectedStaff && punctuality && (
+      {selectedStaff && (
         <>
           {/* Staff Header */}
           <Card ref={studentInfoRef} className="bg-card/70 backdrop-blur-sm shadow-lg scroll-mt-4">
@@ -838,7 +929,12 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
                   )}
                 </div>
                 <div className="flex-1">
-                  <CardTitle className="text-foreground">{selectedStaff.name}</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-foreground">{selectedStaff.name}</CardTitle>
+                    {isLoadingStudent && (
+                      <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+                    )}
+                  </div>
                 <div className="flex items-center gap-2 mt-1">{getRoleBadge(selectedStaff.role)}</div>
                 <div className="text-sm text-muted-foreground mt-1">
                   Card ID: {selectedStaff.cardId} • Term: {selectedTerm}
@@ -848,7 +944,98 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
             </CardHeader>
           </Card>
 
-          {/* Overall Statistics */}
+          {isLoadingStudent && !hasFullStudentData ? (
+            <>
+              {/* Loading Skeleton for Metrics */}
+              <div className="grid md:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <Card key={i} className="bg-card/70 backdrop-blur-sm shadow-lg">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <Skeleton className="h-4 w-24 mb-2" />
+                          <Skeleton className="h-8 w-16 mb-2" />
+                          <Skeleton className="h-3 w-32" />
+                        </div>
+                        <Skeleton className="h-8 w-8 rounded" />
+                      </div>
+                      <Skeleton className="h-2 w-full mt-3" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Loading Skeleton for Punctuality Breakdown */}
+              <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+                <CardHeader>
+                  <Skeleton className="h-6 w-48" />
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i}>
+                        <Skeleton className="h-4 w-32 mb-2" />
+                        <Skeleton className="h-8 w-12 mb-2" />
+                        <Skeleton className="h-6 w-24" />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Loading Skeleton for Weekly Breakdown */}
+              <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+                <CardHeader>
+                  <Skeleton className="h-6 w-48" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Skeleton key={i} className="h-12 w-full" />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Loading Skeleton for Daily Breakdown */}
+              <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-6 w-64" />
+                    <Skeleton className="h-8 w-24" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-5 gap-2">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <Skeleton key={i} className="h-32 w-full" />
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Loading Skeleton for Clock History */}
+              <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-6 w-48" />
+                    <Skeleton className="h-8 w-24" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <Skeleton key={i} className="h-12 w-full" />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : hasFullStudentData && punctuality ? (
+            <>
+              {/* Overall Statistics */}
           <div className="grid md:grid-cols-4 gap-4">
             <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
               <CardContent className="p-6">
@@ -1078,6 +1265,23 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
                           </Button>
                           <div className="text-sm font-medium">
                             Week {dailyBreakdownByWeek[currentWeekIndex]?.weekNum || 0} of {dailyBreakdownByWeek.length}
+                            {dailyBreakdownByWeek[currentWeekIndex] && (() => {
+                              const week = dailyBreakdownByWeek[currentWeekIndex]
+                              // Find the first weekday (Monday) and last weekday (Friday) in the week
+                              const monday = new Date(week.startDate)
+                              const friday = new Date(monday)
+                              friday.setDate(friday.getDate() + 4) // Friday is 4 days after Monday
+                              
+                              // Cap to term end if Friday exceeds term end
+                              const termEnd = parseDateString(termEndDate)
+                              const lastWeekday = friday > termEnd ? termEnd : friday
+                              
+                              return (
+                                <span className="text-muted-foreground ml-2">
+                                  ({monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {lastWeekday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
+                                </span>
+                              )
+                            })()}
                           </div>
                           <Button
                             variant="outline"
@@ -1453,6 +1657,8 @@ export function IndividualRecords({ staffData, selectedStaff, onSelectStaff, sel
               </Table>
           </CardContent>
         </Card>
+            </>
+          ) : null}
 
           {/* Edit Dialog */}
           <Dialog open={!!editingEntry} onOpenChange={(open: boolean) => !open && setEditingEntry(null)}>

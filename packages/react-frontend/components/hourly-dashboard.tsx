@@ -3,8 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Clock, Users, TrendingUp, AlertCircle, CheckCircle2, XCircle } from "lucide-react"
-import { useMemo } from "react"
+import { Clock, Users, TrendingUp, AlertCircle, CheckCircle2, XCircle, UserCheck, Shield } from "lucide-react"
+import { useMemo, useState, useEffect } from "react"
 import { type Student } from "@/lib/api"
 
 interface HourlyDashboardProps {
@@ -13,6 +13,17 @@ interface HourlyDashboardProps {
 }
 
 export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProps) {
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  // Update current time every minute for active indicator
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 60000) // Update every minute
+
+    return () => clearInterval(timer)
+  }, [])
+
   // Generate hours from 6 AM to 11 PM
   const hours = useMemo(() => {
     const hoursList = []
@@ -86,8 +97,8 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
     return endTime || null
   }
 
-  // Convert 24-hour format to 12-hour AM/PM format for display
-  // If time already has AM/PM, return as-is
+  // Convert 24-hour format to 12-hour am/pm format for display (lowercase)
+  // If time already has AM/PM, convert to lowercase
   const formatTimeForDisplay = (timeStr: string | null): string => {
     if (!timeStr) return "—"
     
@@ -95,12 +106,12 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
     const hasAM = upperTime.includes("AM")
     const hasPM = upperTime.includes("PM")
     
-    // If already has AM/PM, return as-is (just normalize spacing)
+    // If already has AM/PM, convert to lowercase
     if (hasAM || hasPM) {
-      return timeStr.replace(/\s*(AM|PM)\s*/gi, (match, period) => ` ${period.toUpperCase()}`).trim()
+      return timeStr.replace(/\s*(AM|PM)\s*/gi, (match, period) => ` ${period.toLowerCase()}`).trim()
     }
     
-    // Parse 24-hour format and convert to 12-hour AM/PM
+    // Parse 24-hour format and convert to 12-hour am/pm
     let hours: number
     let minutes: number
     
@@ -117,29 +128,25 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
     if (isNaN(hours) || isNaN(minutes)) return timeStr
     
     // Convert to 12-hour format
-    let period = "AM"
+    let period = "am"
     let displayHours = hours
     
     if (hours === 0) {
       displayHours = 12 // Midnight
-      period = "AM"
+      period = "am"
     } else if (hours === 12) {
       displayHours = 12 // Noon
-      period = "PM"
+      period = "pm"
     } else if (hours > 12) {
       displayHours = hours - 12
-      period = "PM"
+      period = "pm"
     } else {
       displayHours = hours
-      period = "AM"
+      period = "am"
     }
     
-    // Format with minutes if present
-    if (minutes > 0) {
-      return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`
-    } else {
-      return `${displayHours} ${period}`
-    }
+    // Always format with minutes (pad to 2 digits)
+    return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`
   }
 
   const formatShiftLength = (startTime: string | null, endTime: string | null) => {
@@ -154,6 +161,34 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
     return `${hours}h ${minutes}m`
   }
 
+  const calculateActualHours = (actualStart: string | null, actualEnd: string | null): string => {
+    if (!actualStart) return "—"
+    if (!actualEnd) return "In progress"
+    
+    // Parse actual times
+    const startMinutes = timeToMinutes(actualStart)
+    const endMinutes = timeToMinutes(actualEnd)
+    const diffMinutes = endMinutes - startMinutes
+    
+    if (diffMinutes < 0) return "—" // Invalid
+    
+    const hours = Math.floor(diffMinutes / 60)
+    const minutes = diffMinutes % 60
+    if (hours === 0) return `${minutes}m`
+    if (minutes === 0) return `${hours}h`
+    return `${hours}h ${minutes}m`
+  }
+
+  // Check if current time is within 8 AM - 5 PM
+  const isActiveTime = (hour: number): boolean => {
+    const now = currentTime
+    const isToday = selectedDate.toDateString() === now.toDateString()
+    if (!isToday) return false
+    
+    const currentHour = now.getHours()
+    return currentHour >= 8 && currentHour < 17 && currentHour === hour
+  }
+
   // Get all shifts for the selected date, organized by hour
   const getShiftsByHour = () => {
     const dateStr = selectedDate.toDateString()
@@ -164,6 +199,8 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
       expectedEnd: string | null
       actualStart: string | null
       actualEnd: string | null
+      expectedHours: string
+      actualHours: string
       status: string
       isOnTime: boolean
       shiftLength: string
@@ -173,6 +210,10 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
     hours.forEach(hour => {
       shiftsByHour[hour] = []
     })
+
+    // Track used clock entries to avoid matching them to multiple shifts
+    const usedClockIns = new Set<string>()
+    const usedClockOuts = new Set<string>()
 
     staffData.forEach((staff) => {
       const expectedSchedule = getTodayScheduleForDate(staff, selectedDate)
@@ -186,16 +227,21 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
         const startHour = timeToMinutes(expectedStart) / 60
         const hourIndex = Math.floor(startHour)
 
-        // Find clock-in for this shift
+        const shiftStartMinutes = timeToMinutes(expectedStart)
+        const shiftEndMinutes = expectedEnd ? timeToMinutes(expectedEnd) : shiftStartMinutes + 240
+
+        // Find clock-in for this specific shift - match within 30 minutes before shift start to shift end
         const clockInEntry = staff.clockEntries?.find((entry) => {
+          const entryId = entry.id || entry.timestamp
+          if (usedClockIns.has(entryId)) return false // Already used for another shift
+          
           const entryDate = new Date(entry.timestamp)
           if (entryDate.toDateString() !== dateStr || entry.type !== "in") return false
           
           const entryMinutes = entryDate.getHours() * 60 + entryDate.getMinutes()
-          const shiftStartMinutes = timeToMinutes(expectedStart)
-          const shiftEndMinutes = expectedEnd ? timeToMinutes(expectedEnd) : shiftStartMinutes + 240
           
-          return entryMinutes >= shiftStartMinutes - 240 && entryMinutes <= shiftEndMinutes
+          // Match clock-in if it's within 30 minutes before shift start to shift end
+          return entryMinutes >= shiftStartMinutes - 30 && entryMinutes <= shiftEndMinutes
         })
 
         let actualStart: string | null = null
@@ -204,30 +250,63 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
         let isOnTime = false
 
         if (clockInEntry) {
+          const clockInId = clockInEntry.id || clockInEntry.timestamp
+          usedClockIns.add(clockInId) // Mark as used
+          
           const clockInDate = new Date(clockInEntry.timestamp)
-          actualStart = clockInDate.toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          })
+          // Format as HH:MM am/pm (lowercase)
+          const hours = clockInDate.getHours()
+          const minutes = clockInDate.getMinutes()
+          const period = hours >= 12 ? "pm" : "am"
+          const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
+          actualStart = `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`
 
-          // Find matching clock-out for this shift
+          // Find matching clock-out for this specific shift
+          // Clock-out should be after clock-in and before the next shift starts (or end of day)
           const clockOutEntry = staff.clockEntries?.find((entry) => {
+            const entryId = entry.id || entry.timestamp
+            if (usedClockOuts.has(entryId)) return false // Already used for another shift
+            
             const entryDate = new Date(entry.timestamp)
-            return (
-              entry.type === "out" &&
-              entryDate.toDateString() === dateStr &&
-              entryDate > clockInDate
-            )
+            if (entryDate.toDateString() !== dateStr || entry.type !== "out") return false
+            if (entryDate <= clockInDate) return false // Must be after clock-in
+            
+            const entryMinutes = entryDate.getHours() * 60 + entryDate.getMinutes()
+            
+            // Clock-out should be after clock-in and ideally before next shift or within reasonable time
+            // For now, accept any clock-out after clock-in that's before the next day
+            // We'll refine this by checking if it's before the next shift in the schedule
+            const nextShift = expectedSchedule.find((s: string) => {
+              const nextStart = getExpectedStartTimeFromSchedule(s)
+              if (!nextStart) return false
+              const nextStartMinutes = timeToMinutes(nextStart)
+              return nextStartMinutes > shiftStartMinutes
+            })
+            
+            if (nextShift) {
+              const nextStart = getExpectedStartTimeFromSchedule(nextShift)
+              if (nextStart) {
+                const nextStartMinutes = timeToMinutes(nextStart)
+                // Clock-out should be before next shift starts
+                return entryMinutes < nextStartMinutes
+              }
+            }
+            
+            // If no next shift, accept clock-out up to end of shift + 1 hour buffer
+            return entryMinutes <= shiftEndMinutes + 60
           })
 
           if (clockOutEntry) {
+            const clockOutId = clockOutEntry.id || clockOutEntry.timestamp
+            usedClockOuts.add(clockOutId) // Mark as used
+            
             const clockOutDate = new Date(clockOutEntry.timestamp)
-            actualEnd = clockOutDate.toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true,
-            })
+            // Format as HH:MM am/pm (lowercase)
+            const outHours = clockOutDate.getHours()
+            const outMinutes = clockOutDate.getMinutes()
+            const outPeriod = outHours >= 12 ? "pm" : "am"
+            const outDisplayHours = outHours === 0 ? 12 : outHours > 12 ? outHours - 12 : outHours
+            actualEnd = `${outDisplayHours}:${outMinutes.toString().padStart(2, "0")} ${outPeriod}`
           }
 
           const expectedMinutes = timeToMinutes(expectedStart)
@@ -246,7 +325,7 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
           }
         } else {
           // Check if shift has started
-          const now = new Date()
+          const now = currentTime
           const isToday = selectedDate.toDateString() === now.toDateString()
           
           if (isToday) {
@@ -255,18 +334,35 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
             const minutesLate = nowMinutes - startMinutes
             
             if (minutesLate < 0) {
+              // Shift hasn't started yet
               status = "incoming"
-            } else if (minutesLate >= 60) {
+            } else if (minutesLate <= 10) {
+              // Within 10 minute grace period
+              status = "incoming"
+            } else {
+              // More than 10 minutes late - absent (unless they clock in)
+              status = "absent"
+            }
+          } else {
+            // Compare dates without time
+            const selectedDateOnly = new Date(selectedDate)
+            selectedDateOnly.setHours(0, 0, 0, 0)
+            const nowDateOnly = new Date(now)
+            nowDateOnly.setHours(0, 0, 0, 0)
+            
+            if (selectedDateOnly < nowDateOnly) {
+              // Past date - they didn't clock in, so absent
               status = "absent"
             } else {
+              // Future date
               status = "incoming"
             }
-          } else if (selectedDate < now) {
-            status = "absent"
           }
         }
 
         const shiftLength = formatShiftLength(expectedStart, expectedEnd)
+        const expectedHours = formatShiftLength(expectedStart, expectedEnd)
+        const actualHours = calculateActualHours(actualStart, actualEnd)
 
         if (hourIndex >= 6 && hourIndex <= 23) {
           shiftsByHour[hourIndex].push({
@@ -276,6 +372,8 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
             expectedEnd,
             actualStart,
             actualEnd,
+            expectedHours,
+            actualHours,
             status,
             isOnTime,
             shiftLength,
@@ -328,11 +426,25 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
     return <Badge className="bg-muted text-muted-foreground">—</Badge>
   }
 
-  const getRoleBadge = (role: string) => {
-    if (role === "Student Lead") {
-      return <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400">Lead</Badge>
+  const getRoleBadge = (role: string | undefined) => {
+    if (!role) {
+      return <Badge variant="outline" className="text-muted-foreground">—</Badge>
     }
-    return <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary/80">Student Assistant</Badge>
+    if (role === "Student Lead") {
+      return (
+        <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30">
+          <Shield className="w-3 h-3 mr-1" />
+          Lead
+        </Badge>
+      )
+    } else {
+      return (
+        <Badge className="bg-slate-100 dark:bg-slate-900/30 text-slate-800 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900/30">
+          <UserCheck className="w-3 h-3 mr-1" />
+          Assistant
+        </Badge>
+      )
+    }
   }
 
   // Calculate stats for the day
@@ -445,51 +557,68 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
               const shifts = shiftsByHour[hour]
               if (!shifts || shifts.length === 0) return null
 
+              const isActive = isActiveTime(hour)
+
               return (
-                <div key={hour} className="border-b last:border-b-0 pb-4 sm:pb-6 last:pb-0">
+                <div key={hour} className={`border-b last:border-b-0 pb-4 sm:pb-6 last:pb-0 ${isActive ? 'bg-primary/5 dark:bg-primary/10 border-primary/30' : ''}`}>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4 px-4 sm:px-0">
-                    <div className="text-base sm:text-lg font-semibold text-foreground">
+                    <div className={`flex items-center gap-2 text-base sm:text-lg font-semibold ${isActive ? 'text-primary' : 'text-foreground'}`}>
                       {formatHour(hour)}
+                      {isActive && (
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/20 dark:bg-primary/30 text-primary text-xs font-medium">
+                          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                          Active
+                        </div>
+                      )}
                     </div>
-                    <div className="hidden sm:block flex-1 border-t border-dashed border-muted-foreground/30" />
+                    <div className={`hidden sm:block flex-1 border-t border-dashed ${isActive ? 'border-primary/30' : 'border-muted-foreground/30'}`} />
                     <div className="text-xs sm:text-sm text-muted-foreground">
                       {shifts.length} {shifts.length === 1 ? "shift" : "shifts"}
                     </div>
                   </div>
 
                   <div className="w-full overflow-x-auto -mx-4 sm:mx-0">
-                    <div className="px-4 sm:px-0 min-w-[600px]">
+                    <div className="px-4 sm:px-0 min-w-[1000px]">
                       <Table className="w-full table-fixed">
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-[150px]">Name</TableHead>
-                            <TableHead className="w-[100px]">Role</TableHead>
-                            <TableHead className="w-[180px]">Expected Time</TableHead>
-                            <TableHead className="w-[140px]">Actual Clock-In</TableHead>
-                            <TableHead className="w-[140px]">Actual Clock-Out</TableHead>
-                            <TableHead className="w-[120px]">Status</TableHead>
-                            <TableHead className="w-[120px]">Shift Length</TableHead>
+                            <TableHead className="w-[12%] text-foreground font-semibold">Name</TableHead>
+                            <TableHead className="w-[11%] text-foreground font-semibold">Role</TableHead>
+                            <TableHead className="w-[11%] text-center text-foreground font-semibold">Expected Start</TableHead>
+                            <TableHead className="w-[11%] text-center text-foreground font-semibold">Actual Start</TableHead>
+                            <TableHead className="w-[11%] text-center text-foreground font-semibold">Expected End</TableHead>
+                            <TableHead className="w-[11%] text-center text-foreground font-semibold">Actual End</TableHead>
+                            <TableHead className="w-[11%] text-center text-foreground font-semibold">Expected Hours</TableHead>
+                            <TableHead className="w-[11%] text-center text-foreground font-semibold">Actual Hours</TableHead>
+                            <TableHead className="w-[11%] text-center text-foreground font-semibold">Status</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {shifts.map((shiftData, index) => (
                             <TableRow key={`${shiftData.staff.id}-${index}`}>
-                              <TableCell className="font-medium text-sm truncate" style={{ width: '150px', maxWidth: '150px' }}>{shiftData.staff.name}</TableCell>
-                              <TableCell style={{ width: '100px', maxWidth: '100px' }}>{getRoleBadge(shiftData.staff.role)}</TableCell>
-                              <TableCell className="font-mono text-xs sm:text-sm truncate" style={{ width: '180px', maxWidth: '180px' }}>
+                              <TableCell className="font-medium text-sm">
+                                <div className="break-words">{shiftData.staff.name}</div>
+                              </TableCell>
+                              <TableCell>
+                                {getRoleBadge(shiftData.staff.role)}
+                              </TableCell>
+                              <TableCell className="font-mono text-xs sm:text-sm text-center text-muted-foreground">
                                 {formatTimeForDisplay(shiftData.expectedStart)}
-                                {shiftData.expectedEnd && ` - ${formatTimeForDisplay(shiftData.expectedEnd)}`}
                               </TableCell>
-                              <TableCell className="font-mono text-xs sm:text-sm truncate" style={{ width: '140px', maxWidth: '140px' }}>
-                                {shiftData.actualStart || "—"}
+                              <TableCell className="font-mono text-xs sm:text-sm text-center font-semibold text-foreground">
+                                {shiftData.actualStart ? formatTimeForDisplay(shiftData.actualStart) : <span className="text-muted-foreground">—</span>}
                               </TableCell>
-                              <TableCell className="font-mono text-xs sm:text-sm truncate" style={{ width: '140px', maxWidth: '140px' }}>
-                                {shiftData.actualEnd || "—"}
+                              <TableCell className="font-mono text-xs sm:text-sm text-center text-muted-foreground">
+                                {formatTimeForDisplay(shiftData.expectedEnd)}
                               </TableCell>
-                              <TableCell style={{ width: '120px', maxWidth: '120px' }}>
+                              <TableCell className="font-mono text-xs sm:text-sm text-center font-semibold text-foreground">
+                                {shiftData.actualEnd ? formatTimeForDisplay(shiftData.actualEnd) : <span className="text-muted-foreground">—</span>}
+                              </TableCell>
+                              <TableCell className="font-mono text-xs sm:text-sm text-center text-muted-foreground">{shiftData.expectedHours}</TableCell>
+                              <TableCell className="font-mono text-xs sm:text-sm text-center font-semibold text-foreground">{shiftData.actualHours}</TableCell>
+                              <TableCell className="text-center">
                                 {getStatusBadge(shiftData.status, shiftData.isOnTime)}
                               </TableCell>
-                              <TableCell className="font-mono text-xs sm:text-sm truncate" style={{ width: '120px', maxWidth: '120px' }}>{shiftData.shiftLength}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>

@@ -349,15 +349,222 @@ router.get('/', (async (req: Request, res: Response) => {
   }
 }) as RequestHandler);
 
-// GET a single student by ID
+// GET a single student by ID, optionally with term-specific data
 router.get('/:id', (async (req: Request, res: Response) => {
   try {
+    const { termId } = req.query;
     const student = await Student.findById(req.params.id).lean();
 
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
+    // If termId is provided, include term-specific data (schedules, check-ins)
+    if (termId && typeof termId === 'string' && termId.trim() !== '') {
+      const now = new Date();
+      const { startOfDay, endOfDay } = getPSTDayBoundaries(now);
+      const { pstYear, pstMonth, pstDate } = getPSTDateComponents(now);
+
+      const schedule = await Schedule.findOne({
+        studentId: student._id,
+        termId,
+      }).lean();
+
+      // Get today's shift for this student
+      const today = new Date(Date.UTC(pstYear, pstMonth, pstDate));
+      const todayShift = await Shift.findOne({
+        studentId: student._id,
+        termId,
+        date: today,
+      }).lean();
+
+      // Determine current status from shift and schedule
+      let currentStatus = 'off';
+      let todayActual: string | null = null;
+      let expectedStartShift: string | null = null;
+      let expectedEndShift: string | null = null;
+      let isClockedIn = false;
+
+      // First check if there's an actual shift record (clocked in)
+      if (todayShift) {
+        if (todayShift.status === 'started') {
+          currentStatus = 'present';
+          isClockedIn = true;
+        } else if (todayShift.status === 'completed') {
+          currentStatus = 'clocked_out';
+        } else if (todayShift.status === 'missed') {
+          currentStatus = 'absent';
+        }
+
+        if (todayShift.actualStart) {
+          todayActual = todayShift.actualStart.toISOString();
+        }
+
+        expectedStartShift = todayShift.scheduledStart || null;
+        expectedEndShift = todayShift.scheduledEnd || null;
+      }
+
+      // If not clocked in yet, check fallback: manual check-ins without shift
+      if (currentStatus === 'off') {
+        const todayCheckIns = await CheckIn.find({
+          studentId: student._id,
+          termId,
+          timestamp: { $gte: startOfDay, $lte: endOfDay }
+        }).sort({ timestamp: -1 }).lean();
+
+        if (todayCheckIns.length > 0) {
+          const lastCheckIn = todayCheckIns[0];
+          if (lastCheckIn.type === 'in') {
+            currentStatus = 'present';
+            isClockedIn = true;
+            todayActual = lastCheckIn.timestamp.toISOString();
+          } else if (lastCheckIn.type === 'out') {
+            currentStatus = 'clocked_out';
+          }
+        }
+      }
+
+      // If currently clocked in, calculate shift end time from schedule for display
+      if (isClockedIn && currentStatus === 'present' && schedule && todayActual) {
+        if (!expectedEndShift) {
+          const nowPST = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+          const dayOfWeek = nowPST.getDay();
+          const dayNames: Record<number, keyof ISchedule['availability'] | null> = {
+            0: null, 1: 'monday', 2: 'tuesday', 3: 'wednesday', 4: 'thursday', 5: 'friday', 6: null,
+          };
+          const dayName = dayNames[dayOfWeek];
+          const todaySchedule = dayName ? (schedule.availability[dayName] || []) : [];
+
+          if (todaySchedule.length > 0) {
+            const clockInTime = new Date(todayActual);
+            const clockInPST = new Date(clockInTime.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+            const clockInMinutes = clockInPST.getHours() * 60 + clockInPST.getMinutes();
+            
+            let bestMatch: { startTime: string; endTime: string; distance: number } | null = null;
+            
+            for (const shiftBlock of todaySchedule) {
+              const [startTime, endTime] = shiftBlock.split('-');
+              if (!startTime || !endTime) continue;
+
+              const [startHourStr, startMinuteStr] = startTime.trim().split(':');
+              const shiftStartHour = parseInt(startHourStr, 10);
+              const shiftStartMinute = parseInt(startMinuteStr, 10);
+              const shiftStartMinutes = shiftStartHour * 60 + shiftStartMinute;
+
+              const [endHourStr, endMinuteStr] = endTime.trim().split(':');
+              const shiftEndHour = parseInt(endHourStr, 10);
+              const shiftEndMinute = parseInt(endMinuteStr, 10);
+              const shiftEndMinutes = shiftEndHour * 60 + shiftEndMinute;
+
+              if (clockInMinutes >= shiftStartMinutes - 240 && clockInMinutes <= shiftEndMinutes) {
+                const distance = Math.abs(clockInMinutes - shiftStartMinutes);
+                if (!bestMatch || distance < bestMatch.distance) {
+                  bestMatch = {
+                    startTime: startTime.trim(),
+                    endTime: endTime.trim(),
+                    distance
+                  };
+                }
+              }
+            }
+            
+            if (bestMatch) {
+              expectedStartShift = bestMatch.startTime;
+              expectedEndShift = bestMatch.endTime;
+            } else {
+              expectedEndShift = 'No schedule';
+            }
+          } else {
+            expectedEndShift = 'No schedule';
+          }
+        }
+      }
+
+      // If still 'off' (not clocked in), check weekly schedule for expected arrivals
+      if (!isClockedIn && currentStatus === 'off' && schedule) {
+        const nowPST = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+        const dayOfWeek = nowPST.getDay();
+        const dayNames: Record<number, keyof ISchedule['availability'] | null> = {
+          0: null, 1: 'monday', 2: 'tuesday', 3: 'wednesday', 4: 'thursday', 5: 'friday', 6: null,
+        };
+        const dayName = dayNames[dayOfWeek];
+        const todaySchedule = dayName ? (schedule.availability[dayName] || []) : [];
+
+        const currentHour = nowPST.getHours();
+        const currentMinute = nowPST.getMinutes();
+        const currentTotalMinutes = currentHour * 60 + currentMinute;
+
+        for (const shiftBlock of todaySchedule) {
+          const [startTime, endTime] = shiftBlock.split('-');
+          if (!startTime || !endTime) continue;
+
+          const [startHourStr, startMinuteStr] = startTime.trim().split(':');
+          const shiftStartHour = parseInt(startHourStr, 10);
+          const shiftStartMinute = parseInt(startMinuteStr, 10);
+          const shiftStartTotalMinutes = shiftStartHour * 60 + shiftStartMinute;
+
+          const [endHourStr, endMinuteStr] = endTime.trim().split(':');
+          const shiftEndHour = parseInt(endHourStr, 10);
+          const shiftEndMinute = parseInt(endMinuteStr, 10);
+          const shiftEndTotalMinutes = shiftEndHour * 60 + shiftEndMinute;
+
+          const isCurrentlyInShift = currentTotalMinutes >= shiftStartTotalMinutes && currentTotalMinutes < shiftEndTotalMinutes;
+          const minutesUntilShift = shiftStartTotalMinutes - currentTotalMinutes;
+
+          if (isCurrentlyInShift) {
+            currentStatus = 'incoming';
+            expectedStartShift = startTime.trim();
+            expectedEndShift = endTime.trim();
+            break;
+          } else if (minutesUntilShift >= 0 && minutesUntilShift <= 180) {
+            currentStatus = 'incoming';
+            expectedStartShift = startTime.trim();
+            expectedEndShift = endTime.trim();
+            break;
+          }
+        }
+      }
+
+      // Final safeguard
+      if (isClockedIn && currentStatus !== 'present') {
+        currentStatus = 'present';
+      }
+
+      // Get all check-ins for historical data
+      const checkIns = await CheckIn.find({
+        studentId: student._id,
+        termId,
+      })
+        .sort({ timestamp: -1 })
+        .limit(50)
+        .lean();
+
+      return res.json({
+        id: student._id,
+        name: student.name,
+        cardId: student.iso,
+        role: student.role,
+        currentStatus,
+        todayActual,
+        expectedStartShift,
+        expectedEndShift,
+        weeklySchedule: schedule?.availability || {
+          monday: [],
+          tuesday: [],
+          wednesday: [],
+          thursday: [],
+          friday: [],
+        },
+        clockEntries: checkIns.map((entry) => ({
+          id: entry._id.toString(),
+          timestamp: entry.timestamp,
+          type: entry.type,
+          isManual: entry.isManual,
+        })),
+      });
+    }
+
+    // Return basic student info if no termId provided
     res.json({
       id: student._id,
       name: student.name,
