@@ -16,14 +16,14 @@ export function ExpectedArrivalsTable({ expectedArrivals }: ExpectedArrivalsTabl
       return (
         <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30">
           <Shield className="w-3 h-3 mr-1" />
-          Student Lead
+          Lead
         </Badge>
       )
     } else {
       return (
         <Badge className="bg-slate-100 dark:bg-slate-900/30 text-slate-800 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900/30">
           <UserCheck className="w-3 h-3 mr-1" />
-          Student Assistant
+          Assistant
         </Badge>
       )
     }
@@ -89,7 +89,7 @@ export function ExpectedArrivalsTable({ expectedArrivals }: ExpectedArrivalsTabl
                     <TableCell>{getRoleBadge(user.role)}</TableCell>
                     <TableCell>
                       {formatShiftTime(user.expectedStartShift, user.expectedEndShift) ? (
-                        <div className="text-xs bg-card border px-2 py-1 rounded shadow-sm inline-block">
+                        <div className="text-sm font-mono px-2 py-1  inline-block">
                           {formatShiftTime(user.expectedStartShift, user.expectedEndShift)}
                         </div>
                       ) : (

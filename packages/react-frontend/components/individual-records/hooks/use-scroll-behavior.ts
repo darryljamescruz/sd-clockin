@@ -56,3 +56,4 @@ export function useScrollBehavior(selectedStaff: Student | null): UseScrollBehav
     scrollToSearch,
   }
 }
+

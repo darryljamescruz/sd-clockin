@@ -256,10 +256,10 @@ export default function HomePage() {
   }
 
   // Sort expected arrivals: by shift start time (chronological), then by first name
-  // Only show people within 2 hours from current time who are pending
+  // Show people up to 2 hours before their shift starts, and keep them until 10 minutes after shift starts
   const expectedArrivals = staffData
     .filter((staff) => {
-      // Must be in incoming/pending status
+      // Must be in incoming/pending status (not clocked in)
       if (staff.currentStatus !== "incoming") return false
       
       // Must have a valid shift time
@@ -273,17 +273,36 @@ export default function HomePage() {
       // Calculate shift start time in minutes
       const shiftStartMinutes = timeToMinutes(staff.expectedStartShift)
       
-      // Calculate minutes until shift starts
+      // Calculate minutes until shift starts (without day wrapping)
       let minutesUntilShift = shiftStartMinutes - currentTotalMinutes
       
-      // Handle case where shift is tomorrow (e.g., if it's 11pm and shift is at 8am)
-      // If shift time is earlier than current time, assume it's tomorrow
-      if (minutesUntilShift < 0) {
-        minutesUntilShift += 24 * 60 // Add 24 hours (1440 minutes)
+      // Calculate minutes after shift starts (if shift has already started today)
+      const minutesAfterShift = shiftStartMinutes < currentTotalMinutes 
+        ? currentTotalMinutes - shiftStartMinutes 
+        : -1 // Negative means shift hasn't started yet today
+      
+      // Include if:
+      // 1. Shift starts within 2 hours (120 minutes) from now (could be today or tomorrow), OR
+      // 2. Shift has started today and it's within 10 minutes after shift start
+      
+      // For case 1: Handle both today and tomorrow
+      let isBeforeShift = false
+      if (minutesUntilShift >= 0 && minutesUntilShift <= 120) {
+        // Shift is today and within 2 hours
+        isBeforeShift = true
+      } else if (minutesUntilShift < 0) {
+        // Shift time is earlier, could be tomorrow
+        const minutesUntilShiftTomorrow = minutesUntilShift + 24 * 60
+        if (minutesUntilShiftTomorrow >= 0 && minutesUntilShiftTomorrow <= 120) {
+          // Shift is tomorrow and within 2 hours
+          isBeforeShift = true
+        }
       }
       
-      // Only include if shift starts within 2 hours (120 minutes) from now
-      return minutesUntilShift >= 0 && minutesUntilShift <= 120
+      // For case 2: Check if shift started today and within 10 minutes
+      const isWithin10MinutesAfter = minutesAfterShift >= 0 && minutesAfterShift <= 10
+      
+      return isBeforeShift || isWithin10MinutesAfter
     })
     .sort((a, b) => {
       // First, separate scheduled from non-scheduled

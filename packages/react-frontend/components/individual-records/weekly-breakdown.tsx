@@ -95,3 +95,4 @@ export function WeeklyBreakdown({
     </Card>
   )
 }
+

@@ -285,3 +285,4 @@ export function useClockEntries(): UseClockEntriesReturn {
     handleSaveAdd,
   }
 }
+
