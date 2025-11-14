@@ -5,12 +5,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Shield, UserCheck } from "lucide-react"
 import { type Student } from "@/lib/api"
+import { getUpcomingShifts, formatTimeForDisplay } from "@/lib/shift-utils"
 
 interface ExpectedArrivalsTableProps {
   expectedArrivals: Student[]
+  currentTime: Date
 }
 
-export function ExpectedArrivalsTable({ expectedArrivals }: ExpectedArrivalsTableProps) {
+export function ExpectedArrivalsTable({ expectedArrivals, currentTime }: ExpectedArrivalsTableProps) {
   const getRoleBadge = (role: string) => {
     if (role === "Student Lead") {
       return (
@@ -29,27 +31,9 @@ export function ExpectedArrivalsTable({ expectedArrivals }: ExpectedArrivalsTabl
     }
   }
 
-  // Convert 24-hour time to 12-hour format with am/pm (e.g., "08:00-12:00" -> "8am-12pm")
-  const formatShiftTime = (startTime?: string | null, endTime?: string | null) => {
-    if (!startTime || !endTime) return null
-    
-    const formatTime = (time: string) => {
-      const [hourStr, minute] = time.trim().split(":")
-      const hour = parseInt(hourStr, 10)
-      
-      if (isNaN(hour)) return time
-      
-      const period = hour >= 12 ? "pm" : "am"
-      const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
-      
-      // Only show minutes if they're not :00
-      if (minute && minute !== "00") {
-        return `${hour12}:${minute}${period}`
-      }
-      return `${hour12}${period}`
-    }
-    
-    return `${formatTime(startTime)}-${formatTime(endTime)}`
+  // Format shift time for display
+  const formatShiftTime = (startTime: string, endTime: string) => {
+    return `${formatTimeForDisplay(startTime)}-${formatTimeForDisplay(endTime)}`
   }
 
   return (
@@ -83,21 +67,33 @@ export function ExpectedArrivalsTable({ expectedArrivals }: ExpectedArrivalsTabl
                   </TableCell>
                 </TableRow>
               ) : (
-                expectedArrivals.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{getRoleBadge(user.role)}</TableCell>
-                    <TableCell>
-                      {formatShiftTime(user.expectedStartShift, user.expectedEndShift) ? (
-                        <div className="text-sm font-mono px-2 py-1  inline-block">
-                          {formatShiftTime(user.expectedStartShift, user.expectedEndShift)}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground italic text-xs">No schedule</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
+                expectedArrivals.map((user) => {
+                  // Get all upcoming shifts for this user
+                  const upcomingShifts = getUpcomingShifts(user, currentTime, 2, 10)
+                  
+                  return (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{getRoleBadge(user.role)}</TableCell>
+                      <TableCell>
+                        {upcomingShifts.length > 0 ? (
+                          <div className="space-y-1">
+                            {upcomingShifts.map((shift, index) => (
+                              <div
+                                key={index}
+                                className="font-mono px-2 py-1 mr-1"
+                              >
+                                {formatShiftTime(shift.start, shift.end)}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground italic text-xs">No schedule</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
               )}
             </TableBody>
           </Table>

@@ -6,6 +6,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Clock, Users, TrendingUp, AlertCircle, CheckCircle2, XCircle, UserCheck, Shield } from "lucide-react"
 import { useMemo, useState, useEffect } from "react"
 import { type Student } from "@/lib/api"
+import {
+  timeToMinutes,
+  getTodayScheduleForDate,
+  getExpectedStartTimeFromSchedule,
+  getExpectedEndTimeFromSchedule,
+  formatTimeForDisplay,
+  matchClockEntriesToShifts,
+} from "@/lib/shift-utils"
 
 interface HourlyDashboardProps {
   staffData: Student[]
@@ -33,121 +41,7 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
     return hoursList
   }, [])
 
-  const timeToMinutes = (timeStr: string) => {
-    if (!timeStr) return 0
-    
-    // Handle times with AM/PM (e.g., "12:30 PM", "12:30pm", "5 PM")
-    const upperTime = timeStr.toUpperCase().trim()
-    const hasAM = upperTime.includes("AM")
-    const hasPM = upperTime.includes("PM")
-    
-    // Remove AM/PM for parsing
-    const timeWithoutPeriod = timeStr.replace(/\s*(AM|PM)\s*/gi, "").trim()
-    
-    // Parse hours and minutes
-    let hours: number
-    let minutes: number
-    
-    if (timeWithoutPeriod.includes(":")) {
-      const parts = timeWithoutPeriod.split(":")
-      hours = parseInt(parts[0], 10)
-      minutes = parseInt(parts[1] || "0", 10)
-    } else {
-      // Just a number (e.g., "5" or "12" or "17")
-      hours = parseInt(timeWithoutPeriod, 10)
-      minutes = 0
-    }
-    
-    if (isNaN(hours) || isNaN(minutes)) return 0
-    
-    // Convert to 24-hour format
-    if (hasAM || hasPM) {
-      // 12-hour format with AM/PM
-      if (hours === 12 && hasAM) {
-        hours = 0 // 12 AM is midnight
-      } else if (hours !== 12 && hasPM) {
-        hours += 12 // PM adds 12 hours (except 12 PM)
-      }
-      // If hours === 12 && hasPM, it stays 12 (noon)
-    } else {
-      // No AM/PM specified - assume 24-hour format
-      // Times like "12:30" or "17" are already in 24-hour format
-    }
-    
-    return hours * 60 + minutes
-  }
-
-  const getTodayScheduleForDate = (staff: Student, date: Date): string[] => {
-    const dayNames: Array<keyof NonNullable<Student['weeklySchedule']> | null> = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null]
-    const dayName = dayNames[date.getDay()]
-    if (!dayName) return []
-    return staff.weeklySchedule?.[dayName] || []
-  }
-
-  // Extract times directly from schedule block without transformation
-  const getExpectedStartTimeFromSchedule = (scheduleBlock: string): string | null => {
-    if (!scheduleBlock) return null
-    const startTime = scheduleBlock.split("-")[0].trim()
-    return startTime || null
-  }
-
-  const getExpectedEndTimeFromSchedule = (scheduleBlock: string): string | null => {
-    if (!scheduleBlock) return null
-    const endTime = scheduleBlock.split("-")[1]?.trim()
-    return endTime || null
-  }
-
-  // Convert 24-hour format to 12-hour am/pm format for display (lowercase)
-  // If time already has AM/PM, convert to lowercase
-  const formatTimeForDisplay = (timeStr: string | null): string => {
-    if (!timeStr) return "—"
-    
-    const upperTime = timeStr.toUpperCase().trim()
-    const hasAM = upperTime.includes("AM")
-    const hasPM = upperTime.includes("PM")
-    
-    // If already has AM/PM, convert to lowercase
-    if (hasAM || hasPM) {
-      return timeStr.replace(/\s*(AM|PM)\s*/gi, (match, period) => ` ${period.toLowerCase()}`).trim()
-    }
-    
-    // Parse 24-hour format and convert to 12-hour am/pm
-    let hours: number
-    let minutes: number
-    
-    if (timeStr.includes(":")) {
-      const parts = timeStr.split(":")
-      hours = parseInt(parts[0], 10)
-      minutes = parseInt(parts[1] || "0", 10)
-    } else {
-      // Just a number (e.g., "5" or "17")
-      hours = parseInt(timeStr, 10)
-      minutes = 0
-    }
-    
-    if (isNaN(hours) || isNaN(minutes)) return timeStr
-    
-    // Convert to 12-hour format
-    let period = "am"
-    let displayHours = hours
-    
-    if (hours === 0) {
-      displayHours = 12 // Midnight
-      period = "am"
-    } else if (hours === 12) {
-      displayHours = 12 // Noon
-      period = "pm"
-    } else if (hours > 12) {
-      displayHours = hours - 12
-      period = "pm"
-    } else {
-      displayHours = hours
-      period = "am"
-    }
-    
-    // Always format with minutes (pad to 2 digits)
-    return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`
-  }
+  // All time/schedule functions are now imported from shared utilities
 
   const formatShiftLength = (startTime: string | null, endTime: string | null) => {
     if (!startTime || !endTime) return "—"
@@ -190,8 +84,8 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
   }
 
   // Get all shifts for the selected date, organized by hour
+  // Uses shared logic to match clock entries to shifts (handles multiple shifts and 1 hour early window)
   const getShiftsByHour = () => {
-    const dateStr = selectedDate.toDateString()
     const shiftsByHour: Record<number, Array<{
       staff: Student
       shift: string
@@ -211,154 +105,24 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
       shiftsByHour[hour] = []
     })
 
-    // Track used clock entries to avoid matching them to multiple shifts
-    const usedClockIns = new Set<string>()
-    const usedClockOuts = new Set<string>()
-
     staffData.forEach((staff) => {
-      const expectedSchedule = getTodayScheduleForDate(staff, selectedDate)
+      // Use shared logic to match clock entries to shifts
+      const matchedShifts = matchClockEntriesToShifts(staff, selectedDate)
 
-      expectedSchedule.forEach((shift: string) => {
-        const expectedStart = getExpectedStartTimeFromSchedule(shift)
-        const expectedEnd = getExpectedEndTimeFromSchedule(shift)
+      matchedShifts.forEach((matchedShift) => {
+        const expectedStart = matchedShift.shift.start
+        const expectedEnd = matchedShift.shift.end
+        const shift = matchedShift.shift.original
 
         if (!expectedStart) return
 
         const startHour = timeToMinutes(expectedStart) / 60
         const hourIndex = Math.floor(startHour)
 
-        const shiftStartMinutes = timeToMinutes(expectedStart)
-        const shiftEndMinutes = expectedEnd ? timeToMinutes(expectedEnd) : shiftStartMinutes + 240
-
-        // Find clock-in for this specific shift - match within 30 minutes before shift start to shift end
-        const clockInEntry = staff.clockEntries?.find((entry) => {
-          const entryId = entry.id || entry.timestamp
-          if (usedClockIns.has(entryId)) return false // Already used for another shift
-          
-          const entryDate = new Date(entry.timestamp)
-          if (entryDate.toDateString() !== dateStr || entry.type !== "in") return false
-          
-          const entryMinutes = entryDate.getHours() * 60 + entryDate.getMinutes()
-          
-          // Match clock-in if it's within 30 minutes before shift start to shift end
-          return entryMinutes >= shiftStartMinutes - 30 && entryMinutes <= shiftEndMinutes
-        })
-
-        let actualStart: string | null = null
-        let actualEnd: string | null = null
-        let status = "incoming"
-        let isOnTime = false
-
-        if (clockInEntry) {
-          const clockInId = clockInEntry.id || clockInEntry.timestamp
-          usedClockIns.add(clockInId) // Mark as used
-          
-          const clockInDate = new Date(clockInEntry.timestamp)
-          // Format as HH:MM am/pm (lowercase)
-          const hours = clockInDate.getHours()
-          const minutes = clockInDate.getMinutes()
-          const period = hours >= 12 ? "pm" : "am"
-          const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
-          actualStart = `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`
-
-          // Find matching clock-out for this specific shift
-          // Clock-out should be after clock-in and before the next shift starts (or end of day)
-          const clockOutEntry = staff.clockEntries?.find((entry) => {
-            const entryId = entry.id || entry.timestamp
-            if (usedClockOuts.has(entryId)) return false // Already used for another shift
-            
-            const entryDate = new Date(entry.timestamp)
-            if (entryDate.toDateString() !== dateStr || entry.type !== "out") return false
-            if (entryDate <= clockInDate) return false // Must be after clock-in
-            
-            const entryMinutes = entryDate.getHours() * 60 + entryDate.getMinutes()
-            
-            // Clock-out should be after clock-in and ideally before next shift or within reasonable time
-            // For now, accept any clock-out after clock-in that's before the next day
-            // We'll refine this by checking if it's before the next shift in the schedule
-            const nextShift = expectedSchedule.find((s: string) => {
-              const nextStart = getExpectedStartTimeFromSchedule(s)
-              if (!nextStart) return false
-              const nextStartMinutes = timeToMinutes(nextStart)
-              return nextStartMinutes > shiftStartMinutes
-            })
-            
-            if (nextShift) {
-              const nextStart = getExpectedStartTimeFromSchedule(nextShift)
-              if (nextStart) {
-                const nextStartMinutes = timeToMinutes(nextStart)
-                // Clock-out should be before next shift starts
-                return entryMinutes < nextStartMinutes
-              }
-            }
-            
-            // If no next shift, accept clock-out up to end of shift + 1 hour buffer
-            return entryMinutes <= shiftEndMinutes + 60
-          })
-
-          if (clockOutEntry) {
-            const clockOutId = clockOutEntry.id || clockOutEntry.timestamp
-            usedClockOuts.add(clockOutId) // Mark as used
-            
-            const clockOutDate = new Date(clockOutEntry.timestamp)
-            // Format as HH:MM am/pm (lowercase)
-            const outHours = clockOutDate.getHours()
-            const outMinutes = clockOutDate.getMinutes()
-            const outPeriod = outHours >= 12 ? "pm" : "am"
-            const outDisplayHours = outHours === 0 ? 12 : outHours > 12 ? outHours - 12 : outHours
-            actualEnd = `${outDisplayHours}:${outMinutes.toString().padStart(2, "0")} ${outPeriod}`
-          }
-
-          const expectedMinutes = timeToMinutes(expectedStart)
-          const actualMinutes = clockInDate.getHours() * 60 + clockInDate.getMinutes()
-          const diffMinutes = actualMinutes - expectedMinutes
-
-          if (diffMinutes < -10) {
-            status = "early"
-            isOnTime = true // Early counts as on-time
-          } else if (diffMinutes <= 10) {
-            status = "on-time"
-            isOnTime = true
-          } else {
-            status = "late"
-            isOnTime = false
-          }
-        } else {
-          // Check if shift has started
-          const now = currentTime
-          const isToday = selectedDate.toDateString() === now.toDateString()
-          
-          if (isToday) {
-            const startMinutes = timeToMinutes(expectedStart)
-            const nowMinutes = now.getHours() * 60 + now.getMinutes()
-            const minutesLate = nowMinutes - startMinutes
-            
-            if (minutesLate < 0) {
-              // Shift hasn't started yet
-              status = "incoming"
-            } else if (minutesLate <= 10) {
-              // Within 10 minute grace period
-              status = "incoming"
-            } else {
-              // More than 10 minutes late - absent (unless they clock in)
-              status = "absent"
-            }
-          } else {
-            // Compare dates without time
-            const selectedDateOnly = new Date(selectedDate)
-            selectedDateOnly.setHours(0, 0, 0, 0)
-            const nowDateOnly = new Date(now)
-            nowDateOnly.setHours(0, 0, 0, 0)
-            
-            if (selectedDateOnly < nowDateOnly) {
-              // Past date - they didn't clock in, so absent
-              status = "absent"
-            } else {
-              // Future date
-              status = "incoming"
-            }
-          }
-        }
+        const actualStart = matchedShift.clockIn
+        const actualEnd = matchedShift.clockOut
+        const status = matchedShift.status
+        const isOnTime = matchedShift.isOnTime
 
         const shiftLength = formatShiftLength(expectedStart, expectedEnd)
         const expectedHours = formatShiftLength(expectedStart, expectedEnd)
@@ -560,13 +324,13 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
               const isActive = isActiveTime(hour)
 
               return (
-                <div key={hour} className={`border-b last:border-b-0 pb-4 sm:pb-6 last:pb-0 ${isActive ? 'bg-primary/5 dark:bg-primary/10 border-primary/30' : ''}`}>
+                <div key={hour} className={`border-b last:border-b-0 pb-4 sm:pb-6 last:pb-0 ${isActive ? 'border-primary/30' : ''}`}>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4 px-4 sm:px-0">
                     <div className={`flex items-center gap-2 text-base sm:text-lg font-semibold ${isActive ? 'text-primary' : 'text-foreground'}`}>
                       {formatHour(hour)}
                       {isActive && (
-                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/20 dark:bg-primary/30 text-primary text-xs font-medium">
-                          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 text-xs font-medium">
+                          <div className="w-2 h-2 rounded-full bg-red-600 dark:bg-red-400 animate-pulse" />
                           Active
                         </div>
                       )}

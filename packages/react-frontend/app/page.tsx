@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { api, type Student, type Term } from "@/lib/api"
+import { getUpcomingShifts, isCurrentlyClockedIn, timeToMinutes } from "@/lib/shift-utils"
 
 export default function HomePage() {
   const router = useRouter()
@@ -228,8 +229,9 @@ export default function HomePage() {
   }
 
   // Sort clocked in users: chronological (clock-in time), then alphabetical, non-scheduled at bottom
+  // Uses shared logic to check if actually clocked in (handles multiple shifts)
   const clockedInUsers = staffData
-    .filter((staff) => staff.currentStatus === "present")
+    .filter((staff) => isCurrentlyClockedIn(staff, currentTime))
     .sort((a, b) => {
       // First, separate scheduled from non-scheduled
       const aHasSchedule = a.expectedEndShift && a.expectedEndShift !== "No schedule"
@@ -249,74 +251,31 @@ export default function HomePage() {
       return a.name.localeCompare(b.name)
     })
 
-  // Helper function to convert time string (HH:MM) to minutes
-  function timeToMinutes(timeStr: string): number {
-    const [hours, minutes] = timeStr.split(':').map(Number)
-    return hours * 60 + minutes
-  }
-
-  // Sort expected arrivals: by shift start time (chronological), then by first name
-  // Show people up to 2 hours before their shift starts, and keep them until 10 minutes after shift starts
+  // Filter expected arrivals: people with upcoming shifts who are not currently clocked in
+  // Uses shared logic to handle multiple shifts per day
   const expectedArrivals = staffData
     .filter((staff) => {
-      // Must be in incoming/pending status (not clocked in)
-      if (staff.currentStatus !== "incoming") return false
+      // Must not be currently clocked in (check all shifts, not just one)
+      if (isCurrentlyClockedIn(staff, currentTime)) return false
       
-      // Must have a valid shift time
-      if (!staff.expectedStartShift || staff.expectedStartShift === "No schedule") return false
-      
-      // Calculate current time in minutes
-      const currentHour = currentTime.getHours()
-      const currentMinute = currentTime.getMinutes()
-      const currentTotalMinutes = currentHour * 60 + currentMinute
-      
-      // Calculate shift start time in minutes
-      const shiftStartMinutes = timeToMinutes(staff.expectedStartShift)
-      
-      // Calculate minutes until shift starts (without day wrapping)
-      let minutesUntilShift = shiftStartMinutes - currentTotalMinutes
-      
-      // Calculate minutes after shift starts (if shift has already started today)
-      const minutesAfterShift = shiftStartMinutes < currentTotalMinutes 
-        ? currentTotalMinutes - shiftStartMinutes 
-        : -1 // Negative means shift hasn't started yet today
-      
-      // Include if:
-      // 1. Shift starts within 2 hours (120 minutes) from now (could be today or tomorrow), OR
-      // 2. Shift has started today and it's within 10 minutes after shift start
-      
-      // For case 1: Handle both today and tomorrow
-      let isBeforeShift = false
-      if (minutesUntilShift >= 0 && minutesUntilShift <= 120) {
-        // Shift is today and within 2 hours
-        isBeforeShift = true
-      } else if (minutesUntilShift < 0) {
-        // Shift time is earlier, could be tomorrow
-        const minutesUntilShiftTomorrow = minutesUntilShift + 24 * 60
-        if (minutesUntilShiftTomorrow >= 0 && minutesUntilShiftTomorrow <= 120) {
-          // Shift is tomorrow and within 2 hours
-          isBeforeShift = true
-        }
-      }
-      
-      // For case 2: Check if shift started today and within 10 minutes
-      const isWithin10MinutesAfter = minutesAfterShift >= 0 && minutesAfterShift <= 10
-      
-      return isBeforeShift || isWithin10MinutesAfter
+      // Must have at least one upcoming shift within 2 hours or within 10 minutes after start
+      const upcomingShifts = getUpcomingShifts(staff, currentTime, 2, 10)
+      return upcomingShifts.length > 0
     })
     .sort((a, b) => {
+      // Get earliest upcoming shift for each person
+      const aShifts = getUpcomingShifts(a, currentTime, 2, 10)
+      const bShifts = getUpcomingShifts(b, currentTime, 2, 10)
+      
       // First, separate scheduled from non-scheduled
-      const aHasShift = a.expectedStartShift && a.expectedStartShift !== "No schedule"
-      const bHasShift = b.expectedStartShift && b.expectedStartShift !== "No schedule"
+      if (aShifts.length > 0 && bShifts.length === 0) return -1
+      if (aShifts.length === 0 && bShifts.length > 0) return 1
       
-      if (aHasShift && !bHasShift) return -1
-      if (!aHasShift && bHasShift) return 1
-      
-      // Then sort by shift start time (chronological)
-      if (aHasShift && bHasShift) {
-        const aStartMinutes = timeToMinutes(a.expectedStartShift!)
-        const bStartMinutes = timeToMinutes(b.expectedStartShift!)
-        if (aStartMinutes !== bStartMinutes) return aStartMinutes - bStartMinutes
+      // Then sort by earliest shift start time (chronological)
+      if (aShifts.length > 0 && bShifts.length > 0) {
+        const aEarliest = timeToMinutes(aShifts[0].start)
+        const bEarliest = timeToMinutes(bShifts[0].start)
+        if (aEarliest !== bEarliest) return aEarliest - bEarliest
       }
       
       // Finally, sort by first name alphabetically
@@ -466,7 +425,7 @@ export default function HomePage() {
             {/* Tables Grid */}
             <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
               <ClockedInTable clockedInUsers={clockedInUsers} />
-              <ExpectedArrivalsTable expectedArrivals={expectedArrivals} />
+              <ExpectedArrivalsTable expectedArrivals={expectedArrivals} currentTime={currentTime} />
             </div>
           </>
         )}

@@ -4,33 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Users, Shield, UserCheck } from "lucide-react"
-
-interface ClockEntry {
-  timestamp: string
-  type: "in" | "out"
-}
-
-interface Staff {
-  id: number
-  name: string
-  role: string
-  currentStatus: string
-  todayExpected: string
-  todayActual: string | null
-  clockEntries: ClockEntry[]
-  weeklySchedule?: {
-    sunday?: string[]
-    monday?: string[]
-    tuesday?: string[]
-    wednesday?: string[]
-    thursday?: string[]
-    friday?: string[]
-    saturday?: string[]
-  }
-}
+import { getTodayScheduleForDate, isCurrentlyClockedIn, matchClockEntriesToShifts, formatTimeForDisplay } from "@/lib/shift-utils"
+import { type Student } from "@/lib/api"
 
 interface AttendanceOverviewProps {
-  staffData: Staff[]
+  staffData: Student[]
   selectedTerm: string
 }
 
@@ -54,7 +32,7 @@ export function AttendanceOverview({ staffData, selectedTerm }: AttendanceOvervi
   }
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
+    const statusConfig: Record<string, { color: string; label: string }> = {
       early: { color: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400", label: "Early" },
       "on-time": { color: "bg-green-100 text-green-800", label: "On Time" },
       late: { color: "bg-red-100 text-red-800", label: "Late" },
@@ -67,7 +45,7 @@ export function AttendanceOverview({ staffData, selectedTerm }: AttendanceOvervi
   }
 
   const getCurrentStatusBadge = (status: string) => {
-    const statusConfig = {
+    const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
       present: { color: "bg-green-100 text-green-800", label: "Present", icon: "●" },
       expected: { color: "bg-yellow-100 text-yellow-800", label: "Expected", icon: "○" },
       absent: { color: "bg-red-100 text-red-800", label: "Absent", icon: "×" },
@@ -82,23 +60,47 @@ export function AttendanceOverview({ staffData, selectedTerm }: AttendanceOvervi
     )
   }
 
-  const getTodayStatus = (staff: Staff) => {
-    // Calculate status based on expected vs actual time
-    if (!staff.todayActual) return "expected"
-
-    const expected = new Date(`2000-01-01 ${staff.todayExpected}`)
-    const actual = new Date(`2000-01-01 ${staff.todayActual}`)
-    const diffMinutes = (actual.getTime() - expected.getTime()) / (1000 * 60)
-
-    if (diffMinutes < -5) return "early"
-    if (diffMinutes <= 5) return "on-time"
-    return "late"
+  const getTodayStatus = (staff: Student, date = new Date()) => {
+    // Use shared logic to match clock entries to shifts
+    const matchedShifts = matchClockEntriesToShifts(staff, date)
+    
+    // If any shift has a clock-in, use that status
+    const shiftWithClockIn = matchedShifts.find(s => s.clockIn !== null)
+    if (shiftWithClockIn) {
+      return shiftWithClockIn.status
+    }
+    
+    // If any shift is incoming, return incoming
+    if (matchedShifts.some(s => s.status === "incoming")) {
+      return "incoming"
+    }
+    
+    // If any shift is absent, return absent
+    if (matchedShifts.some(s => s.status === "absent")) {
+      return "absent"
+    }
+    
+    // Default to expected
+    return "expected"
   }
 
-  const getTodaySchedule = (staff: Staff, date = new Date()) => {
-    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
-    const dayName = dayNames[date.getDay()]
-    return staff.weeklySchedule?.[dayName] || []
+  const getTodaySchedule = (staff: Student, date = new Date()) => {
+    return getTodayScheduleForDate(staff, date)
+  }
+  
+  const getCurrentStatus = (staff: Student, date = new Date()) => {
+    // Use shared logic to check if currently clocked in (handles multiple shifts)
+    if (isCurrentlyClockedIn(staff, date)) {
+      return "present"
+    }
+    
+    // Check if they have any upcoming shifts today
+    const todaySchedule = getTodayScheduleForDate(staff, date)
+    if (todaySchedule.length > 0) {
+      return "expected"
+    }
+    
+    return "absent"
   }
 
   return (
@@ -143,11 +145,17 @@ export function AttendanceOverview({ staffData, selectedTerm }: AttendanceOvervi
                     <span className="text-muted-foreground italic text-xs">Not scheduled</span>
                   )}
                 </TableCell>
-                <TableCell className="font-mono text-foreground">{staff.todayActual || "—"}</TableCell>
-                <TableCell>{getStatusBadge(getTodayStatus(staff))}</TableCell>
-                <TableCell>{getCurrentStatusBadge(staff.currentStatus)}</TableCell>
+                <TableCell className="font-mono text-foreground">
+                  {(() => {
+                    const matchedShifts = matchClockEntriesToShifts(staff, new Date())
+                    const shiftWithClockIn = matchedShifts.find(s => s.clockIn !== null)
+                    return shiftWithClockIn?.clockIn || "—"
+                  })()}
+                </TableCell>
+                <TableCell>{getStatusBadge(getTodayStatus(staff, new Date()))}</TableCell>
+                <TableCell>{getCurrentStatusBadge(getCurrentStatus(staff, new Date()))}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {staff.clockEntries.length > 0
+                  {staff.clockEntries && staff.clockEntries.length > 0
                     ? new Date(staff.clockEntries[staff.clockEntries.length - 1].timestamp).toLocaleString()
                     : "—"}
                 </TableCell>
