@@ -284,6 +284,73 @@ export default function HomePage() {
       return aFirstName.localeCompare(bFirstName)
     })
 
+  const currentTimeCard = (
+    <Card className="mb-6 sm:mb-8 bg-card/70 backdrop-blur-sm shadow-lg">
+      <CardContent className="p-4 sm:p-8 text-center">
+        <div className="space-y-2">
+          <div className="text-3xl sm:text-5xl lg:text-6xl font-mono font-bold text-foreground tracking-tight">
+            {formatTime(currentTime)}
+          </div>
+          <div className="text-sm sm:text-lg lg:text-xl text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
+            <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="break-words">{formatDate(currentTime)}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+
+  const manualClockForms = (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8 max-w-md mx-auto">
+      <div className="flex justify-center">
+        <ClockInForm
+          isOpen={isLoginOpen}
+          onToggle={() => {
+            setIsLoginOpen(!isLoginOpen)
+            setIsCardSwipeDisabled(!isLoginOpen)
+          }}
+          onClockIn={handleManualClockIn}
+          staffData={staffData}
+          mode="in"
+          title="Manual Clock In"
+          buttonText="Manual Clock In"
+        />
+      </div>
+
+      <div className="flex justify-center">
+        <ClockInForm
+          isOpen={isClockOutOpen}
+          onToggle={() => {
+            setIsClockOutOpen(!isClockOutOpen)
+            setIsCardSwipeDisabled(!isClockOutOpen)
+          }}
+          onClockIn={handleManualClockOut}
+          staffData={staffData}
+          mode="out"
+          title="Manual Clock Out"
+          buttonText="Manual Clock Out"
+        />
+      </div>
+    </div>
+  )
+
+  const cardSwiperInstructions = (
+    <Card className="mb-6 sm:mb-8 bg-card/70 backdrop-blur-sm shadow-lg">
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-secondary rounded-lg flex items-center justify-center flex-shrink-0">
+            <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
+          </div>
+          <div>
+            <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">Quick Clock In/Out</h3>
+            <p className="text-sm sm:text-base text-muted-foreground">Swipe your ID card to clock in or out automatically</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Or use manually clock in</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
@@ -326,12 +393,36 @@ export default function HomePage() {
 
         {/* Loading State */}
         {isLoading && (
-          <Card className="mb-4 sm:mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-lg">
-            <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
-              <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-              <span className="text-sm sm:text-base text-blue-800 dark:text-blue-300 font-medium">Loading data...</span>
-            </CardContent>
-          </Card>
+          <div className="mb-6 sm:mb-10 space-y-6 sm:space-y-8">
+            {cardSwiperInstructions}
+            {currentTimeCard}
+            {manualClockForms}
+            <div>
+              <span className="sr-only">Loading attendance data...</span>
+              <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+                {[0, 1].map((table) => (
+                  <div key={table} className="rounded-2xl border border-border/70 bg-card/70 backdrop-blur-sm p-4 sm:p-6 animate-pulse">
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                      <div className="h-5 w-32 bg-muted/60 rounded" />
+                      <div className="h-4 w-16 bg-muted/50 rounded" />
+                    </div>
+                    <div className="grid grid-cols-[auto,1fr,auto] gap-3 text-sm text-muted-foreground">
+                      {[...Array(5)].map((_, rowIndex) => (
+                        <div key={rowIndex} className="col-span-3 grid grid-cols-[auto,1fr,auto] gap-3 items-center">
+                          <div className="h-8 w-8 rounded-full bg-muted/50" />
+                          <div className="space-y-2 py-1">
+                            <div className="h-4 w-32 bg-muted/70 rounded" />
+                            <div className="h-3 w-24 bg-muted/50 rounded" />
+                          </div>
+                          <div className="h-4 w-20 bg-muted/40 rounded justify-self-end" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
 
         {!isLoading && !error && (
@@ -357,70 +448,13 @@ export default function HomePage() {
             )}
 
             {/* Card Swiper Instructions */}
-            <Card className="mb-6 sm:mb-8 bg-card/70 backdrop-blur-sm shadow-lg">
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-secondary rounded-lg flex items-center justify-center flex-shrink-0">
-                    <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">Quick Clock In/Out</h3>
-                    <p className="text-sm sm:text-base text-muted-foreground">Swipe your ID card to clock in or out automatically</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">Or use manually clock in</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {cardSwiperInstructions}
 
             {/* Current Time Display */}
-            <Card className="mb-6 sm:mb-8 bg-card/70 backdrop-blur-sm shadow-lg">
-              <CardContent className="p-4 sm:p-8 text-center">
-                <div className="space-y-2">
-                  <div className="text-3xl sm:text-5xl lg:text-6xl font-mono font-bold text-foreground tracking-tight">
-                    {formatTime(currentTime)}
-                  </div>
-                  <div className="text-sm sm:text-lg lg:text-xl text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
-                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-                    <span className="break-words">{formatDate(currentTime)}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {currentTimeCard}
 
             {/* Manual Clock In/Out Buttons */}
-            {!isLoading && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8 max-w-md mx-auto">
-                <div className="flex justify-center">
-                  <ClockInForm
-                    isOpen={isLoginOpen}
-                    onToggle={() => {
-                      setIsLoginOpen(!isLoginOpen)
-                      setIsCardSwipeDisabled(!isLoginOpen)
-                    }}
-                    onClockIn={handleManualClockIn}
-                    staffData={staffData}
-                    mode="in"
-                    title="Manual Clock In"
-                    buttonText="Manual Clock In"
-                  />
-                </div>
-
-                <div className="flex justify-center">
-                  <ClockInForm
-                    isOpen={isClockOutOpen}
-                    onToggle={() => {
-                      setIsClockOutOpen(!isClockOutOpen)
-                      setIsCardSwipeDisabled(!isClockOutOpen)
-                    }}
-                    onClockIn={handleManualClockOut}
-                    staffData={staffData}
-                    mode="out"
-                    title="Manual Clock Out"
-                    buttonText="Manual Clock Out"
-                  />
-                </div>
-              </div>
-            )}
+            {manualClockForms}
 
             {/* Tables Grid */}
             <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
