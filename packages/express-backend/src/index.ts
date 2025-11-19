@@ -25,15 +25,18 @@ const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps, Postman, or curl)
     if (!origin) return callback(null, true);
-    
+
     // Get allowed origins from environment variable
-    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || [];
-    
+    const allowedOrigins =
+      process.env.ALLOWED_ORIGINS?.split(',').map((o) => o.trim()) || [];
+
     // Log CORS configuration on first request (for debugging)
     if (allowedOrigins.length === 0) {
-      console.warn('⚠️  ALLOWED_ORIGINS not set - no origins will be allowed in production');
+      console.warn(
+        '⚠️  ALLOWED_ORIGINS not set - no origins will be allowed in production'
+      );
     }
-    
+
     // Check if origin is in the allowed list
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -80,7 +83,7 @@ async function startServer(): Promise<void> {
   try {
     // Connect to database
     await connectDB();
-    
+
     const PORT: number = parseInt(process.env.PORT || '8000', 10);
     app.listen(PORT, () => {
       console.log(`✅ Server is running on port ${PORT}`);

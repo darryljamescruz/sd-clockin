@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { SchedulesPage } from "@/components/schedules-page"
+import { SchedulesPage } from "@/components/admin/students/schedules-page"
 import { api, type Student, type Term } from "@/lib/api"
 import { Card, CardContent } from "@/components/ui/card"
 import { AlertTriangle, Loader2 } from "lucide-react"

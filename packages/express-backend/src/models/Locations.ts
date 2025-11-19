@@ -1,4 +1,3 @@
-
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ILocation extends Document {
@@ -24,4 +23,3 @@ locationSchema.index({ code: 1 }, { unique: true });
 locationSchema.index({ isActive: 1 });
 
 export default mongoose.model<ILocation>('Location', locationSchema);
-

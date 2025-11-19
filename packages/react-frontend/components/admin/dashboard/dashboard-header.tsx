@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { TermSelector } from "./term-selector"
+import { TermSelector } from "../terms/term-selector"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 interface Term {

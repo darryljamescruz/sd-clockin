@@ -31,7 +31,12 @@ router.get('/', async (req: Request, res: Response) => {
     res.json(termsFormatted);
   } catch (error) {
     console.error('Error fetching terms:', error);
-    res.status(500).json({ message: 'Error fetching terms', error: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        message: 'Error fetching terms',
+        error: (error as Error).message,
+      });
   }
 });
 
@@ -55,7 +60,12 @@ router.get('/:id', (async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error fetching term:', error);
-    res.status(500).json({ message: 'Error fetching term', error: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        message: 'Error fetching term',
+        error: (error as Error).message,
+      });
   }
 }) as RequestHandler);
 
@@ -79,14 +89,18 @@ router.post('/', (async (req: Request, res: Response) => {
     const { name, startDate, endDate, isActive, daysOff, notes } = req.body;
 
     if (!name || !startDate || !endDate) {
-      return res.status(400).json({ message: 'Name, startDate, and endDate are required' });
+      return res
+        .status(400)
+        .json({ message: 'Name, startDate, and endDate are required' });
     }
 
     const start = parseDateString(startDate);
     const end = parseDateString(endDate);
 
     if (start >= end) {
-      return res.status(400).json({ message: 'Start date must be before end date' });
+      return res
+        .status(400)
+        .json({ message: 'Start date must be before end date' });
     }
 
     const year = start.getFullYear();
@@ -98,11 +112,15 @@ router.post('/', (async (req: Request, res: Response) => {
         const rangeStart = parseDateString(range.startDate);
         const rangeEnd = parseDateString(range.endDate);
         if (rangeStart > rangeEnd) {
-          throw new Error('Day off start date must be before or equal to end date');
+          throw new Error(
+            'Day off start date must be before or equal to end date'
+          );
         }
         // Validate that days off are within term dates
         if (rangeStart < start || rangeEnd > end) {
-          throw new Error('Days off must be within the term start and end dates');
+          throw new Error(
+            'Days off must be within the term start and end dates'
+          );
         }
         return {
           startDate: rangeStart,
@@ -140,7 +158,12 @@ router.post('/', (async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error creating term:', error);
-    res.status(500).json({ message: 'Error creating term', error: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        message: 'Error creating term',
+        error: (error as Error).message,
+      });
   }
 }) as RequestHandler);
 
@@ -159,7 +182,9 @@ router.put('/:id', (async (req: Request, res: Response) => {
       const end = parseDateString(endDate);
 
       if (start >= end) {
-        return res.status(400).json({ message: 'Start date must be before end date' });
+        return res
+          .status(400)
+          .json({ message: 'Start date must be before end date' });
       }
 
       term.startDate = start;
@@ -168,14 +193,18 @@ router.put('/:id', (async (req: Request, res: Response) => {
     } else if (startDate) {
       const start = parseDateString(startDate);
       if (start >= term.endDate) {
-        return res.status(400).json({ message: 'Start date must be before end date' });
+        return res
+          .status(400)
+          .json({ message: 'Start date must be before end date' });
       }
       term.startDate = start;
       term.year = start.getFullYear();
     } else if (endDate) {
       const end = parseDateString(endDate);
       if (term.startDate >= end) {
-        return res.status(400).json({ message: 'Start date must be before end date' });
+        return res
+          .status(400)
+          .json({ message: 'Start date must be before end date' });
       }
       term.endDate = end;
     }
@@ -190,13 +219,17 @@ router.put('/:id', (async (req: Request, res: Response) => {
           const rangeStart = parseDateString(range.startDate);
           const rangeEnd = parseDateString(range.endDate);
           if (rangeStart > rangeEnd) {
-            throw new Error('Day off start date must be before or equal to end date');
+            throw new Error(
+              'Day off start date must be before or equal to end date'
+            );
           }
           // Validate that days off are within term dates
           const termStart = term.startDate;
           const termEnd = term.endDate;
           if (rangeStart < termStart || rangeEnd > termEnd) {
-            throw new Error('Days off must be within the term start and end dates');
+            throw new Error(
+              'Days off must be within the term start and end dates'
+            );
           }
           return {
             startDate: rangeStart,
@@ -212,7 +245,10 @@ router.put('/:id', (async (req: Request, res: Response) => {
     // If this term is being set as active, deactivate all other terms
     if (isActive !== undefined) {
       if (isActive) {
-        await Term.updateMany({ _id: { $ne: req.params.id } }, { isActive: false });
+        await Term.updateMany(
+          { _id: { $ne: req.params.id } },
+          { isActive: false }
+        );
       }
       term.isActive = isActive;
     }
@@ -230,7 +266,12 @@ router.put('/:id', (async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error updating term:', error);
-    res.status(500).json({ message: 'Error updating term', error: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        message: 'Error updating term',
+        error: (error as Error).message,
+      });
   }
 }) as RequestHandler);
 
@@ -246,9 +287,13 @@ router.delete('/:id', (async (req: Request, res: Response) => {
     res.json({ message: 'Term deleted successfully' });
   } catch (error) {
     console.error('Error deleting term:', error);
-    res.status(500).json({ message: 'Error deleting term', error: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        message: 'Error deleting term',
+        error: (error as Error).message,
+      });
   }
 }) as RequestHandler);
 
 export default router;
-

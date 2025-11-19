@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { TermAnalytics } from "@/components/term-analytics"
+import { TermAnalytics } from "@/components/admin/terms/term-analytics"
 import { api, type Student, type Term } from "@/lib/api"
 import { Card, CardContent } from "@/components/ui/card"
 import { AlertTriangle, Loader2 } from "lucide-react"
-import { TermSelector } from "@/components/term-selector"
+import { TermSelector } from "@/components/admin/terms/term-selector"
 
 export default function AnalyticsPage() {
   const [staffData, setStaffData] = useState<Student[]>([])

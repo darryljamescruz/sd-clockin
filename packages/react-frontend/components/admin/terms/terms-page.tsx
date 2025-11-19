@@ -204,7 +204,7 @@ export function TermsPage({ terms, onAddTerm, onEditTerm, onDeleteTerm, onBack }
       )}
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deletingTerm} onOpenChange={(open) => !open && setDeletingTerm(null)}>
+      <AlertDialog open={!!deletingTerm} onOpenChange={(open: boolean) => !open && setDeletingTerm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">

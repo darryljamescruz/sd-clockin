@@ -13,6 +13,7 @@ import {
   User2,
   BarChart3,
   FileText,
+  MapPin,
 } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
@@ -49,6 +50,11 @@ const navigationItems = [
     url: "/admin/schedule-view",
     icon: Clock,
   },
+  // {
+  //   title: "Locations View",
+  //   url: "/admin/",
+  //   icon: MapPin,
+  // },
 ]
 
 const manageItems = [

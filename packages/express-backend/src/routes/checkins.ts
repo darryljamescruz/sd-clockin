@@ -49,13 +49,22 @@ router.get('/', async (req: Request, res: Response) => {
     res.json(checkInsFormatted);
   } catch (error) {
     console.error('Error fetching check-ins:', error);
-    res.status(500).json({ message: 'Error fetching check-ins', error: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        message: 'Error fetching check-ins',
+        error: (error as Error).message,
+      });
   }
 });
 
 // Helper function to check if a date is a day off
 const isDayOff = (date: Date, term: any): boolean => {
-  if (!term.daysOff || !Array.isArray(term.daysOff) || term.daysOff.length === 0) {
+  if (
+    !term.daysOff ||
+    !Array.isArray(term.daysOff) ||
+    term.daysOff.length === 0
+  ) {
     return false;
   }
 
@@ -78,7 +87,9 @@ router.post('/', (async (req: Request, res: Response) => {
     const { studentId, termId, type, timestamp, isManual } = req.body;
 
     if (!studentId || !termId || !type) {
-      return res.status(400).json({ message: 'studentId, termId, and type are required' });
+      return res
+        .status(400)
+        .json({ message: 'studentId, termId, and type are required' });
     }
 
     // Verify student and term exist
@@ -96,8 +107,9 @@ router.post('/', (async (req: Request, res: Response) => {
     // Check if the check-in date is a day off
     const checkInDate = timestamp ? new Date(timestamp) : new Date();
     if (isDayOff(checkInDate, term)) {
-      return res.status(400).json({ 
-        message: 'Cannot check in on a day off. This date is marked as a day off for this term.' 
+      return res.status(400).json({
+        message:
+          'Cannot check in on a day off. This date is marked as a day off for this term.',
       });
     }
 
@@ -115,15 +127,20 @@ router.post('/', (async (req: Request, res: Response) => {
     // Use PST date to ensure consistency with how shifts are queried in students route
     const savedCheckInTimestamp = new Date(savedCheckIn.timestamp);
     const shiftDate = getPSTDateAsUTC(savedCheckInTimestamp);
-    
-    console.log('Creating/finding shift for date:', shiftDate, 'from check-in:', savedCheckIn.timestamp);
-    
+
+    console.log(
+      'Creating/finding shift for date:',
+      shiftDate,
+      'from check-in:',
+      savedCheckIn.timestamp
+    );
+
     let shift = await Shift.findOne({
       studentId: savedCheckIn.studentId,
       termId: savedCheckIn.termId,
       date: shiftDate,
     });
-    
+
     if (!shift) {
       shift = new Shift({
         studentId: savedCheckIn.studentId,
@@ -134,7 +151,7 @@ router.post('/', (async (req: Request, res: Response) => {
         source: 'manual',
       });
     }
-    
+
     if (type === 'in') {
       shift.status = 'started';
       shift.actualStart = savedCheckIn.timestamp;
@@ -142,7 +159,7 @@ router.post('/', (async (req: Request, res: Response) => {
       shift.status = 'completed';
       shift.actualEnd = savedCheckIn.timestamp;
     }
-    
+
     await shift.save();
 
     res.status(201).json({
@@ -155,7 +172,12 @@ router.post('/', (async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error creating check-in:', error);
-    res.status(500).json({ message: 'Error creating check-in', error: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        message: 'Error creating check-in',
+        error: (error as Error).message,
+      });
   }
 }) as RequestHandler);
 
@@ -187,8 +209,9 @@ router.put('/:id', (async (req: Request, res: Response) => {
       const newTimestamp = new Date(timestamp);
       // Check if the new timestamp is on a day off
       if (isDayOff(newTimestamp, term)) {
-        return res.status(400).json({ 
-          message: 'Cannot update check-in to a day off. This date is marked as a day off for this term.' 
+        return res.status(400).json({
+          message:
+            'Cannot update check-in to a day off. This date is marked as a day off for this term.',
         });
       }
       checkIn.timestamp = newTimestamp;
@@ -208,7 +231,7 @@ router.put('/:id', (async (req: Request, res: Response) => {
     // Use PST date to ensure consistency with how shifts are queried in students route
     const checkInDate = new Date(updatedCheckIn.timestamp);
     const shiftDate = getPSTDateAsUTC(checkInDate);
-    
+
     const shift = await Shift.findOne({
       studentId: updatedCheckIn.studentId,
       termId: updatedCheckIn.termId,
@@ -235,7 +258,12 @@ router.put('/:id', (async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error updating check-in:', error);
-    res.status(500).json({ message: 'Error updating check-in', error: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        message: 'Error updating check-in',
+        error: (error as Error).message,
+      });
   }
 }) as RequestHandler);
 
@@ -251,9 +279,13 @@ router.delete('/:id', (async (req: Request, res: Response) => {
     res.json({ message: 'Check-in deleted successfully' });
   } catch (error) {
     console.error('Error deleting check-in:', error);
-    res.status(500).json({ message: 'Error deleting check-in', error: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        message: 'Error deleting check-in',
+        error: (error as Error).message,
+      });
   }
 }) as RequestHandler);
 
 export default router;
-

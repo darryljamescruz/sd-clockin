@@ -21,7 +21,7 @@ router.post('/preview', (async (req: Request, res: Response) => {
 
     // Get all existing students
     const existingStudents = await Student.find({}).lean();
-    const studentsSimple = existingStudents.map(s => ({
+    const studentsSimple = existingStudents.map((s) => ({
       id: s._id.toString(),
       name: s.name,
     }));
@@ -30,8 +30,8 @@ router.post('/preview', (async (req: Request, res: Response) => {
     const matched = matchStudentsByName(processedSchedules, studentsSimple);
 
     // Separate matched and unmatched (unmatched will be created)
-    const matchedStudents = matched.filter(m => m.matched);
-    const unmatchedStudents = matched.filter(m => !m.matched);
+    const matchedStudents = matched.filter((m) => m.matched);
+    const unmatchedStudents = matched.filter((m) => !m.matched);
 
     res.json({
       success: true,
@@ -45,9 +45,9 @@ router.post('/preview', (async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error previewing CSV import:', error);
-    res.status(500).json({ 
-      message: 'Error previewing CSV import', 
-      error: (error as Error).message 
+    res.status(500).json({
+      message: 'Error previewing CSV import',
+      error: (error as Error).message,
     });
   }
 }) as RequestHandler);
@@ -58,7 +58,9 @@ router.post('/schedules', (async (req: Request, res: Response) => {
     const { csvContent, termId } = req.body;
 
     if (!csvContent || !termId) {
-      return res.status(400).json({ message: 'csvContent and termId are required' });
+      return res
+        .status(400)
+        .json({ message: 'csvContent and termId are required' });
     }
 
     // Verify term exists
@@ -72,7 +74,7 @@ router.post('/schedules', (async (req: Request, res: Response) => {
 
     // Get all existing students
     const existingStudents = await Student.find({}).lean();
-    const studentsSimple = existingStudents.map(s => ({
+    const studentsSimple = existingStudents.map((s) => ({
       id: s._id.toString(),
       name: s.name,
     }));
@@ -91,11 +93,13 @@ router.post('/schedules', (async (req: Request, res: Response) => {
 
         // If student doesn't exist, create them
         if (!student.matched) {
-          console.log(`Creating new student: ${student.csvName} (default role: Student Assistant)`);
-          
+          console.log(
+            `Creating new student: ${student.csvName} (default role: Student Assistant)`
+          );
+
           // Generate a placeholder card ID (can be updated later)
           const placeholderCardId = `TEMP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          
+
           const newStudent = new Student({
             name: student.csvName,
             iso: placeholderCardId,
@@ -117,9 +121,9 @@ router.post('/schedules', (async (req: Request, res: Response) => {
         const normalizedAvailability = normalizeSchedule(student.availability);
 
         // Find or create schedule
-        let schedule = await Schedule.findOne({ 
-          studentId, 
-          termId 
+        let schedule = await Schedule.findOne({
+          studentId,
+          termId,
         });
 
         if (schedule) {
@@ -166,12 +170,11 @@ router.post('/schedules', (async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error importing schedules:', error);
-    res.status(500).json({ 
-      message: 'Error importing schedules', 
-      error: (error as Error).message 
+    res.status(500).json({
+      message: 'Error importing schedules',
+      error: (error as Error).message,
     });
   }
 }) as RequestHandler);
 
 export default router;
-

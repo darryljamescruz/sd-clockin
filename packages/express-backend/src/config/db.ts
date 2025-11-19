@@ -2,8 +2,9 @@ import mongoose from 'mongoose';
 
 export default async function connectDB(): Promise<void> {
   // Support both MONGO_URI and MONGODB_URI for flexibility
-  const mongoURI: string | undefined = process.env.MONGO_URI || process.env.MONGODB_URI;
-  
+  const mongoURI: string | undefined =
+    process.env.MONGO_URI || process.env.MONGODB_URI;
+
   if (!mongoURI) {
     console.error('❌ MongoDB URI is not defined in environment variables');
     console.error('Please set MONGO_URI or MONGODB_URI in your .env file');

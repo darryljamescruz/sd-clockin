@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Clock, Calendar, CreditCard, CheckCircle, AlertTriangle } from "lucide-react"
 import { ClockInForm } from "@/components/clock-in-form"
-import { AdminLogin } from "@/components/admin-login"
+import { AdminLogin } from "@/components/admin/layout/admin-login"
 import { ClockedInTable } from "@/components/clocked-in-table"
 import { ExpectedArrivalsTable } from "@/components/expected-arrivals-table"
 import { ThemeToggle } from "@/components/theme-toggle"

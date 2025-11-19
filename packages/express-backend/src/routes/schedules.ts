@@ -12,7 +12,9 @@ router.get('/', (async (req: Request, res: Response) => {
     const { studentId, termId } = req.query;
 
     if (!studentId || !termId) {
-      return res.status(400).json({ message: 'studentId and termId are required' });
+      return res
+        .status(400)
+        .json({ message: 'studentId and termId are required' });
     }
 
     const schedule = await Schedule.findOne({ studentId, termId }).lean();
@@ -39,7 +41,12 @@ router.get('/', (async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error fetching schedule:', error);
-    res.status(500).json({ message: 'Error fetching schedule', error: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        message: 'Error fetching schedule',
+        error: (error as Error).message,
+      });
   }
 }) as RequestHandler);
 
@@ -49,7 +56,9 @@ router.post('/', (async (req: Request, res: Response) => {
     const { studentId, termId, availability } = req.body;
 
     if (!studentId || !termId || !availability) {
-      return res.status(400).json({ message: 'studentId, termId, and availability are required' });
+      return res
+        .status(400)
+        .json({ message: 'studentId, termId, and availability are required' });
     }
 
     // Verify student and term exist
@@ -92,7 +101,12 @@ router.post('/', (async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error creating/updating schedule:', error);
-    res.status(500).json({ message: 'Error creating/updating schedule', error: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        message: 'Error creating/updating schedule',
+        error: (error as Error).message,
+      });
   }
 }) as RequestHandler);
 
@@ -102,7 +116,9 @@ router.delete('/', (async (req: Request, res: Response) => {
     const { studentId, termId } = req.query;
 
     if (!studentId || !termId) {
-      return res.status(400).json({ message: 'studentId and termId are required' });
+      return res
+        .status(400)
+        .json({ message: 'studentId and termId are required' });
     }
 
     const schedule = await Schedule.findOneAndDelete({ studentId, termId });
@@ -114,9 +130,13 @@ router.delete('/', (async (req: Request, res: Response) => {
     res.json({ message: 'Schedule deleted successfully' });
   } catch (error) {
     console.error('Error deleting schedule:', error);
-    res.status(500).json({ message: 'Error deleting schedule', error: (error as Error).message });
+    res
+      .status(500)
+      .json({
+        message: 'Error deleting schedule',
+        error: (error as Error).message,
+      });
   }
 }) as RequestHandler);
 
 export default router;
-

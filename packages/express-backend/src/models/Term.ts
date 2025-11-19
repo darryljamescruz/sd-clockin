@@ -16,11 +16,14 @@ export interface ITerm extends Document {
   notes?: string;
 }
 
-const dayOffRangeSchema = new mongoose.Schema({
-  startDate: { type: Date, required: true },
-  endDate: { type: Date, required: true },
-  notes: { type: String, default: '' },
-}, { _id: false });
+const dayOffRangeSchema = new mongoose.Schema(
+  {
+    startDate: { type: Date, required: true },
+    endDate: { type: Date, required: true },
+    notes: { type: String, default: '' },
+  },
+  { _id: false }
+);
 
 const termSchema: Schema<ITerm> = new mongoose.Schema({
   name: { type: String, required: true },

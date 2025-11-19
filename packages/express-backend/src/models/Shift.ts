@@ -37,5 +37,3 @@ shiftSchema.index({ locationId: 1, date: 1 });
 shiftSchema.index({ termId: 1 });
 
 export default mongoose.model<IShift>('Shift', shiftSchema);
-
-

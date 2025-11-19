@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { TermsPage } from "@/components/terms-page"
+import { TermsPage } from "@/components/admin/terms/terms-page"
 import { api, type Term } from "@/lib/api"
 import { Card, CardContent } from "@/components/ui/card"
 import { AlertTriangle, Loader2 } from "lucide-react"

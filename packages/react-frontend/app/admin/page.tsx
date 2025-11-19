@@ -5,9 +5,9 @@ import { AlertTriangle, Loader2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 
-import { DashboardHeader } from "@/components/dashboard-header"
-import { StatsCards } from "@/components/stats-cards"
-import { HourlyDashboard } from "@/components/hourly-dashboard"
+import { DashboardHeader } from "@/components/admin/dashboard/dashboard-header"
+import { StatsCards } from "@/components/admin/dashboard/stats-cards"
+import { HourlyDashboard } from "@/components/admin/dashboard/hourly-dashboard"
 import { api, type Student, type Term } from "@/lib/api"
 import { parseDateString } from "@/lib/utils"
 
