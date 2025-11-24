@@ -33,23 +33,62 @@ router.get('/', (async (req: Request, res: Response) => {
       // This ensures consistent behavior across different server timezones (local vs Vercel UTC)
       const { startOfDay, endOfDay } = getPSTDayBoundaries(now);
       const { pstYear, pstMonth, pstDate } = getPSTDateComponents(now);
+      const today = new Date(Date.UTC(pstYear, pstMonth, pstDate));
 
-      const studentsWithData = await Promise.all(
-        students.map(async (student) => {
-          const schedule = await Schedule.findOne({
-            studentId: student._id,
-            termId,
-          }).lean();
+      // OPTIMIZATION: Fetch all data in bulk instead of N+1 queries
+      // This reduces 400+ queries to just 4 queries for 100 students!
+      const [allSchedules, allTodayShifts, allTodayCheckIns, allHistoricalCheckIns] = await Promise.all([
+        // 1. Get all schedules for this term
+        Schedule.find({ termId }).lean(),
 
-          // Get today's shift for this student (simplest approach using Shift model)
-          // Use PST date for consistent querying (matches the day boundaries above)
-          const today = new Date(Date.UTC(pstYear, pstMonth, pstDate));
+        // 2. Get all shifts for today
+        Shift.find({ termId, date: today }).lean(),
 
-          const todayShift = await Shift.findOne({
-            studentId: student._id,
-            termId,
-            date: today,
-          }).lean();
+        // 3. Get all today's check-ins
+        CheckIn.find({
+          termId,
+          timestamp: { $gte: startOfDay, $lte: endOfDay },
+        }).sort({ timestamp: -1 }).lean(),
+
+        // 4. Get recent historical check-ins for all students (limited for performance)
+        CheckIn.find({ termId })
+          .sort({ timestamp: -1 })
+          .limit(students.length * 50) // 50 per student max
+          .lean(),
+      ]);
+
+      // Build lookup maps for O(1) access
+      const schedulesMap = new Map();
+      allSchedules.forEach(s => schedulesMap.set(s.studentId.toString(), s));
+
+      const shiftsMap = new Map();
+      allTodayShifts.forEach(s => shiftsMap.set(s.studentId.toString(), s));
+
+      const todayCheckInsMap = new Map();
+      allTodayCheckIns.forEach(c => {
+        const key = c.studentId.toString();
+        if (!todayCheckInsMap.has(key)) {
+          todayCheckInsMap.set(key, []);
+        }
+        todayCheckInsMap.get(key).push(c);
+      });
+
+      const historicalCheckInsMap = new Map();
+      allHistoricalCheckIns.forEach(c => {
+        const key = c.studentId.toString();
+        if (!historicalCheckInsMap.has(key)) {
+          historicalCheckInsMap.set(key, []);
+        }
+        if (historicalCheckInsMap.get(key).length < 50) {
+          historicalCheckInsMap.get(key).push(c);
+        }
+      });
+
+      // Process each student with pre-fetched data (no more queries!)
+      const studentsWithData = students.map((student) => {
+        const studentIdStr = student._id.toString();
+        const schedule = schedulesMap.get(studentIdStr);
+        const todayShift = shiftsMap.get(studentIdStr);
 
           // Determine current status from shift and schedule
           // IMPORTANT: For main page, status should be based on ACTUAL clock-in, not schedule
@@ -92,13 +131,7 @@ router.get('/', (async (req: Request, res: Response) => {
 
           // If not clocked in yet, check fallback: manual check-ins without shift
           if (currentStatus === 'off') {
-            const todayCheckIns = await CheckIn.find({
-              studentId: student._id,
-              termId,
-              timestamp: { $gte: startOfDay, $lte: endOfDay },
-            })
-              .sort({ timestamp: -1 })
-              .lean();
+            const todayCheckIns = todayCheckInsMap.get(studentIdStr) || [];
 
             if (todayCheckIns.length > 0) {
               const lastCheckIn = todayCheckIns[0];
@@ -414,17 +447,11 @@ router.get('/', (async (req: Request, res: Response) => {
           console.log('Expected shift end:', expectedEndShift);
           console.log('---');
 
-          // Get all check-ins for historical data (limited for performance)
-          const checkIns = await CheckIn.find({
-            studentId: student._id,
-            termId,
-          })
-            .sort({ timestamp: -1 })
-            .limit(50)
-            .lean();
+          // Get historical check-ins from pre-fetched data
+          const checkIns = historicalCheckInsMap.get(studentIdStr) || [];
 
           return {
-            id: student._id,
+            id: String(student._id),
             name: student.name,
             cardId: student.iso,
             role: student.role,
@@ -439,22 +466,21 @@ router.get('/', (async (req: Request, res: Response) => {
               thursday: [],
               friday: [],
             },
-            clockEntries: checkIns.map((entry) => ({
+            clockEntries: checkIns.map((entry: any) => ({
               id: entry._id.toString(),
               timestamp: entry.timestamp,
               type: entry.type,
               isManual: entry.isManual,
             })),
           };
-        })
-      );
+        });
 
       return res.json(studentsWithData);
     }
 
     // Return basic student info if no termId provided
     const studentsBasic = students.map((student) => ({
-      id: student._id,
+      id: String(student._id),
       name: student.name,
       cardId: student.iso,
       role: student.role,
@@ -712,7 +738,7 @@ router.get('/:id', (async (req: Request, res: Response) => {
         .lean();
 
       return res.json({
-        id: student._id,
+        id: String(student._id),
         name: student.name,
         cardId: student.iso,
         role: student.role,
@@ -738,7 +764,7 @@ router.get('/:id', (async (req: Request, res: Response) => {
 
     // Return basic student info if no termId provided
     res.json({
-      id: student._id,
+      id: String(student._id),
       name: student.name,
       cardId: student.iso,
       role: student.role,
@@ -786,7 +812,7 @@ router.post('/', (async (req: Request, res: Response) => {
     await cache.delete(CacheKeys.STUDENT_LIST);
 
     res.status(201).json({
-      id: newStudent._id,
+      id: String(newStudent._id),
       name: newStudent.name,
       cardId: newStudent.iso,
       role: newStudent.role,
@@ -830,10 +856,10 @@ router.put('/:id', (async (req: Request, res: Response) => {
     await student.save();
 
     // Invalidate caches for this student
-    await cache.invalidateStudent(student._id.toString());
+    await cache.invalidateStudent(String(student._id));
 
     res.json({
-      id: student._id,
+      id: String(student._id),
       name: student.name,
       cardId: student.iso,
       role: student.role,

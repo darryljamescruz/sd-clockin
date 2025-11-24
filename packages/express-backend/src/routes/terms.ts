@@ -8,14 +8,19 @@ const router = express.Router();
 const formatDaysOff = (daysOff: any[]): any[] => {
   if (!daysOff || !Array.isArray(daysOff)) return [];
   return daysOff.map((range) => ({
-    startDate: range.startDate.toISOString().split('T')[0],
-    endDate: range.endDate.toISOString().split('T')[0],
+    // Handle both Date objects and strings
+    startDate: typeof range.startDate === 'string'
+      ? range.startDate.split('T')[0]
+      : range.startDate.toISOString().split('T')[0],
+    endDate: typeof range.endDate === 'string'
+      ? range.endDate.split('T')[0]
+      : range.endDate.toISOString().split('T')[0],
     notes: range.notes || '',
   }));
 };
 
 // GET active term (most frequently accessed - called on every dashboard load)
-router.get('/active', async (req: Request, res: Response) => {
+router.get('/active', (async (req: Request, res: Response) => {
   try {
     const activeTerm = await cache.wrapper(
       CacheKeys.ACTIVE_TERM,
@@ -30,8 +35,13 @@ router.get('/active', async (req: Request, res: Response) => {
     res.json({
       id: activeTerm._id,
       name: activeTerm.name,
-      startDate: activeTerm.startDate.toISOString().split('T')[0],
-      endDate: activeTerm.endDate.toISOString().split('T')[0],
+      // Handle both Date objects and strings
+      startDate: typeof activeTerm.startDate === 'string'
+        ? activeTerm.startDate.split('T')[0]
+        : activeTerm.startDate.toISOString().split('T')[0],
+      endDate: typeof activeTerm.endDate === 'string'
+        ? activeTerm.endDate.split('T')[0]
+        : activeTerm.endDate.toISOString().split('T')[0],
       isActive: activeTerm.isActive,
       daysOff: formatDaysOff(activeTerm.daysOff),
       notes: activeTerm.notes || '',
@@ -45,10 +55,10 @@ router.get('/active', async (req: Request, res: Response) => {
         error: (error as Error).message,
       });
   }
-});
+}) as RequestHandler);
 
 // GET all terms
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', (async (req: Request, res: Response) => {
   try {
     const terms = await cache.wrapper(
       CacheKeys.TERMS_LIST,
@@ -59,8 +69,13 @@ router.get('/', async (req: Request, res: Response) => {
     const termsFormatted = terms.map((term) => ({
       id: term._id,
       name: term.name,
-      startDate: term.startDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
-      endDate: term.endDate.toISOString().split('T')[0],
+      // Handle both Date objects (from DB) and strings (from cache)
+      startDate: typeof term.startDate === 'string'
+        ? term.startDate.split('T')[0]
+        : term.startDate.toISOString().split('T')[0],
+      endDate: typeof term.endDate === 'string'
+        ? term.endDate.split('T')[0]
+        : term.endDate.toISOString().split('T')[0],
       isActive: term.isActive,
       daysOff: formatDaysOff(term.daysOff),
       notes: term.notes || '',
@@ -76,7 +91,7 @@ router.get('/', async (req: Request, res: Response) => {
         error: (error as Error).message,
       });
   }
-});
+}) as RequestHandler);
 
 // GET a single term by ID
 router.get('/:id', (async (req: Request, res: Response) => {
@@ -90,8 +105,13 @@ router.get('/:id', (async (req: Request, res: Response) => {
     res.json({
       id: term._id,
       name: term.name,
-      startDate: term.startDate.toISOString().split('T')[0],
-      endDate: term.endDate.toISOString().split('T')[0],
+      // Handle both Date objects and strings
+      startDate: typeof term.startDate === 'string'
+        ? term.startDate.split('T')[0]
+        : term.startDate.toISOString().split('T')[0],
+      endDate: typeof term.endDate === 'string'
+        ? term.endDate.split('T')[0]
+        : term.endDate.toISOString().split('T')[0],
       isActive: term.isActive,
       daysOff: formatDaysOff(term.daysOff),
       notes: term.notes || '',
@@ -309,8 +329,13 @@ router.put('/:id', (async (req: Request, res: Response) => {
     res.json({
       id: term._id,
       name: term.name,
-      startDate: term.startDate.toISOString().split('T')[0],
-      endDate: term.endDate.toISOString().split('T')[0],
+      // Handle both Date objects and strings
+      startDate: typeof term.startDate === 'string'
+        ? term.startDate.split('T')[0]
+        : term.startDate.toISOString().split('T')[0],
+      endDate: typeof term.endDate === 'string'
+        ? term.endDate.split('T')[0]
+        : term.endDate.toISOString().split('T')[0],
       isActive: term.isActive,
       daysOff: formatDaysOff(term.daysOff),
       notes: term.notes || '',

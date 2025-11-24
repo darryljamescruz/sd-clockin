@@ -1,47 +1,53 @@
 import { Redis } from '@upstash/redis';
 
-// Initialize Redis client
+// Initialize Redis client lazily to ensure env vars are loaded
 let redis: Redis | null = null;
+let initialized = false;
 
-try {
-  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-    redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    });
-    console.log('✓ Redis client initialized');
-  } else {
-    console.warn('⚠ Redis credentials not found - running without cache');
+function initRedis(): void {
+  if (initialized) return;
+  initialized = true;
+
+  try {
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+      redis = new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      });
+      console.log('✓ Redis client initialized');
+    } else {
+      console.warn('⚠ Redis credentials not found - running without cache');
+    }
+  } catch (error) {
+    console.error('✗ Failed to initialize Redis:', error);
+    redis = null;
   }
-} catch (error) {
-  console.error('✗ Failed to initialize Redis:', error);
-  redis = null;
 }
 
 // Cache key builders
 export const CacheKeys = {
   // Student related
   STUDENT_LIST: 'students:list',
-  STUDENT_DETAIL: (studentId: string, termId?: string) =>
+  STUDENT_DETAIL: (studentId: string, termId?: string): string =>
     termId ? `student:${studentId}:term:${termId}` : `student:${studentId}`,
-  STUDENT_SCHEDULE: (studentId: string, termId: string) =>
+  STUDENT_SCHEDULE: (studentId: string, termId: string): string =>
     `schedule:${studentId}:term:${termId}`,
-  STUDENT_CHECKINS: (studentId: string, termId: string) =>
+  STUDENT_CHECKINS: (studentId: string, termId: string): string =>
     `checkins:${studentId}:term:${termId}`,
 
   // Term related
   ACTIVE_TERM: 'term:active',
   TERMS_LIST: 'terms:list',
-  TERM_DETAIL: (termId: string) => `term:${termId}`,
+  TERM_DETAIL: (termId: string): string => `term:${termId}`,
 
   // Shifts related
-  TODAY_SHIFTS: (termId: string, dateKey: string) =>
+  TODAY_SHIFTS: (termId: string, dateKey: string): string =>
     `shifts:${termId}:${dateKey}`,
-  STUDENT_SHIFTS: (studentId: string, termId: string) =>
+  STUDENT_SHIFTS: (studentId: string, termId: string): string =>
     `shifts:${studentId}:term:${termId}`,
 
   // Schedule related
-  SCHEDULES_LIST: (termId: string) => `schedules:term:${termId}`,
+  SCHEDULES_LIST: (termId: string): string => `schedules:term:${termId}`,
 };
 
 // Cache TTL (Time To Live) in seconds
@@ -64,6 +70,7 @@ export const CacheTTL = {
 
 // Check if Redis is available
 export function isRedisAvailable(): boolean {
+  initRedis();
   return redis !== null;
 }
 
@@ -73,6 +80,7 @@ const cache = {
    * Get a value from cache
    */
   async get<T>(key: string): Promise<T | null> {
+    initRedis();
     if (!redis) return null;
 
     try {
@@ -92,11 +100,13 @@ const cache = {
   /**
    * Set a value in cache with TTL
    */
-  async set(key: string, value: any, ttlSeconds: number): Promise<void> {
+  async set<T>(key: string, value: T, ttlSeconds: number): Promise<void> {
+    initRedis();
     if (!redis) return;
 
     try {
-      await redis.setex(key, ttlSeconds, JSON.stringify(value));
+      // Upstash Redis handles JSON serialization automatically
+      await redis.setex(key, ttlSeconds, value);
       console.log(`✓ Cache SET: ${key} (TTL: ${ttlSeconds}s)`);
     } catch (error) {
       console.error(`✗ Cache SET error for ${key}:`, error);
@@ -107,6 +117,7 @@ const cache = {
    * Delete a key from cache
    */
   async delete(key: string): Promise<void> {
+    initRedis();
     if (!redis) return;
 
     try {
@@ -121,6 +132,7 @@ const cache = {
    * Delete multiple keys matching a pattern
    */
   async deletePattern(pattern: string): Promise<void> {
+    initRedis();
     if (!redis) return;
 
     try {
@@ -160,7 +172,10 @@ const cache = {
 
   /**
    * Clear all cache entries for a specific student
+   * @param studentId - The student ID to invalidate
+   * @param _termId - Optional term ID (unused, kept for API compatibility)
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async invalidateStudent(studentId: string, _termId?: string): Promise<void> {
     if (!redis) return;
 

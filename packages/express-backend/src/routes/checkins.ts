@@ -105,14 +105,9 @@ router.post('/', (async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Term not found' });
     }
 
-    // Check if the check-in date is a day off
-    const checkInDate = timestamp ? new Date(timestamp) : new Date();
-    if (isDayOff(checkInDate, term)) {
-      return res.status(400).json({
-        message:
-          'Cannot check in on a day off. This date is marked as a day off for this term.',
-      });
-    }
+    // Day-off validation removed to support overlapping terms
+    // (e.g., Thanksgiving Break within Fall Quarter)
+    // Days off are still respected in schedules, but check-ins are always allowed
 
     const newCheckIn = new CheckIn({
       studentId,
@@ -207,23 +202,10 @@ router.put('/:id', (async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Check-in not found' });
     }
 
-    // Get the term to check for days off
-    const term = await Term.findById(checkIn.termId);
-    if (!term) {
-      return res.status(404).json({ message: 'Term not found' });
-    }
-
+    // Day-off validation removed to support overlapping terms
     // Update timestamp if provided
     if (timestamp) {
-      const newTimestamp = new Date(timestamp);
-      // Check if the new timestamp is on a day off
-      if (isDayOff(newTimestamp, term)) {
-        return res.status(400).json({
-          message:
-            'Cannot update check-in to a day off. This date is marked as a day off for this term.',
-        });
-      }
-      checkIn.timestamp = newTimestamp;
+      checkIn.timestamp = new Date(timestamp);
     }
 
     // Update type if provided
