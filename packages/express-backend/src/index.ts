@@ -3,12 +3,6 @@ import dotenv from 'dotenv';
 // Load environment variables FIRST, before any other imports that might use them
 dotenv.config();
 
-// Debug: Log Redis env vars
-console.log('=== ENV DEBUG ===');
-console.log('UPSTASH_REDIS_REST_URL:', process.env.UPSTASH_REDIS_REST_URL);
-console.log('UPSTASH_REDIS_REST_TOKEN:', process.env.UPSTASH_REDIS_REST_TOKEN ? 'EXISTS' : 'MISSING');
-console.log('================');
-
 import express, { Application } from 'express';
 import cors from 'cors';
 import connectDB from './config/db.js';
