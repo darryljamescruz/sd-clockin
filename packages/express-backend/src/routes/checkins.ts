@@ -4,6 +4,7 @@ import Student from '../models/Student.js';
 import Term from '../models/Term.js';
 import Shift from '../models/Shift.js';
 import { getPSTDateAsUTC } from '../utils/timezone.js';
+import cache, { CacheKeys } from '../utils/cache.js';
 
 const router = express.Router();
 
@@ -162,6 +163,14 @@ router.post('/', (async (req: Request, res: Response) => {
 
     await shift.save();
 
+    // Invalidate caches after check-in/out
+    const dateKey = shiftDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    await Promise.all([
+      cache.invalidateStudent(savedCheckIn.studentId.toString(), savedCheckIn.termId.toString()),
+      cache.invalidateTodayShifts(savedCheckIn.termId.toString(), dateKey),
+      cache.delete(CacheKeys.STUDENT_CHECKINS(savedCheckIn.studentId.toString(), savedCheckIn.termId.toString())),
+    ]);
+
     res.status(201).json({
       id: newCheckIn._id,
       studentId: newCheckIn.studentId,
@@ -248,6 +257,14 @@ router.put('/:id', (async (req: Request, res: Response) => {
       await shift.save();
     }
 
+    // Invalidate caches after check-in update
+    const dateKey = shiftDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    await Promise.all([
+      cache.invalidateStudent(updatedCheckIn.studentId.toString(), updatedCheckIn.termId.toString()),
+      cache.invalidateTodayShifts(updatedCheckIn.termId.toString(), dateKey),
+      cache.delete(CacheKeys.STUDENT_CHECKINS(updatedCheckIn.studentId.toString(), updatedCheckIn.termId.toString())),
+    ]);
+
     res.json({
       id: updatedCheckIn._id,
       studentId: updatedCheckIn.studentId,
@@ -270,11 +287,27 @@ router.put('/:id', (async (req: Request, res: Response) => {
 // DELETE - Delete a check-in
 router.delete('/:id', (async (req: Request, res: Response) => {
   try {
-    const checkIn = await CheckIn.findByIdAndDelete(req.params.id);
+    const checkIn = await CheckIn.findById(req.params.id);
 
     if (!checkIn) {
       return res.status(404).json({ message: 'Check-in not found' });
     }
+
+    // Store data before deletion for cache invalidation
+    const studentId = checkIn.studentId.toString();
+    const termId = checkIn.termId.toString();
+    const checkInDate = new Date(checkIn.timestamp);
+    const shiftDate = getPSTDateAsUTC(checkInDate);
+    const dateKey = shiftDate.toISOString().split('T')[0];
+
+    await CheckIn.findByIdAndDelete(req.params.id);
+
+    // Invalidate caches after check-in deletion
+    await Promise.all([
+      cache.invalidateStudent(studentId, termId),
+      cache.invalidateTodayShifts(termId, dateKey),
+      cache.delete(CacheKeys.STUDENT_CHECKINS(studentId, termId)),
+    ]);
 
     res.json({ message: 'Check-in deleted successfully' });
   } catch (error) {

@@ -7,6 +7,7 @@ import {
   getPSTDayBoundaries,
   getPSTDateComponents,
 } from '../utils/timezone.js';
+import cache, { CacheKeys, CacheTTL } from '../utils/cache.js';
 
 const router = express.Router();
 
@@ -16,7 +17,13 @@ router.get('/', (async (req: Request, res: Response) => {
     const { termId } = req.query;
     // Admin panel (no termId): Get ALL students for management
     // Dashboard (with termId): Get all students, compute clock-in status dynamically
-    const students = await Student.find({}).lean();
+
+    // Cache the student list to avoid repeated queries
+    const students = await cache.wrapper(
+      CacheKeys.STUDENT_LIST,
+      CacheTTL.STUDENT_LIST,
+      async () => await Student.find({}).lean()
+    );
 
     // If termId is provided, get schedules and check-ins for that term
     if (termId) {
@@ -775,6 +782,9 @@ router.post('/', (async (req: Request, res: Response) => {
 
     await newStudent.save();
 
+    // Invalidate student list cache
+    await cache.delete(CacheKeys.STUDENT_LIST);
+
     res.status(201).json({
       id: newStudent._id,
       name: newStudent.name,
@@ -819,6 +829,9 @@ router.put('/:id', (async (req: Request, res: Response) => {
 
     await student.save();
 
+    // Invalidate caches for this student
+    await cache.invalidateStudent(student._id.toString());
+
     res.json({
       id: student._id,
       name: student.name,
@@ -849,6 +862,9 @@ router.delete('/:id', (async (req: Request, res: Response) => {
     // Also delete associated schedules and check-ins
     await Schedule.deleteMany({ studentId: req.params.id });
     await CheckIn.deleteMany({ studentId: req.params.id });
+
+    // Invalidate caches for this student
+    await cache.invalidateStudent(req.params.id);
 
     res.json({ message: 'Student deleted successfully' });
   } catch (error) {

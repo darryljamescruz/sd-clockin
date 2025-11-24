@@ -1,5 +1,6 @@
 import express, { Request, Response, RequestHandler } from 'express';
 import Term from '../models/Term.js';
+import cache, { CacheKeys, CacheTTL } from '../utils/cache.js';
 
 const router = express.Router();
 
@@ -13,10 +14,47 @@ const formatDaysOff = (daysOff: any[]): any[] => {
   }));
 };
 
+// GET active term (most frequently accessed - called on every dashboard load)
+router.get('/active', async (req: Request, res: Response) => {
+  try {
+    const activeTerm = await cache.wrapper(
+      CacheKeys.ACTIVE_TERM,
+      CacheTTL.ACTIVE_TERM,
+      async () => await Term.findOne({ isActive: true }).lean()
+    );
+
+    if (!activeTerm) {
+      return res.status(404).json({ message: 'No active term found' });
+    }
+
+    res.json({
+      id: activeTerm._id,
+      name: activeTerm.name,
+      startDate: activeTerm.startDate.toISOString().split('T')[0],
+      endDate: activeTerm.endDate.toISOString().split('T')[0],
+      isActive: activeTerm.isActive,
+      daysOff: formatDaysOff(activeTerm.daysOff),
+      notes: activeTerm.notes || '',
+    });
+  } catch (error) {
+    console.error('Error fetching active term:', error);
+    res
+      .status(500)
+      .json({
+        message: 'Error fetching active term',
+        error: (error as Error).message,
+      });
+  }
+});
+
 // GET all terms
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const terms = await Term.find().sort({ startDate: -1 }).lean();
+    const terms = await cache.wrapper(
+      CacheKeys.TERMS_LIST,
+      CacheTTL.TERMS,
+      async () => await Term.find().sort({ startDate: -1 }).lean()
+    );
 
     const termsFormatted = terms.map((term) => ({
       id: term._id,
@@ -147,6 +185,12 @@ router.post('/', (async (req: Request, res: Response) => {
 
     await newTerm.save();
 
+    // Invalidate term caches
+    await Promise.all([
+      cache.delete(CacheKeys.TERMS_LIST),
+      cache.delete(CacheKeys.ACTIVE_TERM),
+    ]);
+
     res.status(201).json({
       id: newTerm._id,
       name: newTerm.name,
@@ -255,6 +299,13 @@ router.put('/:id', (async (req: Request, res: Response) => {
 
     await term.save();
 
+    // Invalidate term caches
+    await Promise.all([
+      cache.invalidateTerm(req.params.id),
+      cache.delete(CacheKeys.TERMS_LIST),
+      cache.delete(CacheKeys.ACTIVE_TERM),
+    ]);
+
     res.json({
       id: term._id,
       name: term.name,
@@ -283,6 +334,13 @@ router.delete('/:id', (async (req: Request, res: Response) => {
     if (!term) {
       return res.status(404).json({ message: 'Term not found' });
     }
+
+    // Invalidate term caches
+    await Promise.all([
+      cache.invalidateTerm(req.params.id),
+      cache.delete(CacheKeys.TERMS_LIST),
+      cache.delete(CacheKeys.ACTIVE_TERM),
+    ]);
 
     res.json({ message: 'Term deleted successfully' });
   } catch (error) {

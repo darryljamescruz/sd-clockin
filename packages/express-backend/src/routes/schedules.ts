@@ -3,6 +3,7 @@ import Schedule from '../models/Schedule.js';
 import Student from '../models/Student.js';
 import Term from '../models/Term.js';
 import { normalizeSchedule } from '../utils/scheduleParser.js';
+import cache, { CacheKeys, CacheTTL } from '../utils/cache.js';
 
 const router = express.Router();
 
@@ -17,7 +18,12 @@ router.get('/', (async (req: Request, res: Response) => {
         .json({ message: 'studentId and termId are required' });
     }
 
-    const schedule = await Schedule.findOne({ studentId, termId }).lean();
+    // Cache the schedule lookup
+    const schedule = await cache.wrapper(
+      CacheKeys.STUDENT_SCHEDULE(studentId as string, termId as string),
+      CacheTTL.SCHEDULE,
+      async () => await Schedule.findOne({ studentId, termId }).lean()
+    );
 
     if (!schedule) {
       return res.json({
@@ -93,6 +99,13 @@ router.post('/', (async (req: Request, res: Response) => {
       await schedule.save();
     }
 
+    // Invalidate schedule caches
+    await Promise.all([
+      cache.delete(CacheKeys.STUDENT_SCHEDULE(studentId, termId)),
+      cache.invalidateStudent(studentId, termId),
+      cache.delete(CacheKeys.SCHEDULES_LIST(termId)),
+    ]);
+
     res.status(201).json({
       id: schedule._id,
       studentId: schedule.studentId,
@@ -126,6 +139,13 @@ router.delete('/', (async (req: Request, res: Response) => {
     if (!schedule) {
       return res.status(404).json({ message: 'Schedule not found' });
     }
+
+    // Invalidate schedule caches
+    await Promise.all([
+      cache.delete(CacheKeys.STUDENT_SCHEDULE(studentId as string, termId as string)),
+      cache.invalidateStudent(studentId as string, termId as string),
+      cache.delete(CacheKeys.SCHEDULES_LIST(termId as string)),
+    ]);
 
     res.json({ message: 'Schedule deleted successfully' });
   } catch (error) {

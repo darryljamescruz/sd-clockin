@@ -1,6 +1,10 @@
+import dotenv from 'dotenv';
+
+// Load environment variables FIRST, before any other imports that might use them
+dotenv.config();
+
 import express, { Application } from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 
 import studentsRouter from './routes/students.js';
@@ -8,8 +12,6 @@ import termsRouter from './routes/terms.js';
 import schedulesRouter from './routes/schedules.js';
 import checkinsRouter from './routes/checkins.js';
 import importRouter from './routes/import.js';
-
-dotenv.config();
 
 const app: Application = express();
 
