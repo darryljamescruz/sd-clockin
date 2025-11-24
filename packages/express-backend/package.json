@@ -16,6 +16,7 @@
     "lint:fix": "eslint src/**/*.ts --fix"
   },
   "dependencies": {
+    "@upstash/redis": "^1.35.6",
     "cors": "^2.8.5",
     "date-fns-tz": "^3.2.0",
     "dotenv": "^16.5.0",

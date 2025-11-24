@@ -1,12 +1,13 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { AlertTriangle, Loader2 } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
 import { useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 
 import { DashboardHeader } from "@/components/admin/dashboard/dashboard-header"
-import { StatsCards } from "@/components/admin/dashboard/stats-cards"
+// import { StatsCards } from "@/components/admin/dashboard/stats-cards"
 import { HourlyDashboard } from "@/components/admin/dashboard/hourly-dashboard"
 import { api, type Student, type Term } from "@/lib/api"
 import { parseDateString } from "@/lib/utils"
@@ -272,17 +273,7 @@ export default function AdminDashboard() {
   const isLoading = isLoadingTerms || isLoadingStudents
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden min-w-0">
-      {/* Loading State */}
-      {isLoading && (
-        <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 w-full max-w-full">
-          <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
-            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 animate-spin flex-shrink-0" />
-            <span className="text-sm sm:text-base text-blue-800 dark:text-blue-300 font-medium">Loading data...</span>
-          </CardContent>
-        </Card>
-      )}
-
+    <div className="w-full max-w-full overflow-x-hidden min-w-0 relative">
       {/* Error State */}
       {error && !isLoading && (
         <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 w-full max-w-full">
@@ -294,11 +285,21 @@ export default function AdminDashboard() {
       )}
 
       {!isLoadingTerms && !error && (
-        <div className="w-full max-w-full overflow-x-hidden space-y-4 sm:space-y-6 min-w-0">
+        <div className="w-full max-w-full overflow-x-hidden space-y-4 sm:space-y-6 min-w-0 relative">
+          {/* Loading Overlay */}
+          {isLoadingStudents && (
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-lg">
+              <div className="flex flex-col items-center gap-3">
+                <Spinner className="w-8 h-8 text-primary" />
+                <span className="text-sm font-medium text-muted-foreground">Loading data...</span>
+              </div>
+            </div>
+          )}
+
           {isLoadingStudents ? (
             <>
               {/* Stats Cards Skeleton */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8 w-full max-w-full min-w-0">
+              {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8 w-full max-w-full min-w-0">
                 {[1, 2, 3, 4].map((i) => (
                   <Card key={i} className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full overflow-hidden">
                     <CardContent className="p-4 sm:p-6">
@@ -312,7 +313,7 @@ export default function AdminDashboard() {
                     </CardContent>
                   </Card>
                 ))}
-              </div>
+              </div> */}
 
               {/* Dashboard Header Skeleton */}
               <Card className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full">
@@ -354,12 +355,12 @@ export default function AdminDashboard() {
             </>
           ) : (
             <>
-              <StatsCards
+              {/* <StatsCards
                 totalStaff={stats.totalStaff}
                 presentStaff={stats.presentStaff}
                 studentLeadsPresent={stats.studentLeadsPresent}
                 lateToday={stats.lateToday}
-              />
+              /> */}
 
               {dateError && (
                 <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 w-full max-w-full">
@@ -389,6 +390,16 @@ export default function AdminDashboard() {
               />
             </>
           )}
+        </div>
+      )}
+
+      {/* Initial Loading Overlay - when terms are loading */}
+      {isLoadingTerms && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-lg">
+          <div className="flex flex-col items-center gap-3">
+            <Spinner className="w-8 h-8 text-primary" />
+            <span className="text-sm font-medium text-muted-foreground">Loading data...</span>
+          </div>
         </div>
       )}
     </div>
