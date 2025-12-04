@@ -1,12 +1,14 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Clock, Calendar, CreditCard, CheckCircle, AlertTriangle } from "lucide-react"
+import { Clock, Calendar, CreditCard, AlertTriangle } from "lucide-react"
 import { ClockInForm } from "@/components/clock-in-form"
 import { AdminLogin } from "@/components/admin/layout/admin-login"
 import { ClockedInTable } from "@/components/clocked-in-table"
 import { ExpectedArrivalsTable } from "@/components/expected-arrivals-table"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Toaster } from "@/components/ui/sonner"
+import { toast } from "sonner"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { api, type Student, type Term } from "@/lib/api"
@@ -18,9 +20,6 @@ export default function HomePage() {
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [isClockOutOpen, setIsClockOutOpen] = useState(false)
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false)
-  const [isCardSwiping, setIsCardSwiping] = useState(false)
-  const [clockInMessage, setClockInMessage] = useState("")
-  const [showClockInSuccess, setShowClockInSuccess] = useState(false)
   const [cardSwipeData, setCardSwipeData] = useState("")
   const [isCardSwipeDisabled, setIsCardSwipeDisabled] = useState(false)
 
@@ -82,10 +81,9 @@ export default function HomePage() {
           setCardSwipeData("")
         } else if (event.key.length === 1) {
           setCardSwipeData((prev) => prev + event.key)
-          setIsCardSwiping(true)
 
+          // Clear the buffer after 2 seconds of inactivity
           setTimeout(() => {
-            setIsCardSwiping(false)
             setCardSwipeData("")
           }, 2000)
         }
@@ -140,13 +138,7 @@ export default function HomePage() {
       setStaffData(students)
     } catch (err) {
       console.error("Error recording clock entry:", err)
-      setClockInMessage("Failed to record check-in. Please try again.")
-      setShowClockInSuccess(true)
-      
-      setTimeout(() => {
-        setShowClockInSuccess(false)
-        setClockInMessage("")
-      }, 3000)
+      toast.error("Failed to record check-in. Please try again.")
     }
   }
 
@@ -154,7 +146,7 @@ export default function HomePage() {
     // Parse the magnetic stripe data - ISO number is the second number after semicolon
     // Format: %FIRST_NUMBER^NAME?;ISO_NUMBER?
     let isoNumber = cardData
-    
+
     if (cardData.includes(';')) {
       // Extract ISO number after the semicolon
       const match = cardData.match(/;(\d+)/)
@@ -162,7 +154,7 @@ export default function HomePage() {
         isoNumber = match[1]
       }
     }
-    
+
     const staff = staffData.find((s) => s.cardId?.toUpperCase() === isoNumber.toUpperCase())
 
     if (staff) {
@@ -171,21 +163,9 @@ export default function HomePage() {
 
       await addClockEntry(staff.id, action, false)
 
-      setClockInMessage(`${staff.name} clocked ${action} at ${formatTime(new Date())}`)
-      setShowClockInSuccess(true)
-
-      setTimeout(() => {
-        setShowClockInSuccess(false)
-        setClockInMessage("")
-      }, 5000)
+      toast.success(`${staff.name} clocked ${action} successfully at ${formatTime(new Date())}`)
     } else {
-      setClockInMessage("Card not recognized. Please try again or contact admin.")
-      setShowClockInSuccess(true)
-
-      setTimeout(() => {
-        setShowClockInSuccess(false)
-        setClockInMessage("")
-      }, 3000)
+      toast.error("Card not recognized. Please try again or contact admin.")
     }
   }
 
@@ -198,15 +178,8 @@ export default function HomePage() {
 
       await addClockEntry(staff.id, action, isManual)
 
-      const manualFlag = isManual ? " (Manual Entry)" : ""
-      setClockInMessage(`${staff.name} clocked ${action} at ${formatTime(new Date())}${manualFlag}`)
-      setShowClockInSuccess(true)
+      toast.success(`${staff.name} clocked ${action} successfully at ${formatTime(new Date())}`)
       setIsLoginOpen(false)
-
-      setTimeout(() => {
-        setShowClockInSuccess(false)
-        setClockInMessage("")
-      }, 5000)
     }
   }
 
@@ -216,15 +189,8 @@ export default function HomePage() {
     if (staff) {
       await addClockEntry(staff.id, "out", isManual)
 
-      const manualFlag = isManual ? " (Manual Entry)" : ""
-      setClockInMessage(`${staff.name} clocked out at ${formatTime(new Date())}${manualFlag}`)
-      setShowClockInSuccess(true)
+      toast.success(`${staff.name} clocked out successfully at ${formatTime(new Date())}`)
       setIsClockOutOpen(false)
-
-      setTimeout(() => {
-        setShowClockInSuccess(false)
-        setClockInMessage("")
-      }, 5000)
     }
   }
 
@@ -427,26 +393,6 @@ export default function HomePage() {
 
         {!isLoading && !error && (
           <>
-            {/* Card Swiper Status */}
-            {isCardSwiping && (
-              <Card className="mb-4 sm:mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-lg">
-                <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
-                  <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 animate-pulse flex-shrink-0" />
-                  <span className="text-sm sm:text-base text-blue-800 dark:text-blue-300 font-medium break-words">Card detected... Please wait</span>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Clock In Success Message */}
-            {showClockInSuccess && (
-              <Card className="mb-4 sm:mb-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 shadow-lg">
-                <CardContent className="p-3 sm:p-4 flex items-start sm:items-center gap-2 sm:gap-3">
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5 sm:mt-0" />
-                  <span className="text-sm sm:text-base text-green-800 dark:text-green-300 font-medium break-words">{clockInMessage}</span>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Card Swiper Instructions */}
             {cardSwiperInstructions}
 
@@ -464,6 +410,7 @@ export default function HomePage() {
           </>
         )}
       </div>
+      <Toaster />
     </div>
   )
 }
