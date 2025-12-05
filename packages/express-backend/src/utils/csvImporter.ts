@@ -78,18 +78,32 @@ export function parseTeamsCSVRow(line: string): TeamsShiftRow | null {
   }
 
   const name = parts[0]?.trim() || '';
+  const startDate = parts[3]?.trim() || '';
+  const endDate = parts[5]?.trim() || '';
+  const startTime = parts[4]?.trim() || '';
+  const endTime = parts[6]?.trim() || '';
 
   if (!name) {
     console.warn('Skipping row with empty name');
     return null;
   }
 
+  if (!startDate || !endDate) {
+    console.warn('Skipping row with missing dates:', line);
+    return null;
+  }
+
+  if (!startTime || !endTime) {
+    console.warn('Skipping row with missing times:', line);
+    return null;
+  }
+
   return {
     name: name,
-    startDate: parts[3]?.trim() || '',
-    startTime: parts[4]?.trim() || '',
-    endDate: parts[5]?.trim() || '',
-    endTime: parts[6]?.trim() || '',
+    startDate,
+    startTime,
+    endDate,
+    endTime,
   };
 }
 
@@ -104,6 +118,12 @@ export function findEarliestDate(shifts: TeamsShiftRow[]): Date {
       .split('/')
       .map((n) => parseInt(n));
     const date = new Date(year, month - 1, day);
+
+    // Skip invalid dates instead of poisoning the calculation
+    if (Number.isNaN(date.getTime())) {
+      console.warn(`Skipping invalid start date: ${shift.startDate}`);
+      continue;
+    }
 
     if (!earliest || date < earliest) {
       earliest = date;
