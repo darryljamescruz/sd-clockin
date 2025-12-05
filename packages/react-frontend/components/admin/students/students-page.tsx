@@ -191,7 +191,10 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
       )}
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deletingStudent} onOpenChange={(open) => !open && setDeletingStudent(null)}>
+      <AlertDialog
+        open={!!deletingStudent}
+        onOpenChange={(open: boolean) => !open && setDeletingStudent(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">
