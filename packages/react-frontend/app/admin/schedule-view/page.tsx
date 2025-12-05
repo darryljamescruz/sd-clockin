@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { ScheduleVisualization } from "@/components/admin/dashboard/schedule-visualization"
 import { api, type Student, type Term, type Schedule } from "@/lib/api"
 import { Card, CardContent } from "@/components/ui/card"
-import { AlertTriangle, Loader2 } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
+import { ScheduleViewSkeleton } from "@/components/admin/loading-skeletons"
 
 export default function ScheduleViewPage() {
-  const router = useRouter()
   const [students, setStudents] = useState<Student[]>([])
   const [terms, setTerms] = useState<Term[]>([])
   const [schedules, setSchedules] = useState<Record<string, Schedule>>({})
@@ -57,19 +56,8 @@ export default function ScheduleViewPage() {
     fetchData()
   }, [])
 
-  const handleBack = () => {
-    router.push("/admin")
-  }
-
   if (isLoading) {
-    return (
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-4 flex items-center gap-3">
-          <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-          <span className="text-blue-800 font-medium">Loading schedule view...</span>
-        </CardContent>
-      </Card>
-    )
+    return <ScheduleViewSkeleton />
   }
 
   if (error) {
@@ -88,7 +76,6 @@ export default function ScheduleViewPage() {
       students={students}
       terms={terms}
       schedules={schedules}
-      onBack={handleBack}
     />
   )
 }

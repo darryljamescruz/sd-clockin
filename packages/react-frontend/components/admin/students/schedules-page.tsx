@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Calendar, Edit, ArrowLeft, Users, Clock, Search, ArrowUpDown, Shield, UserCheck } from "lucide-react"
+import { Calendar, Edit, Users, Clock, Search, ArrowUpDown, Shield, UserCheck } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
 import { StudentScheduleManager } from "../students/student-schedule-manager"
 import { CSVImport } from "./csv-import"
@@ -18,10 +18,9 @@ import { formatDateString } from "@/lib/utils"
 interface SchedulesPageProps {
   students: Student[]
   terms: Term[]
-  onBack: () => void
 }
 
-export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
+export function SchedulesPage({ students, terms }: SchedulesPageProps) {
   const [selectedTermId, setSelectedTermId] = useState<string>("")
   const [schedules, setSchedules] = useState<Record<string, Schedule>>({})
   const [editingStudent, setEditingStudent] = useState<Student | null>(null)
@@ -138,14 +137,9 @@ export function SchedulesPage({ students, terms, onBack }: SchedulesPageProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" onClick={onBack} className="p-2 shrink-0">
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Manage Schedules</h2>
-            <p className="text-sm sm:text-base text-muted-foreground">Set student availability for each term</p>
-          </div>
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Manage Schedules</h2>
+          <p className="text-sm sm:text-base text-muted-foreground">Set student availability for each term</p>
         </div>
       </div>
 

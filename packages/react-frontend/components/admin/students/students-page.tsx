@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
-import { Users, Plus, Edit, Trash2, ArrowLeft, Shield, UserCheck, AlertTriangle } from "lucide-react"
+import { Users, Plus, Edit, Trash2, Shield, UserCheck, AlertTriangle } from "lucide-react"
 import { useState } from "react"
 import { StudentManager } from "./student-manager"
 
@@ -23,10 +23,9 @@ interface StudentsPageProps {
   onAddStudent: (student: Omit<Staff, "id" | "clockEntries" | "currentStatus">) => void
   onEditStudent: (id: string, student: Omit<Staff, "id" | "clockEntries" | "currentStatus">) => void
   onDeleteStudent: (id: string) => void
-  onBack: () => void
 }
 
-export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteStudent, onBack }: StudentsPageProps) {
+export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteStudent }: StudentsPageProps) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingStudent, setEditingStudent] = useState<Staff | null>(null)
   const [deletingStudent, setDeletingStudent] = useState<Staff | null>(null)
@@ -86,14 +85,9 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" onClick={onBack} className="p-2">
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">Manage Student Assistants</h2>
-            <p className="text-muted-foreground">Add, edit, and manage student assistant information</p>
-          </div>
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Manage Student Assistants</h2>
+          <p className="text-muted-foreground">Add, edit, and manage student assistant information</p>
         </div>
         <Button onClick={() => setShowAddModal(true)} className="">
           <Plus className="w-4 h-4 mr-2" />

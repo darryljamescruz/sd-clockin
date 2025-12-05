@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import { TermAnalytics } from "@/components/admin/terms/term-analytics"
 import { api, type Student, type Term } from "@/lib/api"
 import { Card, CardContent } from "@/components/ui/card"
-import { AlertTriangle, Loader2 } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
 import { TermSelector } from "@/components/admin/terms/term-selector"
+import { AnalyticsSkeleton } from "@/components/admin/loading-skeletons"
 
 export default function AnalyticsPage() {
   const [staffData, setStaffData] = useState<Student[]>([])
@@ -67,17 +68,6 @@ export default function AnalyticsPage() {
     return terms.find((term) => term.name === selectedTerm) || terms[0]
   }
 
-  if (isLoading && terms.length === 0) {
-    return (
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-4 flex items-center gap-3">
-          <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-          <span className="text-blue-800 font-medium">Loading analytics...</span>
-        </CardContent>
-      </Card>
-    )
-  }
-
   if (error && !isLoading) {
     return (
       <Card className="bg-red-50 border-red-200">
@@ -90,7 +80,7 @@ export default function AnalyticsPage() {
   }
 
   const currentTerm = getCurrentTerm()
-  if (!currentTerm) {
+  if (!currentTerm && !isLoading) {
     return (
       <Card className="bg-yellow-50 border-yellow-200">
         <CardContent className="p-4 flex items-center gap-3">
@@ -103,26 +93,32 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <TermSelector
-        terms={terms}
-        selectedTerm={selectedTerm}
-        onTermChange={setSelectedTerm}
-      />
-      
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Term Analytics</h2>
+          <p className="text-muted-foreground">Performance by term</p>
+        </div>
+      </div>
+
       {isLoading ? (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-            <span className="text-blue-800 font-medium">Loading analytics...</span>
-          </CardContent>
-        </Card>
+        <AnalyticsSkeleton showHeader={false} />
       ) : (
-        <TermAnalytics
-          staffData={staffData}
-          selectedTerm={selectedTerm}
-          termStartDate={currentTerm.startDate}
-          termEndDate={currentTerm.endDate}
-        />
+        <>
+          <TermSelector
+            terms={terms}
+            selectedTerm={selectedTerm}
+            onTermChange={setSelectedTerm}
+          />
+
+          {currentTerm && (
+            <TermAnalytics
+              staffData={staffData}
+              selectedTerm={selectedTerm}
+              termStartDate={currentTerm.startDate}
+              termEndDate={currentTerm.endDate}
+            />
+          )}
+        </>
       )}
     </div>
   )

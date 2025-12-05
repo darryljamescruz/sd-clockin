@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ArrowLeft, Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react"
+import { Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Student, Term, Schedule } from "@/lib/api"
 import { api } from "@/lib/api"
 import { parseDateString } from "@/lib/utils"
@@ -14,7 +14,6 @@ interface ScheduleVisualizationProps {
   students: Student[]
   terms: Term[]
   schedules: Record<string, Schedule>
-  onBack: () => void
 }
 
 type ViewMode = "day" | "week"
@@ -33,7 +32,6 @@ export function ScheduleVisualization({
   students,
   terms,
   schedules: initialSchedules,
-  onBack,
 }: ScheduleVisualizationProps) {
   const [schedules, setSchedules] = useState<Record<string, Record<string, Schedule>>>({}) // termId -> studentId -> Schedule
   const [viewMode, setViewMode] = useState<ViewMode>("day")
@@ -689,14 +687,9 @@ export function ScheduleVisualization({
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" onClick={onBack} className="p-2 shrink-0">
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Schedule Visualization</h2>
-            <p className="text-sm sm:text-base text-muted-foreground">View who is active at each hour</p>
-          </div>
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Schedule Visualization</h2>
+          <p className="text-sm sm:text-base text-muted-foreground">View who is active at each hour</p>
         </div>
       </div>
 

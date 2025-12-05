@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import { IndividualRecords } from "@/components/admin/student-records"
 import { api, type Student, type Term } from "@/lib/api"
 import { Card, CardContent } from "@/components/ui/card"
-import { AlertTriangle, Loader2 } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
 import { TermSelector } from "@/components/admin/terms/term-selector"
+import { RecordsSkeleton } from "@/components/admin/loading-skeletons"
 
 export default function RecordsPage() {
   const [staffData, setStaffData] = useState<Student[]>([])
@@ -112,17 +113,6 @@ export default function RecordsPage() {
     return terms.find((term) => term.name === selectedTerm) || terms[0]
   }
 
-  if (isLoading && terms.length === 0) {
-    return (
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-4 flex items-center gap-3">
-          <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-          <span className="text-blue-800 font-medium">Loading records...</span>
-        </CardContent>
-      </Card>
-    )
-  }
-
   if (error && !isLoading) {
     return (
       <Card className="bg-red-50 border-red-200">
@@ -135,7 +125,7 @@ export default function RecordsPage() {
   }
 
   const currentTerm = getCurrentTerm()
-  if (!currentTerm) {
+  if (!currentTerm && !isLoading) {
     return (
       <Card className="bg-yellow-50 border-yellow-200">
         <CardContent className="p-4 flex items-center gap-3">
@@ -148,31 +138,35 @@ export default function RecordsPage() {
 
   return (
     <div className="space-y-6">
-      <TermSelector
-        terms={terms}
-        selectedTerm={selectedTerm}
-        onTermChange={setSelectedTerm}
-      />
-      
+      <div>
+        <h2 className="text-2xl font-bold">Student Records</h2>
+        <p className="text-muted-foreground">View detailed records by term</p>
+      </div>
+
       {isLoading ? (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-            <span className="text-blue-800 font-medium">Loading records...</span>
-          </CardContent>
-        </Card>
+        <RecordsSkeleton showHeader={false} />
       ) : (
-        <IndividualRecords
-          staffData={staffData}
-          selectedStaff={selectedStaff}
-          onSelectStaff={setSelectedStaff}
-          selectedTerm={selectedTerm}
-          termStartDate={currentTerm.startDate}
-          termEndDate={currentTerm.endDate}
-          currentTerm={currentTerm}
-          onRefreshStudent={handleRefreshStudent}
-          isLoadingStudent={isLoadingStudent}
-        />
+        <>
+          <TermSelector
+            terms={terms}
+            selectedTerm={selectedTerm}
+            onTermChange={setSelectedTerm}
+          />
+          
+          {currentTerm && (
+            <IndividualRecords
+              staffData={staffData}
+              selectedStaff={selectedStaff}
+              onSelectStaff={setSelectedStaff}
+              selectedTerm={selectedTerm}
+              termStartDate={currentTerm.startDate}
+              termEndDate={currentTerm.endDate}
+              currentTerm={currentTerm}
+              onRefreshStudent={handleRefreshStudent}
+              isLoadingStudent={isLoadingStudent}
+            />
+          )}
+        </>
       )}
     </div>
   )

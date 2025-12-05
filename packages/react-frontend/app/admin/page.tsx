@@ -272,6 +272,40 @@ export default function AdminDashboard() {
   const stats = getWeeklyStats()
   const isLoading = isLoadingTerms || isLoadingStudents
 
+  if (isLoadingTerms) {
+    return (
+      <div className="w-full max-w-full overflow-x-hidden min-w-0 space-y-4 sm:space-y-6">
+        <h2 className="text-lg sm:text-xl font-semibold text-foreground">Attendance Dashboard</h2>
+
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full overflow-hidden">
+          <CardContent className="p-0 sm:p-6 w-full max-w-full overflow-x-hidden min-w-0">
+            <div className="space-y-4 sm:space-y-6">
+              {[1, 2, 3].map((hour) => (
+                <div key={hour} className="border-b last:border-b-0 pb-4 sm:pb-6 last:pb-0">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4 px-4 sm:px-0">
+                    <Skeleton className="h-6 w-20" />
+                    <div className="hidden sm:block flex-1 border-t border-dashed border-muted-foreground/30" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                  <div className="w-full overflow-x-auto -mx-4 sm:mx-0">
+                    <div className="px-4 sm:px-0 min-w-[900px]">
+                      <div className="space-y-2">
+                        <Skeleton className="h-10 w-full" />
+                        {[1, 2, 3].map((row) => (
+                          <Skeleton key={row} className="h-12 w-full" />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="w-full max-w-full overflow-x-hidden min-w-0 relative">
       {/* Error State */}
@@ -284,49 +318,23 @@ export default function AdminDashboard() {
         </Card>
       )}
 
-      {!isLoadingTerms && !error && (
+      {!error && (
         <div className="w-full max-w-full overflow-x-hidden space-y-4 sm:space-y-6 min-w-0 relative">
-          {/* Loading Overlay */}
-          {isLoadingStudents && (
-            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-lg">
-              <div className="flex flex-col items-center gap-3">
-                <Spinner className="w-8 h-8 text-primary" />
-                <span className="text-sm font-medium text-muted-foreground">Loading data...</span>
-              </div>
-            </div>
-          )}
-
           {isLoadingStudents ? (
             <>
-              {/* Stats Cards Skeleton */}
-              {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8 w-full max-w-full min-w-0">
-                {[1, 2, 3, 4].map((i) => (
-                  <Card key={i} className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full overflow-hidden">
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <Skeleton className="h-7 sm:h-8 w-16 mb-2" />
-                          <Skeleton className="h-4 w-20" />
-                        </div>
-                        <Skeleton className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex-shrink-0" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div> */}
+              <DashboardHeader
+                terms={terms}
+                selectedTerm={selectedTerm}
+                onTermChange={setSelectedTerm}
+                selectedDate={selectedDate}
+                currentDateIndex={currentDateIndex}
+                termWeekdays={termWeekdays}
+                onPreviousDay={goToPreviousDay}
+                onNextDay={goToNextDay}
+                onToday={goToToday}
+                getTermStatus={getTermStatus}
+              />
 
-              {/* Dashboard Header Skeleton */}
-              <Card className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                    <Skeleton className="h-6 w-32" />
-                    <Skeleton className="h-6 w-48" />
-                    <Skeleton className="h-10 w-24 ml-auto" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Hourly Dashboard Skeleton */}
               <Card className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full overflow-hidden">
                 <CardContent className="p-0 sm:p-6 w-full max-w-full overflow-x-hidden min-w-0">
                   <div className="space-y-4 sm:space-y-6">
@@ -390,16 +398,6 @@ export default function AdminDashboard() {
               />
             </>
           )}
-        </div>
-      )}
-
-      {/* Initial Loading Overlay - when terms are loading */}
-      {isLoadingTerms && (
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-lg">
-          <div className="flex flex-col items-center gap-3">
-            <Spinner className="w-8 h-8 text-primary" />
-            <span className="text-sm font-medium text-muted-foreground">Loading data...</span>
-          </div>
         </div>
       )}
     </div>

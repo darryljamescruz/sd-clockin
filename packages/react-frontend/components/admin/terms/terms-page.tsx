@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
-import { Calendar, Plus, Edit, Trash2, ArrowLeft, AlertTriangle } from "lucide-react"
+import { Calendar, Plus, Edit, Trash2, AlertTriangle } from "lucide-react"
 import { useState } from "react"
 import { TermManager } from "./term-manager"
 import { formatDateString, parseDateString } from "@/lib/utils"
@@ -23,10 +23,9 @@ interface TermsPageProps {
   onAddTerm: (term: Omit<Term, "id">) => void
   onEditTerm: (id: string, term: Omit<Term, "id">) => void
   onDeleteTerm: (id: string) => void
-  onBack: () => void
 }
 
-export function TermsPage({ terms, onAddTerm, onEditTerm, onDeleteTerm, onBack }: TermsPageProps) {
+export function TermsPage({ terms, onAddTerm, onEditTerm, onDeleteTerm }: TermsPageProps) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingTerm, setEditingTerm] = useState<Term | null>(null)
   const [deletingTerm, setDeletingTerm] = useState<Term | null>(null)
@@ -65,14 +64,9 @@ export function TermsPage({ terms, onAddTerm, onEditTerm, onDeleteTerm, onBack }
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" onClick={onBack} className="p-2">
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div>
-            <h2 className="text-2xl font-bold">Manage Terms</h2>
-            <p className="text-muted-foreground">Create and manage academic terms and work periods</p>
-          </div>
+        <div>
+          <h2 className="text-2xl font-bold">Manage Terms</h2>
+          <p className="text-muted-foreground">Create and manage academic terms and work periods</p>
         </div>
         <Button onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4 mr-2" />

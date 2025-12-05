@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { TermsPage } from "@/components/admin/terms/terms-page"
 import { api, type Term } from "@/lib/api"
 import { Card, CardContent } from "@/components/ui/card"
-import { AlertTriangle, Loader2 } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
+import { TermsSkeleton } from "@/components/admin/loading-skeletons"
 
 export default function TermsManagement() {
-  const router = useRouter()
   const [terms, setTerms] = useState<Term[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
@@ -76,21 +75,6 @@ export default function TermsManagement() {
     }
   }
 
-  const handleBack = () => {
-    router.push("/admin")
-  }
-
-  if (isLoading) {
-    return (
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-4 flex items-center gap-3">
-          <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-          <span className="text-blue-800 font-medium">Loading terms...</span>
-        </CardContent>
-      </Card>
-    )
-  }
-
   if (error) {
     return (
       <Card className="bg-red-50 border-red-200">
@@ -102,13 +86,16 @@ export default function TermsManagement() {
     )
   }
 
+  if (isLoading) {
+    return <TermsSkeleton />
+  }
+
   return (
     <TermsPage
       terms={terms}
       onAddTerm={handleAddTerm}
       onEditTerm={handleEditTerm}
       onDeleteTerm={handleDeleteTerm}
-      onBack={handleBack}
     />
   )
 }
