@@ -17,6 +17,7 @@ import { getUpcomingShifts, isCurrentlyClockedIn, timeToMinutes } from "@/lib/sh
 export default function HomePage() {
   const router = useRouter()
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [isClosed, setIsClosed] = useState(false)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [isClockOutOpen, setIsClockOutOpen] = useState(false)
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false)
@@ -72,6 +73,47 @@ export default function HomePage() {
     return () => clearInterval(timer)
   }, [])
 
+  // Detect 5:00 PM PST on weekdays, refresh once per day, and show closed state
+  useEffect(() => {
+    const refreshKey = "service-desk-closed-refresh-date"
+
+    const checkClosedState = () => {
+      const pstNow = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" }))
+      const isWeekday = pstNow.getDay() >= 1 && pstNow.getDay() <= 5
+      const atOrAfterClose = pstNow.getHours() > 17 || (pstNow.getHours() === 17 && pstNow.getMinutes() >= 0)
+      const closedNow = isWeekday && atOrAfterClose
+
+      setIsClosed(closedNow)
+
+      if (closedNow) {
+        const dateKey = pstNow.toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" })
+        const lastRefresh = typeof window !== "undefined" ? localStorage.getItem(refreshKey) : null
+
+        if (lastRefresh !== dateKey) {
+          localStorage.setItem(refreshKey, dateKey)
+          window.location.reload()
+        }
+      } else {
+        localStorage.removeItem(refreshKey)
+      }
+    }
+
+    checkClosedState()
+    const interval = setInterval(checkClosedState, 15000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // Disable swipe/manual interactions when closed
+  useEffect(() => {
+    if (isClosed) {
+      setIsCardSwipeDisabled(true)
+      setIsLoginOpen(false)
+      setIsClockOutOpen(false)
+      setIsAdminLoginOpen(false)
+    }
+  }, [isClosed])
+
   // Card swiper simulation
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -123,6 +165,10 @@ export default function HomePage() {
 
   const addClockEntry = async (staffId: string, type: "in" | "out", isManual = false) => {
     if (!currentTerm) return
+    if (isClosed) {
+      toast.error("Service Desk is closed. Clock-ins resume next business day.")
+      return
+    }
 
     try {
       // Create check-in via API
@@ -362,12 +408,27 @@ export default function HomePage() {
           </Card>
         )}
 
+        {/* Closed Notice */}
+        {isClosed && !error && (
+          <Card className="mb-4 sm:mb-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700 shadow-lg">
+            <CardContent className="p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
+              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-300 flex-shrink-0 mt-0.5 sm:mt-0" />
+              <div className="space-y-1">
+                <p className="text-sm sm:text-base font-semibold text-foreground">Service Desk is Closed</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  All staff are auto clocked out at 5:00 PM PT. Clock-ins are disabled until the next business day.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Loading State */}
         {isLoading && (
           <div className="mb-6 sm:mb-10 space-y-6 sm:space-y-8">
             {cardSwiperInstructions}
             {currentTimeCard}
-            {manualClockForms}
+            {!isClosed && manualClockForms}
             <div>
               <span className="sr-only">Loading attendance data...</span>
               <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
@@ -399,13 +460,13 @@ export default function HomePage() {
         {!isLoading && !error && (
           <>
             {/* Card Swiper Instructions */}
-            {cardSwiperInstructions}
+            {!isClosed && cardSwiperInstructions}
 
             {/* Current Time Display */}
             {currentTimeCard}
 
             {/* Manual Clock In/Out Buttons */}
-            {manualClockForms}
+            {!isClosed && manualClockForms}
 
             {/* Tables Grid */}
             <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">

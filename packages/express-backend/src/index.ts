@@ -6,6 +6,7 @@ dotenv.config();
 import express, { Application } from 'express';
 import cors from 'cors';
 import connectDB from './config/db.js';
+import { startAutoClockOutJob } from './jobs/autoClockOut.js';
 
 import studentsRouter from './routes/students.js';
 import termsRouter from './routes/terms.js';
@@ -75,6 +76,9 @@ async function startServer(): Promise<void> {
   try {
     // Connect to database
     await connectDB();
+
+    // Start scheduled jobs
+    startAutoClockOutJob();
 
     const PORT: number = parseInt(process.env.PORT || '8000', 10);
     app.listen(PORT, () => {
