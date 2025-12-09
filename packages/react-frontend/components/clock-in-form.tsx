@@ -1,9 +1,16 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { LogIn, User, Search, AlertTriangle, X } from "lucide-react"
+import { LogIn, User, Search } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
 import { type Student } from "@/lib/api"
 
@@ -84,35 +91,12 @@ export function ClockInForm({ isOpen, onToggle, onClockIn, staffData, mode, titl
     }
   }
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      if (selectedStaff) {
-        handleSubmit()
-      } else {
-        handleClose()
-      }
-    }
-  }
-
   // Format role for display - convert "Assistant" to "Student Assistant"
   const formatRoleForDisplay = (role: string) => {
     if (role === "Assistant") {
       return "Student Assistant"
     }
     return role
-  }
-
-  // Calculate dynamic max height based on search results
-  const getModalMaxHeight = () => {
-    if (showDropdown && searchTerm && filteredStaff.length > 0) {
-      // Allow modal to expand more when showing search results
-      // Each result is ~56px, show up to 10 results before scrolling
-      const resultCount = Math.min(filteredStaff.length, 10)
-      const baseHeight = 280 // Base modal height (header + search + buttons + padding)
-      const dropdownHeight = resultCount * 56 + 8 // Results + margin
-      return `min(95vh, ${baseHeight + dropdownHeight}px)`
-    }
-    return '90vh'
   }
 
   return (
@@ -124,123 +108,109 @@ export function ClockInForm({ isOpen, onToggle, onClockIn, staffData, mode, titl
         <span className="sm:hidden">{mode === "in" ? "Clock In" : "Clock Out"}</span>
       </Button>
 
-      {/* Render modal when open */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={handleBackdropClick}
-        >
-          <Card 
-            className="w-full max-w-md shadow-xl overflow-visible"
-            style={{ maxHeight: getModalMaxHeight() }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <CardHeader className="pb-3 flex flex-row items-center justify-between sticky top-0 bg-card z-10">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <User className="w-4 h-4 sm:w-5 sm:h-5" />
-                {title}
-              </CardTitle>
-              <Button variant="ghost" size="sm" onClick={handleClose}>
-                <X className="w-4 h-4" />
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4 p-4 sm:p-6 overflow-visible">
-              {/* Warning Banner - Hidden for now */}
-              {/* <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
-                <div className="text-xs sm:text-sm text-yellow-800 dark:text-yellow-300">
-                  {mode === "in" ? (
-                    "please do a polycard swipe check in if you can :)"
+      <Dialog
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleClose()
+          }
+        }}
+      >
+        <DialogContent className="max-w-md sm:max-w-lg p-0 overflow-hidden flex flex-col max-h-[85vh]">
+          <DialogHeader className="border-b px-6 py-4 flex flex-row items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
+              <User className="w-5 h-5" />
+            </div>
+            <div className="text-left">
+              <DialogTitle className="text-lg">{title}</DialogTitle>
+              <DialogDescription className="text-sm">
+                {mode === "in" ? "Select a staff member to clock in." : "Select a staff member to clock out."}
+              </DialogDescription>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 px-6 py-5 overflow-y-auto max-h-[60vh]">
+            {/* Staff Search */}
+            <div className="space-y-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search staff by name or role..."
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value)
+                    setShowDropdown(true)
+                    setSelectedStaff(null)
+                  }}
+                  onFocus={() => setShowDropdown(true)}
+                  onKeyDown={handleKeyDown}
+                  autoFocus
+                />
+              </div>
+
+              {/* Inline dropdown (no absolute positioning) */}
+              {showDropdown && searchTerm && (
+                <div className="bg-popover border rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                  {filteredStaff.length > 0 ? (
+                    filteredStaff.map((staff) => (
+                      <button
+                        key={staff.id}
+                        className="w-full text-left px-3 py-2 hover:bg-accent flex items-center justify-between border-b last:border-b-0"
+                        onClick={() => handleStaffSelect(staff)}
+                      >
+                        <div>
+                          <div className="font-medium text-foreground">{staff.name}</div>
+                          <div className="text-sm text-muted-foreground">{formatRoleForDisplay(staff.role)}</div>
+                        </div>
+                      </button>
+                    ))
                   ) : (
-                    <>
-                      <strong>Manual Entry:</strong> This clock-{mode} will be flagged as manually entered for audit
-                      purposes.
-                    </>
+                    <div className="px-3 py-2 text-muted-foreground text-sm">No staff found</div>
                   )}
                 </div>
-              </div> */}
-
-              {/* Staff Search */}
-              <div className="relative z-50">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input
-                    placeholder="Search staff by name or role..."
-                    className="pl-10"
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value)
-                      setShowDropdown(true)
-                      setSelectedStaff(null)
-                    }}
-                    onFocus={() => setShowDropdown(true)}
-                    onKeyDown={handleKeyDown}
-                    autoFocus
-                  />
-                </div>
-
-                {/* Dropdown */}
-                {showDropdown && searchTerm && (
-                  <div className={`absolute top-full left-0 right-0 mt-1 bg-popover border rounded-lg shadow-lg z-50 ${filteredStaff.length > 10 ? 'max-h-[50vh] overflow-y-auto' : ''}`}>
-                    {filteredStaff.length > 0 ? (
-                      filteredStaff.map((staff) => (
-                        <button
-                          key={staff.id}
-                          className="w-full text-left px-3 py-2 hover:bg-accent flex items-center justify-between border-b last:border-b-0"
-                          onClick={() => handleStaffSelect(staff)}
-                        >
-                          <div>
-                            <div className="font-medium text-foreground">{staff.name}</div>
-                            <div className="text-sm text-muted-foreground">{formatRoleForDisplay(staff.role)}</div>
-                          </div>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="px-3 py-2 text-muted-foreground text-sm">No staff found</div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Selected Staff Display */}
-              {selectedStaff && (
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    <div>
-                      <div className="font-medium text-green-900 dark:text-green-200">{selectedStaff.name}</div>
-                      <div className="text-sm text-green-700 dark:text-green-300">{formatRoleForDisplay(selectedStaff.role)}</div>
-                    </div>
-                  </div>
-                </div>
               )}
+            </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button
-                  onClick={handleSubmit}
-                  className="flex-1"
-                  disabled={!selectedStaff}
-                >
-                  <span className="truncate">Clock {mode === "in" ? "In" : "Out"} {selectedStaff?.name || ""}</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleClose}
-                  className="sm:w-auto"
-                >
-                  Cancel
-                </Button>
+            {/* Selected Staff Display */}
+            {selectedStaff && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  <div>
+                    <div className="font-medium text-green-900 dark:text-green-200">{selectedStaff.name}</div>
+                    <div className="text-sm text-green-700 dark:text-green-300">{formatRoleForDisplay(selectedStaff.role)}</div>
+                  </div>
+                </div>
               </div>
+            )}
 
-              {/* Instructions */}
-              <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
-                <strong>Tip:</strong> Start typing a name or role to search. Select from the dropdown to proceed.
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            {/* Instructions */}
+            <div className="text-xs text-muted-foreground bg-muted/40 p-2 rounded border border-muted/40">
+              <strong>Tip:</strong> Start typing a name or role to search. Select from the dropdown to proceed.
+            </div>
+          </div>
+
+          <DialogFooter className="border-t px-6 py-4">
+            <div className="flex w-full flex-col sm:flex-row gap-2">
+              <Button
+                onClick={handleSubmit}
+                className="flex-1"
+                disabled={!selectedStaff}
+              >
+                <span className="truncate">Clock {mode === "in" ? "In" : "Out"} {selectedStaff?.name || ""}</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                className="sm:w-auto"
+              >
+                Cancel
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

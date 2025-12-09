@@ -194,6 +194,11 @@ export default function HomePage() {
     }
   }
 
+  const handleClockOutFromTable = async (staff: Student) => {
+    await addClockEntry(staff.id, "out", true)
+    toast.success(`${staff.name} clocked out successfully at ${formatTime(new Date())}`)
+  }
+
   // Sort clocked in users: chronological (clock-in time), then alphabetical, non-scheduled at bottom
   // Uses shared logic to check if actually clocked in (handles multiple shifts)
   const clockedInUsers = staffData
@@ -310,7 +315,7 @@ export default function HomePage() {
           <div>
             <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">Quick Clock In/Out</h3>
             <p className="text-sm sm:text-base text-muted-foreground">Swipe your ID card to clock in or out automatically</p>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Or use manually clock in</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Or manually clock in</p>
           </div>
         </div>
       </CardContent>
@@ -404,7 +409,7 @@ export default function HomePage() {
 
             {/* Tables Grid */}
             <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
-              <ClockedInTable clockedInUsers={clockedInUsers} />
+              <ClockedInTable clockedInUsers={clockedInUsers} onClockOutClick={handleClockOutFromTable} />
               <ExpectedArrivalsTable expectedArrivals={expectedArrivals} currentTime={currentTime} />
             </div>
           </>
