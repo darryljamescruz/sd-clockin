@@ -50,6 +50,11 @@ export function DeleteEntryDialog({
                 <Badge variant="outline" className="text-xs">Manual Entry</Badge>
               </div>
             )}
+            {deletingEntry.entry.isAutoClockOut && (
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">Auto Clock Out</Badge>
+              </div>
+            )}
           </div>
         )}
         <AlertDialogFooter>

@@ -471,6 +471,7 @@ router.get('/', (async (req: Request, res: Response) => {
               timestamp: entry.timestamp,
               type: entry.type,
               isManual: entry.isManual,
+              isAutoClockOut: entry.isAutoClockOut || false,
             })),
           };
         });
@@ -758,6 +759,7 @@ router.get('/:id', (async (req: Request, res: Response) => {
           timestamp: entry.timestamp,
           type: entry.type,
           isManual: entry.isManual,
+          isAutoClockOut: entry.isAutoClockOut || false,
         })),
       });
     }

@@ -240,6 +240,11 @@ export default function HomePage() {
     }
   }
 
+  const handleClockInFromTable = async (staff: Student) => {
+    await addClockEntry(staff.id, "in", true)
+    toast.success(`${staff.name} clocked in successfully at ${formatTime(new Date())}`)
+  }
+
   const handleClockOutFromTable = async (staff: Student) => {
     await addClockEntry(staff.id, "out", true)
     toast.success(`${staff.name} clocked out successfully at ${formatTime(new Date())}`)
@@ -318,7 +323,7 @@ export default function HomePage() {
   )
 
   const manualClockForms = (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8 max-w-md mx-auto">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8 max-w-3xl w-full mx-auto">
       <div className="flex justify-center">
         <ClockInForm
           isOpen={isLoginOpen}
@@ -370,7 +375,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4 sm:p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-screen-2xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
           <div className="flex items-center gap-3">
@@ -471,7 +476,11 @@ export default function HomePage() {
             {/* Tables Grid */}
             <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
               <ClockedInTable clockedInUsers={clockedInUsers} onClockOutClick={handleClockOutFromTable} />
-              <ExpectedArrivalsTable expectedArrivals={expectedArrivals} currentTime={currentTime} />
+              <ExpectedArrivalsTable
+                expectedArrivals={expectedArrivals}
+                currentTime={currentTime}
+                onClockInClick={handleClockInFromTable}
+              />
             </div>
           </>
         )}

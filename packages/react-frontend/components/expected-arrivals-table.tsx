@@ -3,16 +3,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Shield, UserCheck } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { DoorOpen, Shield, UserCheck } from "lucide-react"
 import { type Student } from "@/lib/api"
 import { getUpcomingShifts, formatTimeForDisplay } from "@/lib/shift-utils"
 
 interface ExpectedArrivalsTableProps {
   expectedArrivals: Student[]
   currentTime: Date
+  onClockInClick?: (user: Student) => void
 }
 
-export function ExpectedArrivalsTable({ expectedArrivals, currentTime }: ExpectedArrivalsTableProps) {
+export function ExpectedArrivalsTable({ expectedArrivals, currentTime, onClockInClick }: ExpectedArrivalsTableProps) {
   const getRoleBadge = (role: string) => {
     if (role === "Student Lead") {
       return (
@@ -57,12 +59,13 @@ export function ExpectedArrivalsTable({ expectedArrivals, currentTime }: Expecte
                 <TableHead className="min-w-[120px]">Name</TableHead>
                 <TableHead className="min-w-[100px]">Role</TableHead>
                 <TableHead className="min-w-[140px]">Today's Schedule</TableHead>
+                <TableHead className="text-right min-w-[70px]">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {expectedArrivals.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                     No expected arrivals in the next 2 hours
                   </TableCell>
                 </TableRow>
@@ -90,6 +93,18 @@ export function ExpectedArrivalsTable({ expectedArrivals, currentTime }: Expecte
                         ) : (
                           <span className="text-muted-foreground italic text-xs">No schedule</span>
                         )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onClockInClick?.(user)}
+                          disabled={!onClockInClick}
+                          aria-label={`Clock in ${user.name}`}
+                          className="text-primary hover:text-primary focus-visible:ring-primary"
+                        >
+                          <DoorOpen className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   )

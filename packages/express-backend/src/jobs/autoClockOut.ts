@@ -37,7 +37,7 @@ async function performAutoClockOut(): Promise<number> {
       pstNow.getMonth(),
       pstNow.getDate(),
       17,
-      30,
+      20,
       0,
       0
     ),
@@ -71,13 +71,14 @@ async function performAutoClockOut(): Promise<number> {
       type: 'out',
       timestamp: autoOutTimestamp,
       isManual: true, // mark as system-driven/manual to distinguish from swipes
+      isAutoClockOut: true,
     });
 
     shift.actualEnd = autoOutTimestamp;
     shift.status = 'completed';
     shift.notes = shift.notes
-      ? `${shift.notes} | Auto clock-out at 5:30 PM PST`
-      : 'Auto clock-out at 5:30 PM PST';
+      ? `${shift.notes} | Auto clock-out at 5:20 PM PST`
+      : 'Auto clock-out at 5:20 PM PST';
 
     await shift.save();
 
@@ -94,7 +95,7 @@ async function performAutoClockOut(): Promise<number> {
 }
 
 export function startAutoClockOutJob(): void {
-  const runIfNeeded = async (reason: string) => {
+  const runIfNeeded = async (reason: string): Promise<void> => {
     const pstNow = getPstNow();
     const dateKey = getPstDateKey(pstNow);
     const isWeekday = pstNow.getDay() >= 1 && pstNow.getDay() <= 5;

@@ -45,6 +45,7 @@ router.get('/', async (req: Request, res: Response) => {
       type: checkIn.type,
       timestamp: checkIn.timestamp,
       isManual: checkIn.isManual,
+      isAutoClockOut: checkIn.isAutoClockOut || false,
     }));
 
     res.json(checkInsFormatted);
@@ -85,7 +86,7 @@ const isDayOff = (date: Date, term: any): boolean => {
 // POST - Create a new check-in (manual or card swipe)
 router.post('/', (async (req: Request, res: Response) => {
   try {
-    const { studentId, termId, type, timestamp, isManual } = req.body;
+    const { studentId, termId, type, timestamp, isManual, isAutoClockOut } = req.body;
 
     if (!studentId || !termId || !type) {
       return res
@@ -115,6 +116,7 @@ router.post('/', (async (req: Request, res: Response) => {
       type,
       timestamp: timestamp ? new Date(timestamp) : new Date(),
       isManual: isManual || false,
+      isAutoClockOut: isAutoClockOut || false,
     });
 
     const savedCheckIn = await newCheckIn.save();
@@ -173,6 +175,7 @@ router.post('/', (async (req: Request, res: Response) => {
       type: newCheckIn.type,
       timestamp: newCheckIn.timestamp,
       isManual: newCheckIn.isManual,
+      isAutoClockOut: newCheckIn.isAutoClockOut || false,
     });
   } catch (error) {
     console.error('Error creating check-in:', error);
@@ -188,7 +191,7 @@ router.post('/', (async (req: Request, res: Response) => {
 // PUT - Update a check-in
 router.put('/:id', (async (req: Request, res: Response) => {
   try {
-    const { timestamp, type } = req.body;
+    const { timestamp, type, isAutoClockOut } = req.body;
     const { id } = req.params;
 
     // Validate ID format
@@ -211,6 +214,11 @@ router.put('/:id', (async (req: Request, res: Response) => {
     // Update type if provided
     if (type) {
       checkIn.type = type;
+    }
+
+    // Allow toggling auto clock-out flag if provided
+    if (typeof isAutoClockOut === 'boolean') {
+      checkIn.isAutoClockOut = isAutoClockOut;
     }
 
     // Mark as manual since it's being edited
@@ -254,6 +262,7 @@ router.put('/:id', (async (req: Request, res: Response) => {
       type: updatedCheckIn.type,
       timestamp: updatedCheckIn.timestamp,
       isManual: updatedCheckIn.isManual,
+      isAutoClockOut: updatedCheckIn.isAutoClockOut || false,
     });
   } catch (error) {
     console.error('Error updating check-in:', error);

@@ -8,6 +8,7 @@ export interface ICheckIn extends Document {
   type: 'in' | 'out';
   timestamp: Date;
   isManual: boolean;
+  isAutoClockOut?: boolean;
 }
 
 const checkInSchema: Schema<ICheckIn> = new mongoose.Schema({
@@ -42,6 +43,10 @@ const checkInSchema: Schema<ICheckIn> = new mongoose.Schema({
     default: Date.now,
   },
   isManual: {
+    type: Boolean,
+    default: false,
+  },
+  isAutoClockOut: {
     type: Boolean,
     default: false,
   },

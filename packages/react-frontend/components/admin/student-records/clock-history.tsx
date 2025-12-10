@@ -21,15 +21,15 @@ interface ClockHistoryProps {
   onDeleteClick: (entry: ClockEntry, index: number) => void
 }
 
-function getEntryTypeBadge(entry: { type: "in" | "out"; isManual?: boolean }) {
+function getEntryTypeBadge(entry: { type: "in" | "out"; isManual?: boolean; isAutoClockOut?: boolean }) {
   const baseClass = entry.type === "in" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
   const label = entry.type === "in" ? "Clock In" : "Clock Out"
-  const manualFlag = entry.isManual ? " (Manual)" : ""
 
   return (
     <div className="flex items-center gap-1">
       <Badge className={baseClass}>{label}</Badge>
       {entry.isManual && <Badge className="bg-yellow-100 text-yellow-800 text-xs">Manual</Badge>}
+      {entry.isAutoClockOut && <Badge className="bg-blue-100 text-blue-800 text-xs">Auto</Badge>}
     </div>
   )
 }

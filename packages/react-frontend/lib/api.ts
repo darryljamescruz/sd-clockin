@@ -43,6 +43,7 @@ export interface ClockEntry {
   timestamp: string;
   type: 'in' | 'out';
   isManual?: boolean;
+  isAutoClockOut?: boolean;
 }
 
 export interface Schedule {
@@ -65,6 +66,7 @@ export interface CheckIn {
   type: 'in' | 'out';
   timestamp: string;
   isManual: boolean;
+  isAutoClockOut?: boolean;
 }
 
 // Helper function for making API requests
@@ -213,7 +215,7 @@ export const checkinsAPI = {
   },
 
   // Create a new check-in
-  create: async (data: { studentId: string; termId: string; type: 'in' | 'out'; timestamp?: string; isManual: boolean }): Promise<CheckIn> => {
+  create: async (data: { studentId: string; termId: string; type: 'in' | 'out'; timestamp?: string; isManual: boolean; isAutoClockOut?: boolean }): Promise<CheckIn> => {
     return fetchAPI<CheckIn>('/checkins', {
       method: 'POST',
       body: JSON.stringify(data),
