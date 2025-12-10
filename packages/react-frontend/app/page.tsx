@@ -460,7 +460,7 @@ export default function HomePage() {
         {!isLoading && !error && (
           <>
             {/* Card Swiper Instructions */}
-            {!isClosed && cardSwiperInstructions}
+            {cardSwiperInstructions}
 
             {/* Current Time Display */}
             {currentTimeCard}
