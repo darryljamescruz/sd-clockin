@@ -9,6 +9,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { DashboardHeader } from "@/components/admin/dashboard/dashboard-header"
 // import { StatsCards } from "@/components/admin/dashboard/stats-cards"
 import { HourlyDashboard } from "@/components/admin/dashboard/hourly-dashboard"
+import { HourlyStaffingChart } from "@/components/admin/analytics/hourly-staffing-chart"
 import { api, type Student, type Term } from "@/lib/api"
 import { parseDateString } from "@/lib/utils"
 
@@ -390,6 +391,11 @@ export default function AdminDashboard() {
                 onNextDay={goToNextDay}
                 onToday={goToToday}
                 getTermStatus={getTermStatus}
+              />
+
+              <HourlyStaffingChart
+                staffData={staffData}
+                selectedDate={selectedDate}
               />
 
               <HourlyDashboard

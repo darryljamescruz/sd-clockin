@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -7,6 +8,8 @@ import { Progress } from "@/components/ui/progress"
 import { BarChart3, TrendingUp, Clock, Calendar } from "lucide-react"
 import { type Student } from "@/lib/api"
 import { parseDateString } from "@/lib/utils"
+import { HourlyStaffingChart } from "@/components/admin/analytics/hourly-staffing-chart"
+import { PunctualityChart } from "@/components/admin/analytics/punctuality-chart"
 
 interface TermAnalyticsProps {
   staffData: Student[]
@@ -163,19 +166,39 @@ export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndD
     return "text-red-600"
   }
 
-  // Calculate term overview stats
-  const termStats = {
-    totalStaff: staffData.length,
-    avgAttendance:
-      staffData.length > 0
-        ? staffData.reduce((sum, staff) => sum + getStaffAnalytics(staff).attendanceRate, 0) / staffData.length
-        : 0,
-    totalManualEntries: staffData.reduce((sum, staff) => sum + getStaffAnalytics(staff).manualEntries, 0),
-    avgPunctuality:
-      staffData.length > 0
-        ? staffData.reduce((sum, staff) => sum + getStaffAnalytics(staff).punctualityRate, 0) / staffData.length
-        : 0,
-  }
+  // Calculate term overview stats and aggregated punctuality
+  const { termStats, aggregatedPunctuality } = useMemo(() => {
+    let totalOnTime = 0
+    let totalLate = 0
+    let totalEarly = 0
+    let totalAttendance = 0
+    let totalPunctuality = 0
+    let totalManual = 0
+
+    staffData.forEach((staff) => {
+      const analytics = getStaffAnalytics(staff)
+      totalOnTime += analytics.onTimeArrivals
+      totalLate += analytics.lateArrivals
+      totalEarly += analytics.earlyArrivals
+      totalAttendance += analytics.attendanceRate
+      totalPunctuality += analytics.punctualityRate
+      totalManual += analytics.manualEntries
+    })
+
+    return {
+      termStats: {
+        totalStaff: staffData.length,
+        avgAttendance: staffData.length > 0 ? totalAttendance / staffData.length : 0,
+        totalManualEntries: totalManual,
+        avgPunctuality: staffData.length > 0 ? totalPunctuality / staffData.length : 0,
+      },
+      aggregatedPunctuality: {
+        onTimeCount: totalOnTime,
+        lateCount: totalLate,
+        earlyCount: totalEarly,
+      },
+    }
+  }, [staffData, termStartDate, termEndDate])
 
   return (
     <div className="space-y-6">
@@ -232,6 +255,20 @@ export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndD
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <HourlyStaffingChart
+          staffData={staffData}
+          termStartDate={termStartDate}
+          termEndDate={termEndDate}
+        />
+        <PunctualityChart
+          onTimeCount={aggregatedPunctuality.onTimeCount}
+          lateCount={aggregatedPunctuality.lateCount}
+          earlyCount={aggregatedPunctuality.earlyCount}
+        />
       </div>
 
       {/* Individual Analytics */}

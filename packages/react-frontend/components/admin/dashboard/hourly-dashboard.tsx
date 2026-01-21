@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Clock, Users, TrendingUp, AlertCircle, CheckCircle2, XCircle, UserCheck, Shield } from "lucide-react"
+import { Clock, AlertCircle, CheckCircle2, XCircle, UserCheck, Shield } from "lucide-react"
 import { useMemo, useState, useEffect } from "react"
 import { type Student } from "@/lib/api"
 import {
@@ -240,19 +240,7 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
       {/* Day Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 w-full max-w-full min-w-0">
-        <Card className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full overflow-hidden">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <div className="text-xl sm:text-2xl font-bold text-foreground">{dayStats.totalShifts}</div>
-                <div className="text-xs sm:text-sm text-muted-foreground truncate">Total Shifts</div>
-              </div>
-              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground flex-shrink-0" />
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 w-full max-w-full min-w-0">
         <Card className="bg-card/70 backdrop-blur-sm shadow-lg w-full max-w-full overflow-hidden">
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between gap-2">
@@ -342,45 +330,45 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
                   </div>
 
                   <div className="w-full overflow-x-auto -mx-4 sm:mx-0">
-                    <div className="px-4 sm:px-0 min-w-[1000px]">
+                    <div className="px-4 sm:px-0 min-w-[700px]">
                       <Table className="w-full table-fixed">
                         <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[12%] text-foreground font-semibold">Name</TableHead>
-                            <TableHead className="w-[11%] text-foreground font-semibold">Role</TableHead>
-                            <TableHead className="w-[11%] text-center text-foreground font-semibold">Expected Start</TableHead>
-                            <TableHead className="w-[11%] text-center text-foreground font-semibold">Actual Start</TableHead>
-                            <TableHead className="w-[11%] text-center text-foreground font-semibold">Expected End</TableHead>
-                            <TableHead className="w-[11%] text-center text-foreground font-semibold">Actual End</TableHead>
-                            <TableHead className="w-[11%] text-center text-foreground font-semibold">Expected Hours</TableHead>
-                            <TableHead className="w-[11%] text-center text-foreground font-semibold">Actual Hours</TableHead>
-                            <TableHead className="w-[11%] text-center text-foreground font-semibold">Status</TableHead>
+                          <TableRow className="border-b-0">
+                            <TableHead className="w-[22%] text-foreground font-semibold">Name</TableHead>
+                            <TableHead className="w-[14%] text-foreground font-semibold">Role</TableHead>
+                            <TableHead className="w-[22%] text-center text-foreground font-semibold">Expected</TableHead>
+                            <TableHead className="w-[22%] text-center text-foreground font-semibold">Actual</TableHead>
+                            <TableHead className="w-[20%] text-center text-foreground font-semibold">Status</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {shifts.map((shiftData, index) => (
-                            <TableRow key={`${shiftData.staff.id}-${index}`}>
-                              <TableCell className="font-medium text-sm">
-                                <div className="break-words">{shiftData.staff.name}</div>
+                            <TableRow key={`${shiftData.staff.id}-${index}`} className="border-b border-border/50">
+                              <TableCell className="py-3">
+                                <div className="font-medium text-sm">{shiftData.staff.name}</div>
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="py-3">
                                 {getRoleBadge(shiftData.staff.role)}
                               </TableCell>
-                              <TableCell className="font-mono text-xs sm:text-sm text-center text-muted-foreground">
-                                {formatTimeForDisplay(shiftData.expectedStart)}
+                              <TableCell className="py-3 text-center">
+                                <div className="font-mono text-sm text-muted-foreground">
+                                  {formatTimeForDisplay(shiftData.expectedStart)} – {formatTimeForDisplay(shiftData.expectedEnd)}
+                                </div>
+                                <div className="text-xs text-muted-foreground/70">{shiftData.expectedHours}</div>
                               </TableCell>
-                              <TableCell className="font-mono text-xs sm:text-sm text-center font-semibold text-foreground">
-                                {shiftData.actualStart ? formatTimeForDisplay(shiftData.actualStart) : <span className="text-muted-foreground">—</span>}
+                              <TableCell className="py-3 text-center">
+                                {shiftData.actualStart ? (
+                                  <>
+                                    <div className="font-mono text-sm font-medium text-foreground">
+                                      {formatTimeForDisplay(shiftData.actualStart)}{shiftData.actualEnd ? ` – ${formatTimeForDisplay(shiftData.actualEnd)}` : ''}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground/70">{shiftData.actualHours}</div>
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
                               </TableCell>
-                              <TableCell className="font-mono text-xs sm:text-sm text-center text-muted-foreground">
-                                {formatTimeForDisplay(shiftData.expectedEnd)}
-                              </TableCell>
-                              <TableCell className="font-mono text-xs sm:text-sm text-center font-semibold text-foreground">
-                                {shiftData.actualEnd ? formatTimeForDisplay(shiftData.actualEnd) : <span className="text-muted-foreground">—</span>}
-                              </TableCell>
-                              <TableCell className="font-mono text-xs sm:text-sm text-center text-muted-foreground">{shiftData.expectedHours}</TableCell>
-                              <TableCell className="font-mono text-xs sm:text-sm text-center font-semibold text-foreground">{shiftData.actualHours}</TableCell>
-                              <TableCell className="text-center">
+                              <TableCell className="py-3 text-center">
                                 {getStatusBadge(shiftData.status, shiftData.isOnTime)}
                               </TableCell>
                             </TableRow>
