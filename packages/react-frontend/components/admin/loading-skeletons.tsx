@@ -97,31 +97,6 @@ export const RecordsSkeleton = ({ showHeader = true }: SkeletonProps = {}) => (
   </div>
 )
 
-export const ScheduleViewSkeleton = ({ showHeader = true }: SkeletonProps = {}) => (
-  <div className="space-y-6">
-    {showHeader && (
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Schedule Visualization</h2>
-          <p className="text-muted-foreground">View who is active at each hour</p>
-        </div>
-      </div>
-    )}
-    <Card className="bg-card/70">
-      <CardContent className="p-6 space-y-4">
-        <Skeleton className="h-6 w-40" />
-        <LinesSkeleton lines={6} />
-      </CardContent>
-    </Card>
-    <Card className="bg-card/70">
-      <CardContent className="p-6 space-y-4">
-        <Skeleton className="h-6 w-32" />
-        <Skeleton className="h-64 w-full" />
-      </CardContent>
-    </Card>
-  </div>
-)
-
 export const SchedulesSkeleton = ({ showHeader = true }: SkeletonProps = {}) => (
   <div className="space-y-6">
     {showHeader && (

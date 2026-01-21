@@ -45,11 +45,6 @@ const navigationItems = [
     url: "/admin",
     icon: LayoutDashboard,
   },
-  {
-    title: "Schedule View",
-    url: "/admin/schedule-view",
-    icon: Clock,
-  },
   // {
   //   title: "Locations View",
   //   url: "/admin/",
