@@ -6,9 +6,9 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CalendarDays, ChevronDown, ChevronUp, Plus } from "lucide-react"
+import { AlertTriangle, CalendarDays, Plus, Zap } from "lucide-react"
 import { WeekView } from "./week-view"
 import { MonthView } from "./month-view"
 import { type DailyBreakdownDay, type ActualShift } from "../utils/student-calculations"
@@ -30,8 +30,6 @@ interface DailyBreakdownProps {
   }>
   dailyViewMode: "week" | "month"
   termEndDate: string
-  isOpen: boolean
-  onOpenChange: (open: boolean) => void
   currentWeekIndex: number
   currentMonthIndex: number
   onSetDailyViewMode: (mode: "week" | "month") => void
@@ -46,6 +44,8 @@ interface DailyBreakdownProps {
   onEditShift?: (shift: ActualShift, type: "in" | "out") => void
   onDeleteShift?: (shift: ActualShift) => void
   onAddEntry?: () => void
+  missingClockOuts?: number
+  autoClockOuts?: number
 }
 
 export function DailyBreakdown({
@@ -53,8 +53,6 @@ export function DailyBreakdown({
   dailyBreakdownByMonth,
   dailyViewMode,
   termEndDate,
-  isOpen,
-  onOpenChange,
   currentWeekIndex,
   currentMonthIndex,
   onSetDailyViewMode,
@@ -69,80 +67,79 @@ export function DailyBreakdown({
   onEditShift,
   onDeleteShift,
   onAddEntry,
+  missingClockOuts = 0,
+  autoClockOuts = 0,
 }: DailyBreakdownProps) {
   return (
-    <Card>
-      <Collapsible open={isOpen} onOpenChange={onOpenChange}>
-        <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors rounded-t-lg">
-            <CardTitle className="flex items-center justify-between text-base font-medium">
-              <div className="flex items-center gap-2">
-                <CalendarDays className="w-4 h-4" />
-                Daily Breakdown
-              </div>
-              <div className="flex items-center gap-3">
-                {onAddEntry && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onAddEntry()
-                    }}
-                  >
-                    <Plus className="w-3.5 h-3.5 mr-1" />
-                    Add
-                  </Button>
-                )}
-                <Tabs 
-                  value={dailyViewMode} 
-                  onValueChange={(value) => onSetDailyViewMode(value as "week" | "month")}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <TabsList className="h-8">
-                    <TabsTrigger value="week" className="text-xs px-3 h-6">Week</TabsTrigger>
-                    <TabsTrigger value="month" className="text-xs px-3 h-6">Month</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-                {isOpen ? (
-                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                )}
-              </div>
-            </CardTitle>
-          </CardHeader>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <CardContent className="pt-0">
-            {dailyViewMode === "week" ? (
-              <WeekView
-                dailyBreakdownByWeek={dailyBreakdownByWeek}
-                currentWeekIndex={currentWeekIndex}
-                termEndDate={termEndDate}
-                onPreviousWeek={onPreviousWeek}
-                onNextWeek={onNextWeek}
-                canGoToPreviousWeek={canGoToPreviousWeek}
-                canGoToNextWeek={canGoToNextWeek}
-                onEditShift={onEditShift}
-                onDeleteShift={onDeleteShift}
-              />
-            ) : (
-              <MonthView
-                dailyBreakdownByMonth={dailyBreakdownByMonth}
-                currentMonthIndex={currentMonthIndex}
-                onPreviousMonth={onPreviousMonth}
-                onNextMonth={onNextMonth}
-                canGoToPreviousMonth={canGoToPreviousMonth}
-                canGoToNextMonth={canGoToNextMonth}
-                onEditShift={onEditShift}
-                onDeleteShift={onDeleteShift}
-              />
+    <Card className="h-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center justify-between text-base font-medium">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="w-4 h-4" />
+            Daily Breakdown
+            {missingClockOuts > 0 && (
+              <Badge variant="outline" className="border-yellow-500 text-yellow-700 dark:text-yellow-400 ml-1">
+                <AlertTriangle className="w-3 h-3 mr-1" />
+                {missingClockOuts} missing
+              </Badge>
             )}
-          </CardContent>
-        </CollapsibleContent>
-      </Collapsible>
+            {autoClockOuts > 0 && (
+              <Badge variant="outline" className="border-blue-500 text-blue-700 dark:text-blue-400">
+                <Zap className="w-3 h-3 mr-1" />
+                {autoClockOuts} auto
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {onAddEntry && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8"
+                onClick={onAddEntry}
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" />
+                Add
+              </Button>
+            )}
+            <Tabs 
+              value={dailyViewMode} 
+              onValueChange={(value) => onSetDailyViewMode(value as "week" | "month")}
+            >
+              <TabsList className="h-8">
+                <TabsTrigger value="week" className="text-xs px-3 h-6">Week</TabsTrigger>
+                <TabsTrigger value="month" className="text-xs px-3 h-6">Month</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
+        {dailyViewMode === "week" ? (
+          <WeekView
+            dailyBreakdownByWeek={dailyBreakdownByWeek}
+            currentWeekIndex={currentWeekIndex}
+            termEndDate={termEndDate}
+            onPreviousWeek={onPreviousWeek}
+            onNextWeek={onNextWeek}
+            canGoToPreviousWeek={canGoToPreviousWeek}
+            canGoToNextWeek={canGoToNextWeek}
+            onEditShift={onEditShift}
+            onDeleteShift={onDeleteShift}
+          />
+        ) : (
+          <MonthView
+            dailyBreakdownByMonth={dailyBreakdownByMonth}
+            currentMonthIndex={currentMonthIndex}
+            onPreviousMonth={onPreviousMonth}
+            onNextMonth={onNextMonth}
+            canGoToPreviousMonth={canGoToPreviousMonth}
+            canGoToNextMonth={canGoToNextMonth}
+            onEditShift={onEditShift}
+            onDeleteShift={onDeleteShift}
+          />
+        )}
+      </CardContent>
     </Card>
   )
 }

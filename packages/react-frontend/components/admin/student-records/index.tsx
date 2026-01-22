@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ArrowUp, Search } from "lucide-react"
-import { type Student, type Term } from "@/lib/api"
+import { type Student, type Term, type ClockEntry } from "@/lib/api"
 import { StudentSearch } from "./student-search"
 import { StudentHeader } from "./student-header"
 import { StudentMetrics } from "./student-metrics"
@@ -22,6 +22,26 @@ import { useClockEntries } from "./hooks/use-clock-entries"
 import { useScrollBehavior } from "./hooks/use-scroll-behavior"
 import { useDailyBreakdownView } from "./hooks/use-daily-breakdown-view"
 import { type ActualShift } from "./utils/student-calculations"
+
+function countMissingClockOuts(clockEntries: ClockEntry[]) {
+  const clockIns = clockEntries.filter((entry) => entry.type === "in")
+  const clockOuts = clockEntries.filter((entry) => entry.type === "out")
+  let missingCount = 0
+
+  clockIns.forEach((clockIn) => {
+    const inDate = new Date(clockIn.timestamp)
+    const hasMatchingOut = clockOuts.some((clockOut) => {
+      const outDate = new Date(clockOut.timestamp)
+      return outDate > inDate && outDate.toDateString() === inDate.toDateString()
+    })
+
+    if (!hasMatchingOut) {
+      missingCount += 1
+    }
+  })
+
+  return missingCount
+}
 
 interface IndividualRecordsProps {
   staffData: Student[]
@@ -155,44 +175,32 @@ export function IndividualRecords({
                 </CardContent>
               </Card>
 
-              {/* Loading Skeleton for Weekly Breakdown */}
-              <Card>
-                <CardContent className="p-6">
-                  <Skeleton className="h-5 w-44 mb-4" />
-                  <div className="space-y-2">
-                    {[1, 2, 3, 4].map((i) => (
-                      <Skeleton key={i} className="h-10 w-full" />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Loading Skeleton for Weekly + Daily Breakdown (side by side) */}
+              <div className="grid grid-cols-1 lg:grid-cols-[3fr_7fr] gap-6">
+                {/* Loading Skeleton for Weekly Breakdown */}
+                <Card className="h-full">
+                  <CardContent className="p-6">
+                    <Skeleton className="h-5 w-44 mb-4" />
+                    <div className="space-y-2">
+                      {[1, 2, 3, 4].map((i) => (
+                        <Skeleton key={i} className="h-10 w-full" />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
 
-              {/* Loading Skeleton for Daily Breakdown */}
-              <Card>
-                <CardContent className="p-6">
-                  <Skeleton className="h-5 w-32 mb-4" />
-                  <div className="grid grid-cols-5 gap-2">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <Skeleton key={i} className="h-40 w-full rounded-lg" />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Loading Skeleton for Clock History */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <Skeleton className="h-5 w-28" />
-                    <Skeleton className="h-9 w-24" />
-                  </div>
-                  <div className="space-y-2">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <Skeleton key={i} className="h-14 w-full" />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                {/* Loading Skeleton for Daily Breakdown */}
+                <Card className="h-full">
+                  <CardContent className="p-6">
+                    <Skeleton className="h-5 w-32 mb-4" />
+                    <div className="grid grid-cols-5 gap-2">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <Skeleton key={i} className="h-40 w-full rounded-lg" />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </>
           ) : analytics.hasFullStudentData && analytics.punctuality ? (
             <>
@@ -206,48 +214,41 @@ export function IndividualRecords({
               {/* Punctuality Breakdown */}
               <PunctualityBreakdown punctuality={analytics.punctuality} />
 
-              {/* Weekly Breakdown */}
-              <WeeklyBreakdown
-                weeklyBreakdown={analytics.weeklyBreakdown}
-                totalExpected={analytics.totalExpected}
-                totalActual={analytics.totalActual}
-                isOpen={dailyBreakdownView.isWeeklyBreakdownOpen}
-                onOpenChange={dailyBreakdownView.setIsWeeklyBreakdownOpen}
-              />
+              {/* Weekly + Daily Breakdown - Side by side layout (30% / 70%) */}
+              <div className="grid grid-cols-1 lg:grid-cols-[4fr_6fr] gap-6">
+                {/* Weekly Breakdown */}
+                <WeeklyBreakdown
+                  weeklyBreakdown={analytics.weeklyBreakdown}
+                  totalExpected={analytics.totalExpected}
+                  totalActual={analytics.totalActual}
+                  isOpen={dailyBreakdownView.isWeeklyBreakdownOpen}
+                  onOpenChange={dailyBreakdownView.setIsWeeklyBreakdownOpen}
+                />
 
-              {/* Daily Breakdown - Week/Month View with Edit/Delete capabilities */}
-              <DailyBreakdown
-                dailyBreakdownByWeek={analytics.dailyBreakdownByWeek}
-                dailyBreakdownByMonth={analytics.dailyBreakdownByMonth}
-                dailyViewMode={dailyBreakdownView.dailyViewMode}
-                termEndDate={termEndDate}
-                isOpen={dailyBreakdownView.isDailyBreakdownOpen}
-                onOpenChange={dailyBreakdownView.setIsDailyBreakdownOpen}
-                currentWeekIndex={dailyBreakdownView.currentWeekIndex}
-                currentMonthIndex={dailyBreakdownView.currentMonthIndex}
-                onSetDailyViewMode={handleSetDailyViewMode}
-                onPreviousWeek={dailyBreakdownView.goToPreviousWeek}
-                onNextWeek={dailyBreakdownView.goToNextWeek}
-                onPreviousMonth={dailyBreakdownView.goToPreviousMonth}
-                onNextMonth={dailyBreakdownView.goToNextMonth}
-                canGoToPreviousWeek={dailyBreakdownView.canGoToPreviousWeek}
-                canGoToNextWeek={dailyBreakdownView.canGoToNextWeek}
-                canGoToPreviousMonth={dailyBreakdownView.canGoToPreviousMonth}
-                canGoToNextMonth={dailyBreakdownView.canGoToNextMonth}
-                onEditShift={(shift: ActualShift, type: "in" | "out") => clockEntries.handleShiftEdit(shift, type, selectedStaff)}
-                onDeleteShift={(shift: ActualShift) => clockEntries.handleShiftDelete(shift, selectedStaff)}
-                onAddEntry={clockEntries.handleAddClick}
-              />
-
-              {/* Clock History - Full history view with all entries */}
-              {/* <ClockHistory
-                selectedStaff={selectedStaff}
-                termStartDate={termStartDate}
-                termEndDate={termEndDate}
-                onAddClick={clockEntries.handleAddClick}
-                onEditClick={clockEntries.handleEditClick}
-                onDeleteClick={clockEntries.handleDeleteClick}
-              /> */}
+                {/* Daily Breakdown - Week/Month View with Edit/Delete capabilities */}
+                <DailyBreakdown
+                  dailyBreakdownByWeek={analytics.dailyBreakdownByWeek}
+                  dailyBreakdownByMonth={analytics.dailyBreakdownByMonth}
+                  dailyViewMode={dailyBreakdownView.dailyViewMode}
+                  termEndDate={termEndDate}
+                  currentWeekIndex={dailyBreakdownView.currentWeekIndex}
+                  currentMonthIndex={dailyBreakdownView.currentMonthIndex}
+                  onSetDailyViewMode={handleSetDailyViewMode}
+                  onPreviousWeek={dailyBreakdownView.goToPreviousWeek}
+                  onNextWeek={dailyBreakdownView.goToNextWeek}
+                  onPreviousMonth={dailyBreakdownView.goToPreviousMonth}
+                  onNextMonth={dailyBreakdownView.goToNextMonth}
+                  canGoToPreviousWeek={dailyBreakdownView.canGoToPreviousWeek}
+                  canGoToNextWeek={dailyBreakdownView.canGoToNextWeek}
+                  canGoToPreviousMonth={dailyBreakdownView.canGoToPreviousMonth}
+                  canGoToNextMonth={dailyBreakdownView.canGoToNextMonth}
+                  onEditShift={(shift: ActualShift, type: "in" | "out") => clockEntries.handleShiftEdit(shift, type, selectedStaff)}
+                  onDeleteShift={(shift: ActualShift) => clockEntries.handleShiftDelete(shift, selectedStaff)}
+                  onAddEntry={clockEntries.handleAddClick}
+                  missingClockOuts={countMissingClockOuts(selectedStaff.clockEntries || [])}
+                  autoClockOuts={(selectedStaff.clockEntries || []).filter(e => e.isAutoClockOut).length}
+                />
+              </div>
             </>
           ) : null}
 

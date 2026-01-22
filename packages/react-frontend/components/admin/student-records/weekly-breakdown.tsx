@@ -29,7 +29,7 @@ export function WeeklyBreakdown({
   const totalDiff = totalActual - totalExpected
   
   return (
-    <Card>
+    <Card className="h-full">
       <Collapsible open={isOpen} onOpenChange={onOpenChange}>
         <CollapsibleTrigger asChild>
           <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors rounded-t-lg">

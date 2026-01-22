@@ -7,7 +7,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Shield, UserCheck, Loader2, CreditCard } from "lucide-react"
+import { CreditCard, Loader2, Shield, UserCheck } from "lucide-react"
 import { type Student } from "@/lib/api"
 
 interface StudentHeaderProps {
