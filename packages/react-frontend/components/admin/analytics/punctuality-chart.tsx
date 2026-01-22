@@ -10,6 +10,8 @@ interface PunctualityChartProps {
   onTimeCount: number
   lateCount: number
   earlyCount: number
+  title?: string
+  periodLabel?: string
 }
 
 const COLORS = {
@@ -33,7 +35,7 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function PunctualityChart({ onTimeCount, lateCount, earlyCount }: PunctualityChartProps) {
+export function PunctualityChart({ onTimeCount, lateCount, earlyCount, title = "Punctuality Breakdown", periodLabel }: PunctualityChartProps) {
   const data = useMemo(() => {
     // On-time count includes early arrivals in the parent component, so we need to calculate "strictly on-time"
     const strictlyOnTime = onTimeCount - earlyCount
@@ -57,13 +59,18 @@ export function PunctualityChart({ onTimeCount, lateCount, earlyCount }: Punctua
     return (
       <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base font-medium">
-            <Clock className="w-4 h-4" />
-            Punctuality Breakdown
+          <CardTitle className="flex items-center justify-between text-base font-medium">
+            <span className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              {title}
+            </span>
+            {periodLabel && (
+              <span className="text-sm font-normal text-muted-foreground">{periodLabel}</span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[250px]">
-          <p className="text-muted-foreground">No arrival data for this term</p>
+          <p className="text-muted-foreground">No arrival data for this period</p>
         </CardContent>
       </Card>
     )
@@ -74,9 +81,14 @@ export function PunctualityChart({ onTimeCount, lateCount, earlyCount }: Punctua
   return (
     <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base font-medium">
-          <Clock className="w-4 h-4" />
-          Punctuality Breakdown
+        <CardTitle className="flex items-center justify-between text-base font-medium">
+          <span className="flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            {title}
+          </span>
+          {periodLabel && (
+            <span className="text-sm font-normal text-muted-foreground">{periodLabel}</span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>

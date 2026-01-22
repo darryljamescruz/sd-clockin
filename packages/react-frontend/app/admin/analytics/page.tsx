@@ -113,7 +113,6 @@ export default function AnalyticsPage() {
           {currentTerm && (
             <TermAnalytics
               staffData={staffData}
-              selectedTerm={selectedTerm}
               termStartDate={currentTerm.startDate}
               termEndDate={currentTerm.endDate}
             />

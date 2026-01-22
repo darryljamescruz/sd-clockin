@@ -1,214 +1,179 @@
 "use client"
 
-import { useMemo } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { BarChart3, TrendingUp, Clock, Calendar } from "lucide-react"
+import { useMemo, useState } from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { BarChart3, Clock, Calendar, LogOut, Timer } from "lucide-react"
 import { type Student } from "@/lib/api"
 import { parseDateString } from "@/lib/utils"
-import { HourlyStaffingChart } from "@/components/admin/analytics/hourly-staffing-chart"
 import { PunctualityChart } from "@/components/admin/analytics/punctuality-chart"
+import { WeeklyHoursChart } from "@/components/admin/analytics/weekly-hours-chart"
+
+type PunctualityPeriod = "day" | "week" | "month" | "term"
 
 interface TermAnalyticsProps {
   staffData: Student[]
-  selectedTerm: string
   termStartDate: string
   termEndDate: string
 }
 
-export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndDate }: TermAnalyticsProps) {
-  // Filter clock entries by term date range
-  const getTermClockEntries = (staff: Student) => {
-    const startDate = parseDateString(termStartDate)
-    const endDate = parseDateString(termEndDate)
+// Helper: Convert time string to minutes
+const timeToMinutes = (timeStr: string): number => {
+  if (!timeStr) return 0
+  const [time, period] = timeStr.split(" ")
+  if (!time) return 0
+  const [hours, minutes] = time.split(":").map(Number)
+  let total = (hours || 0) * 60 + (minutes || 0)
+  if (period === "PM" && hours !== 12) total += 720
+  else if (period === "AM" && hours === 12) total -= 720
+  return total
+}
 
-    return (staff.clockEntries || []).filter((entry) => {
-      const entryDate = new Date(entry.timestamp)
-      return entryDate >= startDate && entryDate <= endDate
-    })
+// Helper: Get expected start time for a staff member on a specific date
+const getExpectedStartTime = (staff: Student, date: Date): string | null => {
+  const dayNames = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null] as const
+  const dayName = dayNames[date.getDay()]
+  if (!dayName) return null
+
+  const schedule = staff.weeklySchedule?.[dayName as keyof typeof staff.weeklySchedule]
+  if (!schedule?.length) return null
+
+  const startTime = schedule[0].split("-")[0].trim()
+  if (startTime.includes(":")) {
+    return startTime.includes("AM") || startTime.includes("PM") ? startTime : startTime + " AM"
   }
+  const hour = parseInt(startTime)
+  if (hour === 0) return "12:00 AM"
+  if (hour < 12) return `${hour}:00 AM`
+  if (hour === 12) return "12:00 PM"
+  return `${hour - 12}:00 PM`
+}
 
-  const getExpectedStartTimeForDate = (staff: Student, date: Date) => {
-    const dayNames: Array<keyof NonNullable<Student['weeklySchedule']> | null> = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null]
-    const dayName = dayNames[date.getDay()]
-    if (!dayName) return null
-    const daySchedule = staff.weeklySchedule?.[dayName] || []
+export function TermAnalytics({ staffData, termStartDate, termEndDate }: TermAnalyticsProps) {
+  const [punctualityPeriod, setPunctualityPeriod] = useState<PunctualityPeriod>("term")
 
-    if (daySchedule.length === 0) return null
+  const termStart = useMemo(() => parseDateString(termStartDate), [termStartDate])
+  const termEnd = useMemo(() => parseDateString(termEndDate), [termEndDate])
 
-    // Get the first time block's start time
-    const firstBlock = daySchedule[0]
-    const startTime = firstBlock.split("-")[0].trim()
-
-    // Convert to standard format if needed
-    if (startTime.includes(":")) {
-      return startTime.includes("AM") || startTime.includes("PM") ? startTime : startTime + " AM"
-    } else {
-      // Convert 24-hour to 12-hour format
-      const hour = Number.parseInt(startTime)
-      if (hour === 0) return "12:00 AM"
-      if (hour < 12) return `${hour}:00 AM`
-      if (hour === 12) return "12:00 PM"
-      return `${hour - 12}:00 PM`
+  // Get date range for punctuality period
+  const getPeriodRange = (period: PunctualityPeriod) => {
+    const today = new Date()
+    if (period === "day") {
+      const start = new Date(today.setHours(0, 0, 0, 0))
+      return { start, end: new Date(start.getTime() + 86399999) }
     }
-  }
-
-  // Calculate analytics for each staff member
-  const getStaffAnalytics = (staff: Student) => {
-    const termEntries = getTermClockEntries(staff)
-    const clockInEntries = termEntries.filter((entry) => entry.type === "in")
-    const manualEntries = termEntries.filter((entry) => entry.isManual)
-
-    // Calculate attendance days (unique days with clock-in)
-    const attendanceDays = new Set(clockInEntries.map((entry) => new Date(entry.timestamp).toDateString())).size
-
-    // Calculate total days in term (weekdays only)
-    const totalWeekdays = getWeekdaysInRange(parseDateString(termStartDate), parseDateString(termEndDate))
-
-    // Calculate punctuality based on late arrivals
-    let onTimeArrivals = 0
-    let lateArrivals = 0
-    let earlyArrivals = 0
-    
-    clockInEntries.forEach((entry) => {
-      const entryDate = new Date(entry.timestamp)
-      const expectedStartTime = getExpectedStartTimeForDate(staff, entryDate)
-
-      if (expectedStartTime) {
-        const expectedMinutes = timeToMinutes(expectedStartTime)
-        const actualMinutes = entryDate.getHours() * 60 + entryDate.getMinutes()
-        const diffMinutes = actualMinutes - expectedMinutes
-
-        if (diffMinutes < -10) {
-          // More than 10 minutes early
-          earlyArrivals++
-          onTimeArrivals++ // Early counts as on-time for punctuality
-        } else if (diffMinutes <= 10) {
-          // Within 10 minutes (on-time)
-          onTimeArrivals++
-        } else {
-          // More than 10 minutes late
-          lateArrivals++
-        }
-      } else {
-        // If no expected time, consider it on-time
-        onTimeArrivals++
-      }
-    })
-
-    // Punctuality = percentage of on-time arrivals (not late)
-    const punctualityRate = clockInEntries.length > 0 
-      ? ((onTimeArrivals / clockInEntries.length) * 100) 
-      : 0
-
-    return {
-      attendanceDays,
-      totalWeekdays,
-      attendanceRate: totalWeekdays > 0 ? (attendanceDays / totalWeekdays) * 100 : 0,
-      totalClockIns: clockInEntries.length,
-      manualEntries: manualEntries.length,
-      punctualityRate,
-      lateArrivals,
-      onTimeArrivals,
-      earlyArrivals,
+    if (period === "week") {
+      const start = new Date(today)
+      const dayOfWeek = today.getDay()
+      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+      start.setDate(today.getDate() - daysToMonday)
+      start.setHours(0, 0, 0, 0)
+      return { start, end: new Date(start.getTime() + 6 * 86400000 + 86399999) }
     }
-  }
-
-  const getWeekdaysInRange = (startDate: Date, endDate: Date) => {
-    let count = 0
-    const current = new Date(startDate)
-
-    while (current <= endDate) {
-      const dayOfWeek = current.getDay()
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        // Not Sunday (0) or Saturday (6)
-        count++
-      }
-      current.setDate(current.getDate() + 1)
+    if (period === "month") {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1)
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59)
+      return { start, end }
     }
-
-    return count
+    return { start: termStart, end: termEnd }
   }
 
-  const timeToMinutes = (timeStr: string) => {
-    if (!timeStr || typeof timeStr !== "string") return 0
-
-    const [time, period] = timeStr.split(" ")
-    if (!time) return 0
-
-    const timeParts = time.split(":")
-    if (timeParts.length < 2) return 0
-
-    const [hours, minutes] = timeParts.map(Number)
-    let totalMinutes = hours * 60 + (minutes || 0)
-
-    if (period === "PM" && hours !== 12) {
-      totalMinutes += 12 * 60
-    } else if (period === "AM" && hours === 12) {
-      totalMinutes -= 12 * 60
-    }
-
-    return totalMinutes
-  }
-
-
-  const getAttendanceColor = (rate: number) => {
-    if (rate >= 90) return "text-green-600"
-    if (rate >= 75) return "text-yellow-600"
-    return "text-red-600"
-  }
-
-  const getPunctualityColor = (rate: number) => {
-    if (rate >= 85) return "text-green-600"
-    if (rate >= 70) return "text-yellow-600"
-    return "text-red-600"
-  }
-
-  // Calculate term overview stats and aggregated punctuality
-  const { termStats, aggregatedPunctuality } = useMemo(() => {
-    let totalOnTime = 0
-    let totalLate = 0
-    let totalEarly = 0
-    let totalAttendance = 0
-    let totalPunctuality = 0
-    let totalManual = 0
+  // Calculate punctuality stats for a date range
+  const calcPunctuality = (start: Date, end: Date) => {
+    let onTime = 0, late = 0, early = 0
 
     staffData.forEach((staff) => {
-      const analytics = getStaffAnalytics(staff)
-      totalOnTime += analytics.onTimeArrivals
-      totalLate += analytics.lateArrivals
-      totalEarly += analytics.earlyArrivals
-      totalAttendance += analytics.attendanceRate
-      totalPunctuality += analytics.punctualityRate
-      totalManual += analytics.manualEntries
+      (staff.clockEntries || [])
+        .filter((e) => e.type === "in" && new Date(e.timestamp) >= start && new Date(e.timestamp) <= end)
+        .forEach((entry) => {
+          const entryDate = new Date(entry.timestamp)
+          const expected = getExpectedStartTime(staff, entryDate)
+          if (!expected) { onTime++; return }
+
+          const diff = (entryDate.getHours() * 60 + entryDate.getMinutes()) - timeToMinutes(expected)
+          if (diff < -10) { early++; onTime++ }
+          else if (diff <= 10) { onTime++ }
+          else { late++ }
+        })
+    })
+    return { onTime, late, early }
+  }
+
+  // Calculate all term stats
+  const termStats = useMemo(() => {
+    let totalManual = 0, autoClockOuts = 0, totalClockOuts = 0, hoursWorked = 0
+    const punctuality = calcPunctuality(termStart, termEnd)
+
+    staffData.forEach((staff) => {
+      const entries = (staff.clockEntries || []).filter((e) => {
+        const d = new Date(e.timestamp)
+        return d >= termStart && d <= termEnd
+      })
+
+      entries.forEach((e) => {
+        if (e.isManual) totalManual++
+        if (e.type === "out") {
+          totalClockOuts++
+          if (e.isAutoClockOut) autoClockOuts++
+        }
+      })
+
+      // Calculate hours from paired entries
+      let clockIn: Date | null = null
+      entries.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+        .forEach((e) => {
+          if (e.type === "in") clockIn = new Date(e.timestamp)
+          else if (e.type === "out" && clockIn) {
+            const hrs = (new Date(e.timestamp).getTime() - clockIn.getTime()) / 3600000
+            if (hrs > 0 && hrs < 12) hoursWorked += hrs
+            clockIn = null
+          }
+        })
     })
 
+    const avgPunctuality = (punctuality.onTime + punctuality.late) > 0
+      ? (punctuality.onTime / (punctuality.onTime + punctuality.late)) * 100 : 0
+
     return {
-      termStats: {
-        totalStaff: staffData.length,
-        avgAttendance: staffData.length > 0 ? totalAttendance / staffData.length : 0,
-        totalManualEntries: totalManual,
-        avgPunctuality: staffData.length > 0 ? totalPunctuality / staffData.length : 0,
-      },
-      aggregatedPunctuality: {
-        onTimeCount: totalOnTime,
-        lateCount: totalLate,
-        earlyCount: totalEarly,
-      },
+      totalStaff: staffData.length,
+      avgPunctuality,
+      totalManual,
+      autoClockOuts,
+      totalClockOuts,
+      autoClockOutRate: totalClockOuts > 0 ? (autoClockOuts / totalClockOuts) * 100 : 0,
+      totalHours: Math.round(hoursWorked * 10) / 10,
+      avgHoursPerPerson: staffData.length > 0 ? Math.round((hoursWorked / staffData.length) * 10) / 10 : 0,
     }
-  }, [staffData, termStartDate, termEndDate])
+  }, [staffData, termStart, termEnd])
+
+  // Period-specific punctuality
+  const periodPunctuality = useMemo(() => {
+    const { start, end } = getPeriodRange(punctualityPeriod)
+    return calcPunctuality(start, end)
+  }, [staffData, punctualityPeriod, termStart, termEnd])
+
+  const getPeriodLabel = () => {
+    const { start, end } = getPeriodRange(punctualityPeriod)
+    const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    if (punctualityPeriod === "day") return fmt(start)
+    if (punctualityPeriod === "week") return `${fmt(start)} - ${fmt(end)}`
+    if (punctualityPeriod === "month") return start.toLocaleDateString("en-US", { month: "long" })
+    return "Full Term"
+  }
+
+  const getColor = (rate: number, thresholds: [number, number]) =>
+    rate >= thresholds[0] ? "text-green-600 dark:text-green-400" :
+    rate >= thresholds[1] ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400"
 
   return (
     <div className="space-y-6">
-      {/* Term Overview Stats */}
-      <div className="grid md:grid-cols-4 gap-6">
+      {/* Stats Row 1 */}
+      <div className="grid md:grid-cols-3 gap-4">
         <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-foreground">{termStats.totalStaff}</div>
+                <div className="text-2xl font-bold">{termStats.totalStaff}</div>
                 <div className="text-muted-foreground">Total Staff</div>
               </div>
               <BarChart3 className="w-8 h-8 text-muted-foreground" />
@@ -220,21 +185,7 @@ export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndD
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className={`text-2xl font-bold ${getAttendanceColor(termStats.avgAttendance)}`}>
-                  {termStats.avgAttendance.toFixed(1)}%
-                </div>
-                <div className="text-muted-foreground">Avg Attendance</div>
-              </div>
-              <TrendingUp className="w-8 h-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className={`text-2xl font-bold ${getPunctualityColor(termStats.avgPunctuality)}`}>
+                <div className={`text-2xl font-bold ${getColor(termStats.avgPunctuality, [85, 70])}`}>
                   {termStats.avgPunctuality.toFixed(1)}%
                 </div>
                 <div className="text-muted-foreground">Avg Punctuality</div>
@@ -248,7 +199,7 @@ export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndD
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{termStats.totalManualEntries}</div>
+                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{termStats.totalManual}</div>
                 <div className="text-muted-foreground">Manual Entries</div>
               </div>
               <Calendar className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
@@ -257,102 +208,69 @@ export function TermAnalytics({ staffData, selectedTerm, termStartDate, termEndD
         </Card>
       </div>
 
-      {/* Charts Section */}
+      {/* Stats Row 2 */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold">{termStats.totalHours}</div>
+                <div className="text-muted-foreground">Total Hours Worked</div>
+                <div className="text-xs text-muted-foreground mt-1">~{termStats.avgHoursPerPerson} hrs/person</div>
+              </div>
+              <Timer className="w-8 h-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className={`text-2xl font-bold ${getColor(100 - termStats.autoClockOutRate, [90, 80])}`}>
+                  {termStats.autoClockOutRate.toFixed(1)}%
+                </div>
+                <div className="text-muted-foreground">Auto Clock-out Rate</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {termStats.autoClockOuts} of {termStats.totalClockOuts}
+                </div>
+              </div>
+              <LogOut className="w-8 h-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts */}
       <div className="grid md:grid-cols-2 gap-6">
-        <HourlyStaffingChart
+        <div className="space-y-2">
+          <div className="flex justify-end">
+            <Select value={punctualityPeriod} onValueChange={(v) => setPunctualityPeriod(v as PunctualityPeriod)}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">Today</SelectItem>
+                <SelectItem value="week">This Week</SelectItem>
+                <SelectItem value="month">This Month</SelectItem>
+                <SelectItem value="term">Full Term</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <PunctualityChart
+            onTimeCount={periodPunctuality.onTime}
+            lateCount={periodPunctuality.late}
+            earlyCount={periodPunctuality.early}
+            periodLabel={getPeriodLabel()}
+          />
+        </div>
+
+        <WeeklyHoursChart
           staffData={staffData}
           termStartDate={termStartDate}
           termEndDate={termEndDate}
         />
-        <PunctualityChart
-          onTimeCount={aggregatedPunctuality.onTimeCount}
-          lateCount={aggregatedPunctuality.lateCount}
-          earlyCount={aggregatedPunctuality.earlyCount}
-        />
       </div>
-
-      {/* Individual Analytics */}
-      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5" />
-            Individual Performance Analytics - {selectedTerm}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Attendance</TableHead>
-                <TableHead>Punctuality</TableHead>
-                <TableHead>Late Arrivals</TableHead>
-                <TableHead>Manual Entries</TableHead>
-                <TableHead>Total Clock-ins</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {staffData.map((staff) => {
-                const analytics = getStaffAnalytics(staff)
-                return (
-                  <TableRow key={staff.id}>
-                    <TableCell className="font-medium">{staff.name}</TableCell>
-                    <TableCell>
-                      <Badge
-                        className={
-                          staff.role === "Student Lead" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                        }
-                      >
-                        {staff.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className={`font-medium ${getAttendanceColor(analytics.attendanceRate)}`}>
-                          {analytics.attendanceRate.toFixed(1)}%
-                        </div>
-                        <Progress value={analytics.attendanceRate} className="h-2" />
-                        <div className="text-xs text-muted-foreground">
-                          {analytics.attendanceDays}/{analytics.totalWeekdays} days
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className={`font-medium ${getPunctualityColor(analytics.punctualityRate)}`}>
-                          {analytics.punctualityRate.toFixed(1)}%
-                        </div>
-                        <Progress value={analytics.punctualityRate} className="h-2" />
-                        <div className="text-xs text-muted-foreground">
-                          {analytics.onTimeArrivals} on-time / {analytics.totalClockIns} total
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {analytics.lateArrivals > 0 ? (
-                        <Badge className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400">
-                          {analytics.lateArrivals}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {analytics.manualEntries > 0 ? (
-                        <Badge className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400">{analytics.manualEntries}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-medium">{analytics.totalClockIns}</TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
     </div>
   )
 }
