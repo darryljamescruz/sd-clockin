@@ -6,7 +6,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Clock, Calendar, TrendingUp, BarChart3 } from "lucide-react"
+import { Clock, Calendar, TrendingUp, TrendingDown, BarChart3 } from "lucide-react"
 
 interface StudentMetricsProps {
   punctuality: {
@@ -21,65 +21,87 @@ interface StudentMetricsProps {
 }
 
 export function StudentMetrics({ punctuality, totalExpected, totalActual }: StudentMetricsProps) {
+  const diff = totalActual - totalExpected
+  const isOverSchedule = diff >= 0
+  
   return (
-    <div className="grid md:grid-cols-4 gap-4">
-      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-muted-foreground">Punctuality</div>
-              <div className="text-3xl font-bold text-green-600 dark:text-green-400">{punctuality.percentage}%</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {punctuality.onTime + punctuality.early} on-time / {punctuality.onTime + punctuality.early + punctuality.late} scheduled
-                {punctuality.notScheduled > 0 && ` (${punctuality.notScheduled} not scheduled)`}
-              </div>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Punctuality */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Punctuality</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{punctuality.percentage}%</p>
             </div>
-            <Clock className="w-8 h-8 text-green-600 dark:text-green-400" />
+            <div className="rounded-full p-2 bg-green-100 dark:bg-green-900/30">
+              <Clock className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
           </div>
-          <Progress value={punctuality.percentage} className="mt-3" />
+          <Progress value={punctuality.percentage} className="mt-3 h-1.5" />
+          <p className="text-xs text-muted-foreground mt-2">
+            {punctuality.onTime + punctuality.early} on-time of {punctuality.onTime + punctuality.early + punctuality.late} shifts
+          </p>
         </CardContent>
       </Card>
 
-      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-muted-foreground">Total Expected</div>
-              <div className="text-3xl font-bold text-foreground">{totalExpected.toFixed(1)}h</div>
-              <div className="text-xs text-muted-foreground mt-1">Scheduled hours</div>
+      {/* Expected Hours */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Expected</p>
+              <p className="text-2xl font-bold">{totalExpected.toFixed(1)}<span className="text-base font-normal text-muted-foreground ml-1">hrs</span></p>
             </div>
-            <Calendar className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            <div className="rounded-full p-2 bg-blue-100 dark:bg-blue-900/30">
+              <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
           </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Total scheduled hours
+          </p>
         </CardContent>
       </Card>
 
-      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-muted-foreground">Total Actual</div>
-              <div className="text-3xl font-bold text-foreground">{totalActual.toFixed(1)}h</div>
-              <div className="text-xs text-muted-foreground mt-1">Hours worked</div>
+      {/* Actual Hours */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Actual</p>
+              <p className="text-2xl font-bold">{totalActual.toFixed(1)}<span className="text-base font-normal text-muted-foreground ml-1">hrs</span></p>
             </div>
-            <TrendingUp className="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
+            <div className="rounded-full p-2 bg-cyan-100 dark:bg-cyan-900/30">
+              <TrendingUp className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+            </div>
           </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Total hours worked
+          </p>
         </CardContent>
       </Card>
 
-      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-muted-foreground">Difference</div>
-              <div className={`text-3xl font-bold ${totalActual >= totalExpected ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
-                {totalActual >= totalExpected ? '+' : ''}{(totalActual - totalExpected).toFixed(1)}h
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {totalActual >= totalExpected ? 'Over' : 'Under'} schedule
-              </div>
+      {/* Difference */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Difference</p>
+              <p className={`text-2xl font-bold ${isOverSchedule ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                {isOverSchedule ? '+' : ''}{diff.toFixed(1)}<span className="text-base font-normal ml-1">hrs</span>
+              </p>
             </div>
-            <BarChart3 className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+            <div className={`rounded-full p-2 ${isOverSchedule ? 'bg-green-100 dark:bg-green-900/30' : 'bg-orange-100 dark:bg-orange-900/30'}`}>
+              {isOverSchedule ? (
+                <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+              ) : (
+                <TrendingDown className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              )}
+            </div>
           </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            {isOverSchedule ? 'Over' : 'Under'} scheduled hours
+          </p>
         </CardContent>
       </Card>
     </div>

@@ -4,6 +4,7 @@
 
 import { useState } from "react"
 import { type Student, type ClockEntry, api } from "@/lib/api"
+import { type ActualShift } from "../utils/student-calculations"
 
 export interface UseClockEntriesReturn {
   editingEntry: { entry: ClockEntry; index: number } | null
@@ -25,6 +26,8 @@ export interface UseClockEntriesReturn {
   handleDeleteConfirm: (selectedStaff: Student | null, selectedTerm: string, onRefreshStudent?: (studentId: string) => Promise<void>) => Promise<void>
   handleSaveEdit: (selectedStaff: Student | null, selectedTerm: string, onRefreshStudent?: (studentId: string) => Promise<void>) => Promise<void>
   handleSaveAdd: (selectedStaff: Student | null, selectedTerm: string, onRefreshStudent?: (studentId: string) => Promise<void>) => Promise<void>
+  handleShiftEdit: (shift: ActualShift, type: "in" | "out", selectedStaff: Student | null) => void
+  handleShiftDelete: (shift: ActualShift, selectedStaff: Student | null) => void
 }
 
 export function useClockEntries(): UseClockEntriesReturn {
@@ -263,6 +266,49 @@ export function useClockEntries(): UseClockEntriesReturn {
     }
   }
 
+  // Handle editing a shift from daily breakdown view
+  const handleShiftEdit = (shift: ActualShift, type: "in" | "out", selectedStaff: Student | null) => {
+    if (!selectedStaff) return
+    
+    const clockEntries = selectedStaff.clockEntries || []
+    
+    if (type === "in") {
+      const entry = clockEntries[shift.clockInEntry.index]
+      if (entry) {
+        handleEditClick(entry, shift.clockInEntry.index)
+      }
+    } else if (type === "out" && shift.clockOutEntry) {
+      const entry = clockEntries[shift.clockOutEntry.index]
+      if (entry) {
+        handleEditClick(entry, shift.clockOutEntry.index)
+      }
+    } else if (type === "out" && !shift.clockOutEntry) {
+      // Adding a new clock-out for this shift
+      // Pre-fill with a reasonable time (e.g., shift start + typical duration or current time)
+      const clockInDate = new Date(shift.clockInEntry.timestamp)
+      const suggestedOutTime = new Date(clockInDate.getTime() + 4 * 60 * 60 * 1000) // Default to 4 hours later
+      const localDateTime = new Date(suggestedOutTime.getTime() - suggestedOutTime.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16)
+      setEditTimestamp(localDateTime)
+      setEditType("out")
+      setIsAddDialogOpen(true)
+    }
+  }
+
+  // Handle deleting a shift (deletes both clock-in and clock-out)
+  const handleShiftDelete = (shift: ActualShift, selectedStaff: Student | null) => {
+    if (!selectedStaff) return
+    
+    const clockEntries = selectedStaff.clockEntries || []
+    
+    // Delete the clock-in entry (this will effectively remove the shift)
+    const entry = clockEntries[shift.clockInEntry.index]
+    if (entry) {
+      handleDeleteClick(entry, shift.clockInEntry.index)
+    }
+  }
+
   return {
     editingEntry,
     deletingEntry,
@@ -283,6 +329,8 @@ export function useClockEntries(): UseClockEntriesReturn {
     handleDeleteConfirm,
     handleSaveEdit,
     handleSaveAdd,
+    handleShiftEdit,
+    handleShiftDelete,
   }
 }
 

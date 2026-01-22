@@ -15,13 +15,13 @@ import { StudentMetrics } from "./student-metrics"
 import { PunctualityBreakdown } from "./punctuality-breakdown"
 import { WeeklyBreakdown } from "./weekly-breakdown"
 import { DailyBreakdown } from "./daily-breakdown"
-import { ClockHistory } from "./clock-history"
 import { EditEntryDialog } from "./edit-entry-dialog"
 import { DeleteEntryDialog } from "./delete-entry-dialog"
 import { useStudentAnalytics } from "./hooks/use-student-analytics"
 import { useClockEntries } from "./hooks/use-clock-entries"
 import { useScrollBehavior } from "./hooks/use-scroll-behavior"
 import { useDailyBreakdownView } from "./hooks/use-daily-breakdown-view"
+import { type ActualShift } from "./utils/student-calculations"
 
 interface IndividualRecordsProps {
   staffData: Student[]
@@ -92,16 +92,16 @@ export function IndividualRecords({
 
       {/* Empty State - Show when no student is selected */}
       {!selectedStaff && (
-        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-          <CardContent className="p-12 text-center">
+        <Card>
+          <CardContent className="py-16 text-center">
             <div className="flex flex-col items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-                <Search className="w-8 h-8 text-muted-foreground" />
+                <Search className="w-8 h-8 text-muted-foreground/50" />
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">No Student Selected</h3>
-                <p className="text-muted-foreground text-sm max-w-md">
-                  Search for a student assistant above to view their detailed records, metrics, and clock history for this term.
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">No Student Selected</h3>
+                <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+                  Search for a student above to view their records, metrics, and clock history.
                 </p>
               </div>
             </div>
@@ -114,7 +114,6 @@ export function IndividualRecords({
           {/* Staff Header */}
           <StudentHeader
             selectedStaff={selectedStaff}
-            selectedTerm={selectedTerm}
             isLoadingStudent={isLoadingStudent}
             studentInfoRef={scrollBehavior.studentInfoRef}
           />
@@ -122,33 +121,34 @@ export function IndividualRecords({
           {isLoadingStudent && !analytics.hasFullStudentData ? (
             <>
               {/* Loading Skeleton for Metrics */}
-              <div className="grid md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[1, 2, 3, 4].map((i) => (
-                  <Card key={i} className="bg-card/70 backdrop-blur-sm shadow-lg">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <Skeleton className="h-4 w-24 mb-2" />
-                          <Skeleton className="h-8 w-16 mb-2" />
-                          <Skeleton className="h-3 w-32" />
+                  <Card key={i}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-8 w-16" />
                         </div>
-                        <Skeleton className="h-8 w-8 rounded" />
+                        <Skeleton className="h-9 w-9 rounded-full" />
                       </div>
-                      <Skeleton className="h-2 w-full mt-3" />
+                      <Skeleton className="h-1.5 w-full mt-3" />
+                      <Skeleton className="h-3 w-28 mt-2" />
                     </CardContent>
                   </Card>
                 ))}
               </div>
 
               {/* Loading Skeleton for Punctuality Breakdown */}
-              <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+              <Card>
                 <CardContent className="p-6">
-                  <div className="grid grid-cols-3 gap-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i}>
-                        <Skeleton className="h-4 w-32 mb-2" />
-                        <Skeleton className="h-8 w-12 mb-2" />
-                        <Skeleton className="h-6 w-24" />
+                  <Skeleton className="h-5 w-36 mb-4" />
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="rounded-lg bg-muted/50 p-4">
+                        <Skeleton className="h-4 w-16 mb-2" />
+                        <Skeleton className="h-8 w-10 mb-1" />
+                        <Skeleton className="h-3 w-20" />
                       </div>
                     ))}
                   </div>
@@ -156,35 +156,39 @@ export function IndividualRecords({
               </Card>
 
               {/* Loading Skeleton for Weekly Breakdown */}
-              <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+              <Card>
                 <CardContent className="p-6">
+                  <Skeleton className="h-5 w-44 mb-4" />
                   <div className="space-y-2">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <Skeleton key={i} className="h-12 w-full" />
+                    {[1, 2, 3, 4].map((i) => (
+                      <Skeleton key={i} className="h-10 w-full" />
                     ))}
                   </div>
                 </CardContent>
               </Card>
 
               {/* Loading Skeleton for Daily Breakdown */}
-              <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+              <Card>
                 <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-5 gap-2">
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <Skeleton key={i} className="h-32 w-full" />
-                      ))}
-                    </div>
+                  <Skeleton className="h-5 w-32 mb-4" />
+                  <div className="grid grid-cols-5 gap-2">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Skeleton key={i} className="h-40 w-full rounded-lg" />
+                    ))}
                   </div>
                 </CardContent>
               </Card>
 
               {/* Loading Skeleton for Clock History */}
-              <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+              <Card>
                 <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <Skeleton className="h-5 w-28" />
+                    <Skeleton className="h-9 w-24" />
+                  </div>
                   <div className="space-y-2">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <Skeleton key={i} className="h-12 w-full" />
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Skeleton key={i} className="h-14 w-full" />
                     ))}
                   </div>
                 </CardContent>
@@ -211,7 +215,7 @@ export function IndividualRecords({
                 onOpenChange={dailyBreakdownView.setIsWeeklyBreakdownOpen}
               />
 
-              {/* Daily Breakdown - Week/Month View */}
+              {/* Daily Breakdown - Week/Month View with Edit/Delete capabilities */}
               <DailyBreakdown
                 dailyBreakdownByWeek={analytics.dailyBreakdownByWeek}
                 dailyBreakdownByMonth={analytics.dailyBreakdownByMonth}
@@ -230,17 +234,20 @@ export function IndividualRecords({
                 canGoToNextWeek={dailyBreakdownView.canGoToNextWeek}
                 canGoToPreviousMonth={dailyBreakdownView.canGoToPreviousMonth}
                 canGoToNextMonth={dailyBreakdownView.canGoToNextMonth}
+                onEditShift={(shift: ActualShift, type: "in" | "out") => clockEntries.handleShiftEdit(shift, type, selectedStaff)}
+                onDeleteShift={(shift: ActualShift) => clockEntries.handleShiftDelete(shift, selectedStaff)}
+                onAddEntry={clockEntries.handleAddClick}
               />
 
-              {/* Clock History */}
-              <ClockHistory
+              {/* Clock History - Full history view with all entries */}
+              {/* <ClockHistory
                 selectedStaff={selectedStaff}
                 termStartDate={termStartDate}
                 termEndDate={termEndDate}
                 onAddClick={clockEntries.handleAddClick}
                 onEditClick={clockEntries.handleEditClick}
                 onDeleteClick={clockEntries.handleDeleteClick}
-              />
+              /> */}
             </>
           ) : null}
 

@@ -6,7 +6,7 @@
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Loader2 } from "lucide-react"
+import { Loader2, Trash2, LogIn, LogOut, Calendar, Pencil, Zap } from "lucide-react"
 import { type ClockEntry } from "@/lib/api"
 
 interface DeleteEntryDialogProps {
@@ -26,38 +26,60 @@ export function DeleteEntryDialog({
 }: DeleteEntryDialogProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
-      <AlertDialogContent>
+      <AlertDialogContent className="sm:max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+            <Trash2 className="w-5 h-5" />
+            Delete Clock Entry
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            This will permanently delete this clock entry from the system. This action cannot be undone.
+            This will permanently delete this clock entry. This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         {deletingEntry && (
-          <div className="p-3 bg-muted rounded-md text-sm space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-muted-foreground">Type:</span>
-              <Badge variant={deletingEntry.entry.type === "in" ? "default" : "secondary"}>
-                {deletingEntry.entry.type === "in" ? "Clock In" : "Clock Out"}
-              </Badge>
+          <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Type</span>
+              {deletingEntry.entry.type === "in" ? (
+                <Badge variant="default" className="bg-green-600">
+                  <LogIn className="w-3 h-3 mr-1" />
+                  Clock In
+                </Badge>
+              ) : (
+                <Badge variant="secondary">
+                  <LogOut className="w-3 h-3 mr-1" />
+                  Clock Out
+                </Badge>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-muted-foreground">Date & Time:</span>
-              <span className="font-mono text-xs">{new Date(deletingEntry.entry.timestamp).toLocaleString()}</span>
-            </div>
-            {deletingEntry.entry.isManual && (
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">Manual Entry</Badge>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Date & Time</span>
+              <div className="flex items-center gap-1.5 text-sm">
+                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="font-mono text-xs">
+                  {new Date(deletingEntry.entry.timestamp).toLocaleString()}
+                </span>
               </div>
-            )}
-            {deletingEntry.entry.isAutoClockOut && (
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">Auto Clock Out</Badge>
+            </div>
+            {(deletingEntry.entry.isManual || deletingEntry.entry.isAutoClockOut) && (
+              <div className="flex items-center gap-2 pt-2 border-t">
+                {deletingEntry.entry.isManual && (
+                  <Badge variant="outline" className="text-xs">
+                    <Pencil className="w-2.5 h-2.5 mr-1" />
+                    Manual Entry
+                  </Badge>
+                )}
+                {deletingEntry.entry.isAutoClockOut && (
+                  <Badge variant="outline" className="text-xs">
+                    <Zap className="w-2.5 h-2.5 mr-1" />
+                    Auto Clock Out
+                  </Badge>
+                )}
               </div>
             )}
           </div>
         )}
-        <AlertDialogFooter>
+        <AlertDialogFooter className="gap-2 sm:gap-0">
           <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
@@ -66,11 +88,14 @@ export function DeleteEntryDialog({
           >
             {isDeleting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Deleting...
               </>
             ) : (
-              "Delete"
+              <>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Entry
+              </>
             )}
           </AlertDialogAction>
         </AlertDialogFooter>

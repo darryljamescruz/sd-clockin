@@ -56,21 +56,34 @@ export function calculateActualHours(
   startDate: Date,
   endDate: Date
 ): number {
-  const clockIns = (staff.clockEntries || []).filter(e => e.type === "in")
-  const clockOuts = (staff.clockEntries || []).filter(e => e.type === "out")
+  const clockIns = (staff.clockEntries || [])
+    .filter(e => e.type === "in")
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+  const clockOuts = (staff.clockEntries || [])
+    .filter(e => e.type === "out")
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
   
   let totalMinutes = 0
+  const usedClockOuts = new Set<number>()
+  
   clockIns.forEach(clockIn => {
     const inDate = new Date(clockIn.timestamp)
     if (inDate < startDate || inDate > endDate) return
 
-    // Find matching clock-out
-    const clockOut = clockOuts.find(out => {
+    // Find the earliest unused clock-out after this clock-in on the same day
+    let matchingClockOutIndex = -1
+    const clockOut = clockOuts.find((out, idx) => {
+      if (usedClockOuts.has(idx)) return false
       const outDate = new Date(out.timestamp)
-      return outDate > inDate && outDate.toDateString() === inDate.toDateString()
+      if (outDate > inDate && outDate.toDateString() === inDate.toDateString()) {
+        matchingClockOutIndex = idx
+        return true
+      }
+      return false
     })
 
-    if (clockOut) {
+    if (clockOut && matchingClockOutIndex >= 0) {
+      usedClockOuts.add(matchingClockOutIndex)
       const outDate = new Date(clockOut.timestamp)
       const diffMs = outDate.getTime() - inDate.getTime()
       totalMinutes += diffMs / (1000 * 60)
@@ -307,13 +320,24 @@ function aggregateConsecutiveShifts(shifts: Array<{ start: string; end: string }
 }
 
 /**
+ * Actual shift with references to original clock entries
+ */
+export type ActualShift = {
+  start: string
+  end: string
+  clockInEntry: { timestamp: string; index: number }
+  clockOutEntry?: { timestamp: string; index: number }
+  hours: number
+}
+
+/**
  * Daily breakdown day type
  */
 export type DailyBreakdownDay = {
   date: Date
   dayName: string
   expectedShifts: Array<{ start: string; end: string }>
-  actualShifts: Array<{ start: string; end: string }>
+  actualShifts: Array<ActualShift>
   expectedHours: number
   actualHours: number
   status: string
@@ -332,6 +356,9 @@ export function getDailyBreakdown(
   const termStart = parseDateString(termStartDate)
   const termEnd = parseDateString(termEndDate)
   const days: DailyBreakdownDay[] = []
+  
+  // Get all clock entries with their original indices
+  const allClockEntries = staff.clockEntries || []
 
   const weekdays = getWeekdaysInRange(termStart, termEnd)
   
@@ -370,90 +397,102 @@ export function getDailyBreakdown(
     // Aggregate consecutive shifts (e.g., 8-9, 9-10 becomes 8-10)
     const expectedShifts = aggregateConsecutiveShifts(rawExpectedShifts)
 
-    // Get actual clock-in/out for this day
-    const dayClockIns = (staff.clockEntries || []).filter(e => {
-      const date = new Date(e.timestamp)
-      return e.type === "in" && date.toDateString() === dayStr
-    }).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    // Get actual clock-in/out for this day with their original indices
+    const dayClockInsWithIndex = allClockEntries
+      .map((e, idx) => ({ entry: e, originalIndex: idx }))
+      .filter(({ entry }) => {
+        const date = new Date(entry.timestamp)
+        return entry.type === "in" && date.toDateString() === dayStr
+      })
+      .sort((a, b) => new Date(a.entry.timestamp).getTime() - new Date(b.entry.timestamp).getTime())
     
-    const dayClockOuts = (staff.clockEntries || []).filter(e => {
-      const date = new Date(e.timestamp)
-      return e.type === "out" && date.toDateString() === dayStr
-    }).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    const dayClockOutsWithIndex = allClockEntries
+      .map((e, idx) => ({ entry: e, originalIndex: idx }))
+      .filter(({ entry }) => {
+        const date = new Date(entry.timestamp)
+        return entry.type === "out" && date.toDateString() === dayStr
+      })
+      .sort((a, b) => new Date(a.entry.timestamp).getTime() - new Date(b.entry.timestamp).getTime())
 
-    const rawActualShifts: Array<{ start: string; end: string }> = []
+    const actualShifts: ActualShift[] = []
     let actualMinutes = 0
 
     // Handle multiple shifts: match each clock-in with its corresponding clock-out
-    if (dayClockIns.length > 0) {
-      // Calculate total actual hours by matching all clock-ins with clock-outs
+    if (dayClockInsWithIndex.length > 0) {
       const usedClockOuts = new Set<number>()
       
-      dayClockIns.forEach(clockIn => {
+      dayClockInsWithIndex.forEach(({ entry: clockIn, originalIndex: clockInIndex }) => {
         const inDate = new Date(clockIn.timestamp)
         
         // Find the earliest unused clock-out after this clock-in
-        let matchingClockOutIndex = -1
-        const matchingClockOut = dayClockOuts.find((out, idx) => {
+        let matchingClockOutIdx = -1
+        const matchingClockOutData = dayClockOutsWithIndex.find(({ originalIndex }, idx) => {
           if (usedClockOuts.has(idx)) return false
-          const outDate = new Date(out.timestamp)
+          const outDate = new Date(allClockEntries[originalIndex].timestamp)
           if (outDate > inDate) {
-            matchingClockOutIndex = idx
+            matchingClockOutIdx = idx
             return true
           }
           return false
         })
         
-        if (matchingClockOut && matchingClockOutIndex >= 0) {
-          const outDate = new Date(matchingClockOut.timestamp)
-          usedClockOuts.add(matchingClockOutIndex)
+        const shiftStart = formatMinutesToTime(inDate.getHours() * 60 + inDate.getMinutes())
+        
+        if (matchingClockOutData && matchingClockOutIdx >= 0) {
+          const outDate = new Date(matchingClockOutData.entry.timestamp)
+          usedClockOuts.add(matchingClockOutIdx)
           
-          // Add this shift to the list
-          const shiftStart = formatMinutesToTime(inDate.getHours() * 60 + inDate.getMinutes())
           const shiftEnd = formatMinutesToTime(outDate.getHours() * 60 + outDate.getMinutes())
-          rawActualShifts.push({
+          const shiftMinutes = (outDate.getTime() - inDate.getTime()) / (1000 * 60)
+          
+          actualShifts.push({
             start: shiftStart,
-            end: shiftEnd
+            end: shiftEnd,
+            clockInEntry: { timestamp: clockIn.timestamp, index: clockInIndex },
+            clockOutEntry: { timestamp: matchingClockOutData.entry.timestamp, index: matchingClockOutData.originalIndex },
+            hours: shiftMinutes / 60
           })
           
-          // Add this shift's hours to total
-          const shiftMinutes = (outDate.getTime() - inDate.getTime()) / (1000 * 60)
           actualMinutes += shiftMinutes
+        } else {
+          // Clock-in without matching clock-out
+          actualShifts.push({
+            start: shiftStart,
+            end: "—",
+            clockInEntry: { timestamp: clockIn.timestamp, index: clockInIndex },
+            clockOutEntry: undefined,
+            hours: 0
+          })
         }
       })
     }
-    
-    // Aggregate consecutive shifts (e.g., multiple small breaks could be shown as one continuous shift)
-    const actualShifts = aggregateConsecutiveShifts(rawActualShifts)
 
     // Determine status
     let status = "not-scheduled"
     if (isOffDay) {
       status = "day-off"
     } else if (daySchedule.length > 0) {
-      if (dayClockIns.length === 0) {
+      if (dayClockInsWithIndex.length === 0) {
         status = "absent"
       } else {
         // Check if any clock-ins have work periods that don't overlap with scheduled shifts
-        const clockInsOutsideSchedule = dayClockIns.filter(clockIn => {
+        const clockInsOutsideSchedule = dayClockInsWithIndex.filter(({ entry: clockIn }) => {
           const inDate = new Date(clockIn.timestamp)
           const actualStartMinutes = inDate.getHours() * 60 + inDate.getMinutes()
           
           // Find matching clock-out
-          const matchingClockOut = dayClockOuts.find(out => {
+          const matchingClockOut = dayClockOutsWithIndex.find(({ entry: out }) => {
             const outDate = new Date(out.timestamp)
             return outDate > inDate
           })
           
           if (!matchingClockOut) {
-            // No clock-out - can't determine overlap, count as outside schedule
             return true
           }
           
-          const outDate = new Date(matchingClockOut.timestamp)
+          const outDate = new Date(matchingClockOut.entry.timestamp)
           const actualEndMinutes = outDate.getHours() * 60 + outDate.getMinutes()
           
-          // Check if actual work period overlaps with any scheduled shift period
           let overlapsWithScheduledShift = false
           daySchedule.forEach((shiftBlock: string) => {
             const [shiftStart, shiftEnd] = shiftBlock.split("-")
@@ -463,9 +502,6 @@ export function getDailyBreakdown(
               const shiftStartMinutes = timeToMinutes(shiftStartTime)
               const shiftEndMinutes = timeToMinutes(shiftEndTime)
               
-              // Check if actual work period overlaps with this scheduled shift
-              // Two periods overlap if: actualStart < shiftEnd AND actualEnd > shiftStart
-              // (with 30 min buffer before shift start for early arrivals)
               const adjustedShiftStart = shiftStartMinutes - 30
               if (actualStartMinutes < shiftEndMinutes && actualEndMinutes > adjustedShiftStart) {
                 overlapsWithScheduledShift = true
@@ -477,13 +513,11 @@ export function getDailyBreakdown(
         })
         
         if (clockInsOutsideSchedule.length > 0) {
-          // Some clock-ins are outside scheduled shifts
           status = "unscheduled-work"
         } else {
-          // All clock-ins are within scheduled shifts, check for missing clock-outs
-          const unmatchedClockIns = dayClockIns.filter(clockIn => {
+          const unmatchedClockIns = dayClockInsWithIndex.filter(({ entry: clockIn }) => {
             const inDate = new Date(clockIn.timestamp)
-            return !dayClockOuts.some(out => {
+            return !dayClockOutsWithIndex.some(({ entry: out }) => {
               const outDate = new Date(out.timestamp)
               return outDate > inDate
             })
@@ -496,7 +530,7 @@ export function getDailyBreakdown(
           }
         }
       }
-    } else if (dayClockIns.length > 0) {
+    } else if (dayClockInsWithIndex.length > 0) {
       status = "unscheduled-work"
     }
 
