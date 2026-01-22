@@ -266,6 +266,47 @@ export function getWeeklyBreakdown(
 }
 
 /**
+ * Aggregates consecutive shifts into single continuous shifts
+ * Example: ["8:00 AM-9:00 AM", "9:00 AM-10:00 AM"] => ["8:00 AM-10:00 AM"]
+ */
+function aggregateConsecutiveShifts(shifts: Array<{ start: string; end: string }>): Array<{ start: string; end: string }> {
+  if (shifts.length === 0) return []
+  
+  // Sort shifts by start time
+  const sortedShifts = [...shifts].sort((a, b) => {
+    const aMinutes = timeToMinutes(a.start)
+    const bMinutes = timeToMinutes(b.start)
+    return aMinutes - bMinutes
+  })
+  
+  const aggregated: Array<{ start: string; end: string }> = []
+  let currentShift = { ...sortedShifts[0] }
+  
+  for (let i = 1; i < sortedShifts.length; i++) {
+    const shift = sortedShifts[i]
+    const currentEndMinutes = timeToMinutes(currentShift.end)
+    const shiftStartMinutes = timeToMinutes(shift.start)
+    
+    // Check if shifts are consecutive or overlapping (within 1 minute tolerance)
+    if (Math.abs(currentEndMinutes - shiftStartMinutes) <= 1) {
+      // Extend current shift to include this shift's end time
+      const shiftEndMinutes = timeToMinutes(shift.end)
+      const extendedEndMinutes = Math.max(currentEndMinutes, shiftEndMinutes)
+      currentShift.end = formatMinutesToTime(extendedEndMinutes)
+    } else {
+      // Not consecutive, save current shift and start a new one
+      aggregated.push(currentShift)
+      currentShift = { ...shift }
+    }
+  }
+  
+  // Add the last shift
+  aggregated.push(currentShift)
+  
+  return aggregated
+}
+
+/**
  * Daily breakdown day type
  */
 export type DailyBreakdownDay = {
@@ -304,7 +345,7 @@ export function getDailyBreakdown(
     const dayStr = day.toDateString()
     
     // Calculate expected hours from ALL shifts - skip for days off
-    const expectedShifts: Array<{ start: string; end: string }> = []
+    const rawExpectedShifts: Array<{ start: string; end: string }> = []
     let expectedMinutes = 0
     
     if (!isOffDay && daySchedule.length > 0) {
@@ -314,7 +355,7 @@ export function getDailyBreakdown(
         if (shiftStart && shiftEnd) {
           const shiftStartTime = normalizeTime(shiftStart.trim())
           const shiftEndTime = normalizeTime(shiftEnd.trim())
-          expectedShifts.push({
+          rawExpectedShifts.push({
             start: shiftStartTime,
             end: shiftEndTime
           })
@@ -325,6 +366,9 @@ export function getDailyBreakdown(
         }
       })
     }
+    
+    // Aggregate consecutive shifts (e.g., 8-9, 9-10 becomes 8-10)
+    const expectedShifts = aggregateConsecutiveShifts(rawExpectedShifts)
 
     // Get actual clock-in/out for this day
     const dayClockIns = (staff.clockEntries || []).filter(e => {
@@ -337,7 +381,7 @@ export function getDailyBreakdown(
       return e.type === "out" && date.toDateString() === dayStr
     }).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
 
-    const actualShifts: Array<{ start: string; end: string }> = []
+    const rawActualShifts: Array<{ start: string; end: string }> = []
     let actualMinutes = 0
 
     // Handle multiple shifts: match each clock-in with its corresponding clock-out
@@ -367,7 +411,7 @@ export function getDailyBreakdown(
           // Add this shift to the list
           const shiftStart = formatMinutesToTime(inDate.getHours() * 60 + inDate.getMinutes())
           const shiftEnd = formatMinutesToTime(outDate.getHours() * 60 + outDate.getMinutes())
-          actualShifts.push({
+          rawActualShifts.push({
             start: shiftStart,
             end: shiftEnd
           })
@@ -378,6 +422,9 @@ export function getDailyBreakdown(
         }
       })
     }
+    
+    // Aggregate consecutive shifts (e.g., multiple small breaks could be shown as one continuous shift)
+    const actualShifts = aggregateConsecutiveShifts(rawActualShifts)
 
     // Determine status
     let status = "not-scheduled"

@@ -7,7 +7,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ArrowUp } from "lucide-react"
+import { ArrowUp, Search } from "lucide-react"
 import { type Student, type Term } from "@/lib/api"
 import { StudentSearch } from "./student-search"
 import { StudentHeader } from "./student-header"
@@ -89,6 +89,25 @@ export function IndividualRecords({
         onSelectStaff={onSelectStaff}
         searchSectionRef={scrollBehavior.searchSectionRef}
       />
+
+      {/* Empty State - Show when no student is selected */}
+      {!selectedStaff && (
+        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+          <CardContent className="p-12 text-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                <Search className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">No Student Selected</h3>
+                <p className="text-muted-foreground text-sm max-w-md">
+                  Search for a student assistant above to view their detailed records, metrics, and clock history for this term.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {selectedStaff && (
         <>

@@ -57,59 +57,43 @@ export function StudentSearch({ staffData, selectedStaff, onSelectStaff, searchS
             />
           </div>
         </div>
-        {/* Show all students, filtered students, or search results */}
-        {filteredStaff.length > 0 && (
+        {/* Show search results only when user is searching */}
+        {searchQuery && filteredStaff.length > 0 && (
           <div className="mt-4">
-            {!searchQuery ? (
-              // Grid layout for all students (Student Lead and Student Assistant only)
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                {filteredStaff.map((staff) => (
-                  <Button
-                    key={staff.id}
-                    variant={selectedStaff?.id === staff.id ? "default" : "outline"}
-                    className="justify-start"
-                    onClick={() => onSelectStaff(staff)}
-                  >
-                    {staff.role === "Student Lead" ? (
-                      <Shield className="w-4 h-4 mr-2" />
-                    ) : (
-                      <UserCheck className="w-4 h-4 mr-2" />
-                    )}
-                    <span className="truncate">{staff.name}</span>
-                  </Button>
-                ))}
-              </div>
-            ) : (
-              // List layout for search results
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {filteredStaff.map((staff) => (
-                  <Button
-                    key={staff.id}
-                    variant={selectedStaff?.id === staff.id ? "default" : "outline"}
-                    className="w-full justify-start"
-                    onClick={() => {
-                      onSelectStaff(staff)
-                      setSearchQuery("")
-                    }}
-                  >
-                    {staff.role === "Student Lead" ? (
-                      <Shield className="w-4 h-4 mr-2" />
-                    ) : (
-                      <UserCheck className="w-4 h-4 mr-2" />
-                    )}
-                    <span className="truncate">{staff.name}</span>
-                    {selectedStaff?.id === staff.id && (
-                      <Badge className="ml-auto bg-green-100 text-green-800">Selected</Badge>
-                    )}
-                  </Button>
-                ))}
-              </div>
-            )}
+            {/* List layout for search results */}
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {filteredStaff.map((staff) => (
+                <Button
+                  key={staff.id}
+                  variant={selectedStaff?.id === staff.id ? "default" : "outline"}
+                  className="w-full justify-start"
+                  onClick={() => {
+                    onSelectStaff(staff)
+                    setSearchQuery("")
+                  }}
+                >
+                  {staff.role === "Student Lead" ? (
+                    <Shield className="w-4 h-4 mr-2" />
+                  ) : (
+                    <UserCheck className="w-4 h-4 mr-2" />
+                  )}
+                  <span className="truncate">{staff.name}</span>
+                  {selectedStaff?.id === staff.id && (
+                    <Badge className="ml-auto bg-green-100 text-green-800">Selected</Badge>
+                  )}
+                </Button>
+              ))}
+            </div>
           </div>
         )}
         {searchQuery && filteredStaff.length === 0 && (
           <div className="mt-4 text-center text-muted-foreground text-sm">
             No staff members found matching "{searchQuery}"
+          </div>
+        )}
+        {!searchQuery && (
+          <div className="mt-4 text-center text-muted-foreground text-sm">
+            Start typing to search for a student assistant...
           </div>
         )}
       </CardContent>
