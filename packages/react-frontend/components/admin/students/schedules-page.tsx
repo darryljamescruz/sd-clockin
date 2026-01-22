@@ -1,34 +1,52 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Calendar, Edit, Users, Clock, Search, ArrowUpDown, Shield, UserCheck } from "lucide-react"
+import { Calendar, Search, Shield, UserCheck, Save, Loader2, User } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
-import { StudentScheduleManager } from "../students/student-schedule-manager"
 import { CSVImport } from "./csv-import"
-import { StudentScheduleVisual } from "../students/student-schedule-visual"
 import type { Term, Student, Schedule } from "@/lib/api"
 import { api } from "@/lib/api"
-import { formatDateString } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 
 interface SchedulesPageProps {
   students: Student[]
   terms: Term[]
 }
 
+const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri"]
+const HOURS = Array.from({ length: 9 }, (_, i) => i + 8) // 8 AM to 5 PM
+
+type Availability = {
+  monday: string[]
+  tuesday: string[]
+  wednesday: string[]
+  thursday: string[]
+  friday: string[]
+}
+
 export function SchedulesPage({ students, terms }: SchedulesPageProps) {
   const [selectedTermId, setSelectedTermId] = useState<string>("")
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [schedules, setSchedules] = useState<Record<string, Schedule>>({})
-  const [editingStudent, setEditingStudent] = useState<Student | null>(null)
+  const [availability, setAvailability] = useState<Availability>({
+    monday: [],
+    tuesday: [],
+    wednesday: [],
+    thursday: [],
+    friday: [],
+  })
   const [isLoading, setIsLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [sortBy, setSortBy] = useState<"name" | "scheduled" | "none">("name")
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragMode, setDragMode] = useState<"add" | "remove">("add")
 
-  // Set default term to active term or first term
+  // Set default term to active term
   useEffect(() => {
     const activeTerm = terms.find((t) => t.isActive)
     if (activeTerm) {
@@ -46,7 +64,6 @@ export function SchedulesPage({ students, terms }: SchedulesPageProps) {
       setIsLoading(true)
       const schedulesData: Record<string, Schedule> = {}
 
-      // Fetch schedules for all students in parallel
       await Promise.all(
         students.map(async (student) => {
           try {
@@ -55,8 +72,7 @@ export function SchedulesPage({ students, terms }: SchedulesPageProps) {
               schedulesData[student.id] = schedule
             }
           } catch (error) {
-            // Student might not have a schedule for this term, that's okay
-            console.log(`No schedule found for ${student.name} in selected term`)
+            // Student might not have a schedule
           }
         })
       )
@@ -68,259 +84,402 @@ export function SchedulesPage({ students, terms }: SchedulesPageProps) {
     fetchSchedules()
   }, [selectedTermId, students])
 
-  const handleEditSchedule = (student: Student) => {
-    setEditingStudent(student)
+  // Convert a time block like "8-11" or "9 AM - 12 PM" to individual hour blocks
+  const expandTimeBlock = (block: string): string[] => {
+    const [startStr, endStr] = block.split("-").map(s => s.trim())
+    if (!startStr) return []
+
+    const startHour = parseTimeToHour(startStr)
+    const endHour = endStr ? parseTimeToHour(endStr) : startHour + 1
+
+    const hours: string[] = []
+    for (let h = startHour; h < endHour && h < 17; h++) {
+      if (h >= 8) {
+        hours.push(`${h}-${h + 1}`)
+      }
+    }
+    return hours
   }
 
-  const handleCloseModal = () => {
-    setEditingStudent(null)
-  }
+  // Normalize availability to individual hour blocks
+  const normalizeAvailability = (avail: Availability): Availability => {
+    const normalized: Availability = {
+      monday: [],
+      tuesday: [],
+      wednesday: [],
+      thursday: [],
+      friday: [],
+    }
 
-  const handleSaveSchedule = async () => {
-    // Refetch schedules after saving
-    if (!selectedTermId) return
+    for (const day of DAYS) {
+      const blocks = avail[day] || []
+      const expandedHours = new Set<string>()
 
-    setIsLoading(true)
-    const schedulesData: Record<string, Schedule> = {}
+      for (const block of blocks) {
+        const expanded = expandTimeBlock(block)
+        expanded.forEach(h => expandedHours.add(h))
+      }
 
-    await Promise.all(
-      students.map(async (student) => {
-        try {
-          const schedule = await api.schedules.get(student.id, selectedTermId)
-          if (schedule) {
-            schedulesData[student.id] = schedule
-          }
-        } catch (error) {
-          console.log(`No schedule found for ${student.name} in selected term`)
-        }
+      normalized[day] = Array.from(expandedHours).sort((a, b) => {
+        return parseInt(a.split("-")[0]) - parseInt(b.split("-")[0])
       })
+    }
+
+    return normalized
+  }
+
+  // Load selected student's schedule into availability state
+  useEffect(() => {
+    if (selectedStudent && schedules[selectedStudent.id]) {
+      const normalized = normalizeAvailability(schedules[selectedStudent.id].availability)
+      setAvailability(normalized)
+    } else {
+      setAvailability({
+        monday: [],
+        tuesday: [],
+        wednesday: [],
+        thursday: [],
+        friday: [],
+      })
+    }
+  }, [selectedStudent, schedules])
+
+  // Filter students
+  const filteredStudents = useMemo(() => {
+    if (!searchQuery) return students
+    return students.filter(s =>
+      s.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
+  }, [students, searchQuery])
 
-    setSchedules(schedulesData)
-    setIsLoading(false)
+  // Parse time string to hour (24h format)
+  const parseTimeToHour = (timeStr: string): number => {
+    if (!timeStr) return 0
+
+    const trimmed = timeStr.trim().toUpperCase()
+    const hasAM = trimmed.includes("AM")
+    const hasPM = trimmed.includes("PM")
+
+    const numericPart = timeStr.replace(/\s*(AM|PM)\s*/gi, "").trim()
+
+    let hours: number
+    if (numericPart.includes(":")) {
+      hours = parseInt(numericPart.split(":")[0], 10)
+    } else {
+      hours = parseInt(numericPart, 10)
+    }
+
+    if (isNaN(hours)) return 0
+
+    // Handle AM/PM
+    if (hasAM && hours === 12) {
+      hours = 0
+    } else if (hasPM && hours !== 12) {
+      hours += 12
+    }
+
+    return hours
   }
 
-  const selectedTerm = terms.find((t) => t.id === selectedTermId)
+  // Check if a specific hour is selected
+  const isHourSelected = (day: typeof DAYS[number], hour: number): boolean => {
+    const blocks = availability[day]
+    if (!blocks || blocks.length === 0) return false
 
-  // Filter and sort students
-  const filteredAndSortedStudents = useMemo(() => {
-    let filtered = students
+    return blocks.some(block => {
+      const [startStr, endStr] = block.split("-").map(s => s.trim())
+      if (!startStr) return false
 
-    // Filter by search query
-    if (searchQuery) {
-      filtered = filtered.filter(s => 
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.role.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      const startHour = parseTimeToHour(startStr)
+      const endHour = endStr ? parseTimeToHour(endStr) : startHour + 1
+
+      // Check if the hour falls within this block
+      return hour >= startHour && hour < endHour
+    })
+  }
+
+  // Toggle hour selection
+  const toggleHour = (day: typeof DAYS[number], hour: number, forceMode?: "add" | "remove") => {
+    const hourStr = `${hour}-${hour + 1}`
+    const isSelected = isHourSelected(day, hour)
+    const mode = forceMode || (isSelected ? "remove" : "add")
+
+    setAvailability(prev => {
+      const dayBlocks = [...prev[day]]
+
+      if (mode === "remove") {
+        return {
+          ...prev,
+          [day]: dayBlocks.filter(b => b !== hourStr)
+        }
+      } else {
+        if (!dayBlocks.includes(hourStr)) {
+          return {
+            ...prev,
+            [day]: [...dayBlocks, hourStr].sort((a, b) => {
+              const aStart = parseInt(a.split("-")[0])
+              const bStart = parseInt(b.split("-")[0])
+              return aStart - bStart
+            })
+          }
+        }
+        return prev
+      }
+    })
+  }
+
+  // Handle mouse events for drag selection
+  const handleMouseDown = (day: typeof DAYS[number], hour: number) => {
+    const isSelected = isHourSelected(day, hour)
+    setDragMode(isSelected ? "remove" : "add")
+    setIsDragging(true)
+    toggleHour(day, hour)
+  }
+
+  const handleMouseEnter = (day: typeof DAYS[number], hour: number) => {
+    if (isDragging) {
+      toggleHour(day, hour, dragMode)
     }
+  }
 
-    // Sort
-    if (sortBy === "name") {
-      filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name))
-    } else if (sortBy === "scheduled") {
-      filtered = [...filtered].sort((a, b) => {
-        const aHasSchedule = schedules[a.id] && 
-          Object.values(schedules[a.id].availability).some(day => day.length > 0)
-        const bHasSchedule = schedules[b.id] && 
-          Object.values(schedules[b.id].availability).some(day => day.length > 0)
-        
-        if (aHasSchedule && !bHasSchedule) return -1
-        if (!aHasSchedule && bHasSchedule) return 1
-        return a.name.localeCompare(b.name)
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  // Save schedule
+  const handleSave = async () => {
+    if (!selectedStudent || !selectedTermId) return
+
+    setIsSaving(true)
+    try {
+      await api.schedules.createOrUpdate({
+        studentId: selectedStudent.id,
+        termId: selectedTermId,
+        availability,
       })
-    }
 
-    return filtered
-  }, [students, searchQuery, sortBy, schedules])
+      // Update local state
+      setSchedules(prev => ({
+        ...prev,
+        [selectedStudent.id]: {
+          ...prev[selectedStudent.id],
+          studentId: selectedStudent.id,
+          termId: selectedTermId,
+          availability,
+        }
+      }))
+    } catch (error) {
+      console.error("Failed to save schedule:", error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Check if student has any schedule
+  const hasSchedule = (studentId: string) => {
+    const schedule = schedules[studentId]
+    return schedule && Object.values(schedule.availability).some(day => day.length > 0)
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4" onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-foreground">Manage Schedules</h2>
-          <p className="text-sm sm:text-base text-muted-foreground">Set student availability for each term</p>
+          <p className="text-sm text-muted-foreground">Select a student to edit their weekly availability</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-muted-foreground" />
+          <Select value={selectedTermId} onValueChange={setSelectedTermId}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Select term" />
+            </SelectTrigger>
+            <SelectContent>
+              {terms.map((term) => (
+                <SelectItem key={term.id} value={term.id}>
+                  {term.name} {term.isActive && "(Active)"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {/* Term Selector */}
-      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-        <CardContent className="p-4 md:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <Calendar className="w-5 h-5 text-muted-foreground shrink-0" />
-            <div className="flex-1">
-              <Label className="text-sm font-medium text-foreground mb-2 block">Select Term</Label>
-              <Select value={selectedTermId} onValueChange={setSelectedTermId}>
-                <SelectTrigger className="w-full sm:max-w-md">
-                  <SelectValue placeholder="Select a term" />
-                </SelectTrigger>
-                <SelectContent>
-                  {terms.map((term) => (
-                    <SelectItem key={term.id} value={term.id}>
-                      {term.name} {term.isActive && "(Active)"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {selectedTerm && (
-              <div className="text-xs sm:text-sm text-muted-foreground shrink-0">
-                {formatDateString(selectedTerm.startDate)} -{" "}
-                {formatDateString(selectedTerm.endDate)}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Overview Stats */}
-      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-2xl font-bold text-foreground">{students.length}</div>
-              <div className="text-muted-foreground">Total Students</div>
-            </div>
-            <Users className="w-8 h-8 text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
-
       {/* CSV Import */}
       {selectedTermId && (
-        <CSVImport termId={selectedTermId} onImportComplete={handleSaveSchedule} />
+        <CSVImport
+          termId={selectedTermId}
+          onImportComplete={() => {
+            // Refetch schedules
+            const fetchSchedules = async () => {
+              const schedulesData: Record<string, Schedule> = {}
+              await Promise.all(
+                students.map(async (student) => {
+                  try {
+                    const schedule = await api.schedules.get(student.id, selectedTermId)
+                    if (schedule) schedulesData[student.id] = schedule
+                  } catch (error) {}
+                })
+              )
+              setSchedules(schedulesData)
+            }
+            fetchSchedules()
+          }}
+        />
       )}
 
-      {/* Filter and Sort Controls */}
-      {selectedTermId && (
-        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
+      {/* Main content - master detail layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[600px]">
+        {/* Left panel - Student list */}
+        <Card className="lg:col-span-1 bg-card/70">
           <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
-              <div className="flex-1 relative">
+            <div className="space-y-3">
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder="Search by name or role..."
+                  placeholder="Search students..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
                 />
               </div>
-              <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <ArrowUpDown className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">Sort by Name</SelectItem>
-                  <SelectItem value="scheduled">Scheduled First</SelectItem>
-                  <SelectItem value="none">No Sorting</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Students Table */}
-      {!selectedTermId ? (
-        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-          <CardContent className="p-12 text-center">
-            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">Select a Term</h3>
-            <p className="text-muted-foreground">Choose a term to view and manage student schedules</p>
-          </CardContent>
-        </Card>
-      ) : isLoading ? (
-        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-          <CardContent className="p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading schedules...</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-          <CardHeader>
-            <CardTitle>
-              Student Schedules for {selectedTerm?.name} ({students.length} students)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto -mx-4 md:mx-0">
-              <div className="px-4 md:px-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="min-w-[120px]">Name</TableHead>
-                      <TableHead className="min-w-[100px]">Role</TableHead>
-                      <TableHead className="min-w-[400px]">Weekly Availability</TableHead>
-                      <TableHead className="text-right min-w-[80px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAndSortedStudents.map((student) => {
-                      const schedule = schedules[student.id]
+              <div className="text-xs text-muted-foreground">
+                {filteredStudents.length} students
+              </div>
 
-                      return (
-                        <TableRow key={student.id}>
-                          <TableCell className="font-medium">{student.name}</TableCell>
-                          <TableCell>
-                            {student.role === "Student Lead" ? (
-                              <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30">
-                                <Shield className="w-3 h-3 mr-1" />
-                                Student Lead
-                              </Badge>
-                            ) : (
-                              <Badge className="bg-slate-100 dark:bg-slate-900/30 text-slate-800 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900/30">
-                                <UserCheck className="w-3 h-3 mr-1" />
-                                Student Assistant
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <StudentScheduleVisual schedule={schedule} />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2 justify-end">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEditSchedule(student)}
-                                className=""
-                              >
-                                <Edit className="w-3 h-3 mr-1" />
-                                <span className="hidden sm:inline">Edit</span>
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
+              <div className="space-y-1 max-h-[500px] overflow-y-auto">
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  filteredStudents.map((student) => (
+                    <button
+                      key={student.id}
+                      onClick={() => setSelectedStudent(student)}
+                      className={cn(
+                        "w-full text-left px-3 py-2 rounded-md transition-colors",
+                        "hover:bg-accent",
+                        selectedStudent?.id === student.id
+                          ? "bg-accent"
+                          : ""
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-medium truncate">{student.name}</span>
+                          {student.role === "Student Lead" && (
+                            <Shield className="w-3 h-3 text-blue-500 shrink-0" />
+                          )}
+                        </div>
+                        {hasSchedule(student.id) && (
+                          <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+                        )}
+                      </div>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Schedule Manager Modal */}
-      {editingStudent && (
-        <StudentScheduleManager
-          student={editingStudent}
-          terms={terms}
-          onClose={handleCloseModal}
-          onSave={handleSaveSchedule}
-        />
-      )}
+        {/* Right panel - Schedule editor */}
+        <Card className="lg:col-span-2 bg-card/70">
+          <CardContent className="p-6">
+            {!selectedStudent ? (
+              <div className="h-full flex flex-col items-center justify-center text-center py-12">
+                <User className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-1">Select a Student</h3>
+                <p className="text-sm text-muted-foreground">
+                  Choose a student from the list to view and edit their schedule
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Student info header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">{selectedStudent.name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      {selectedStudent.role === "Student Lead" ? (
+                        <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                          <Shield className="w-3 h-3 mr-1" />
+                          Student Lead
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">
+                          <UserCheck className="w-3 h-3 mr-1" />
+                          Student Assistant
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <Button onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Save
+                  </Button>
+                </div>
+
+                {/* Week calendar grid */}
+                <div className="select-none">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Click or drag to select available hours
+                  </p>
+
+                  <div className="overflow-x-auto">
+                    <div className="inline-block min-w-full">
+                      {/* Header row with day names */}
+                      <div className="grid grid-cols-[60px_repeat(5,1fr)] gap-1 mb-1">
+                        <div /> {/* Empty corner */}
+                        {DAY_LABELS.map((day) => (
+                          <div key={day} className="text-center text-sm font-medium py-2">
+                            {day}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Hour rows */}
+                      {HOURS.map((hour) => (
+                        <div key={hour} className="grid grid-cols-[60px_repeat(5,1fr)] gap-1 mb-1">
+                          {/* Hour label */}
+                          <div className="text-xs text-muted-foreground text-right pr-2 py-2">
+                            {hour > 12 ? hour - 12 : hour}{hour >= 12 ? 'pm' : 'am'}
+                          </div>
+
+                          {/* Day cells */}
+                          {DAYS.map((day) => {
+                            const isSelected = isHourSelected(day, hour)
+                            return (
+                              <div
+                                key={`${day}-${hour}`}
+                                onMouseDown={() => handleMouseDown(day, hour)}
+                                onMouseEnter={() => handleMouseEnter(day, hour)}
+                                className={cn(
+                                  "h-10 rounded-md border cursor-pointer transition-colors",
+                                  isSelected
+                                    ? "bg-primary border-primary"
+                                    : "bg-muted/50 border-border hover:bg-muted"
+                                )}
+                              />
+                            )
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
-
-function Label({ className, children, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
-  return (
-    <label className={className} {...props}>
-      {children}
-    </label>
-  )
-}
-
