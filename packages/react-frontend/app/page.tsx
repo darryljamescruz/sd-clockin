@@ -307,15 +307,15 @@ export default function HomePage() {
     })
 
   const currentTimeCard = (
-    <Card className="mb-6 sm:mb-8 bg-card/70 backdrop-blur-sm shadow-lg">
-      <CardContent className="p-4 sm:p-8 text-center">
-        <div className="space-y-2">
-          <div className="text-3xl sm:text-5xl lg:text-6xl font-mono font-bold text-foreground tracking-tight">
+    <Card className="mb-6 sm:mb-8 bg-gradient-to-br from-card via-card to-card/90 backdrop-blur-md shadow-xl border-border/50 ring-1 ring-border/20">
+      <CardContent className="p-6 sm:p-10 text-center">
+        <div className="space-y-3">
+          <div className="text-4xl sm:text-6xl lg:text-7xl font-mono font-bold text-foreground tracking-tight tabular-nums">
             {formatTime(currentTime)}
           </div>
           <div className="text-sm sm:text-lg lg:text-xl text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
-            <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="break-words">{formatDate(currentTime)}</span>
+            <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-primary/70" />
+            <span className="break-words font-medium">{formatDate(currentTime)}</span>
           </div>
         </div>
       </CardContent>
@@ -323,7 +323,7 @@ export default function HomePage() {
   )
 
   const manualClockForms = (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8 max-w-3xl w-full mx-auto">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-8 sm:mb-10 max-w-3xl w-full mx-auto">
       <div className="flex justify-center">
         <ClockInForm
           isOpen={isLoginOpen}
@@ -357,16 +357,16 @@ export default function HomePage() {
   )
 
   const cardSwiperInstructions = (
-    <Card className="mb-6 sm:mb-8 bg-card/70 backdrop-blur-sm shadow-lg">
-      <CardContent className="p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-secondary rounded-lg flex items-center justify-center flex-shrink-0">
-            <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
+    <Card className="mb-6 sm:mb-8 bg-card/80 backdrop-blur-md shadow-lg border-border/50 ring-1 ring-border/20 overflow-hidden">
+      <CardContent className="p-5 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-secondary rounded-xl flex items-center justify-center flex-shrink-0 border border-border/30">
+            <CreditCard className="w-7 h-7 sm:w-8 sm:h-8 text-muted-foreground" />
           </div>
-          <div>
-            <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">Quick Clock In/Out</h3>
-            <p className="text-sm sm:text-base text-muted-foreground">Swipe your ID card to clock in or out automatically</p>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Or manually clock in</p>
+          <div className="space-y-1">
+            <h3 className="text-base sm:text-lg font-semibold text-foreground">Quick Clock In/Out</h3>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">Swipe your ID card to clock in or out automatically</p>
+            <p className="text-xs sm:text-sm text-muted-foreground/80">Or use the manual clock in buttons below</p>
           </div>
         </div>
       </CardContent>
@@ -374,22 +374,22 @@ export default function HomePage() {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4 sm:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30 p-4 sm:p-8 lg:p-10">
       <div className="max-w-screen-2xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 sm:mb-10">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
               <Clock className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground">ClockedIN</h1>
-              <p className="text-muted-foreground text-xs sm:text-sm">Service Desk Clock-In System</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">ClockedIN</h1>
+              <p className="text-muted-foreground text-xs sm:text-sm font-medium">Service Desk Clock-In System</p>
             </div>
           </div>
 
           {/* Login Area */}
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <ThemeToggle />
 
             <AdminLogin
@@ -405,9 +405,11 @@ export default function HomePage() {
 
         {/* Error Message */}
         {error && (
-          <Card className="mb-4 sm:mb-6 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 shadow-lg">
-            <CardContent className="p-3 sm:p-4 flex items-start sm:items-center gap-2 sm:gap-3">
-              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5 sm:mt-0" />
+          <Card className="mb-6 sm:mb-8 bg-gradient-to-r from-red-50 to-red-50/50 dark:from-red-900/20 dark:to-red-900/10 border-red-200/80 dark:border-red-800/50 shadow-lg ring-1 ring-red-200/50 dark:ring-red-800/30">
+            <CardContent className="p-4 sm:p-5 flex items-start sm:items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
               <span className="text-sm sm:text-base text-red-800 dark:text-red-300 font-medium break-words">{error}</span>
             </CardContent>
           </Card>
@@ -415,12 +417,14 @@ export default function HomePage() {
 
         {/* Closed Notice */}
         {isClosed && !error && (
-          <Card className="mb-4 sm:mb-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700 shadow-lg">
-            <CardContent className="p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
-              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-300 flex-shrink-0 mt-0.5 sm:mt-0" />
-              <div className="space-y-1">
+          <Card className="mb-6 sm:mb-8 bg-gradient-to-r from-amber-50 to-amber-50/50 dark:from-amber-900/20 dark:to-amber-900/10 border-amber-200/80 dark:border-amber-700/50 shadow-lg ring-1 ring-amber-200/50 dark:ring-amber-700/30">
+            <CardContent className="p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
+              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="space-y-1.5">
                 <p className="text-sm sm:text-base font-semibold text-foreground">Service Desk is Closed</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                   All staff are auto clocked out at 5:00 PM PT. Clock-ins are disabled until the next business day.
                 </p>
               </div>
@@ -430,28 +434,31 @@ export default function HomePage() {
 
         {/* Loading State */}
         {isLoading && (
-          <div className="mb-6 sm:mb-10 space-y-6 sm:space-y-8">
+          <div className="mb-8 sm:mb-12 space-y-6 sm:space-y-8">
             {cardSwiperInstructions}
             {currentTimeCard}
             {!isClosed && manualClockForms}
             <div>
               <span className="sr-only">Loading attendance data...</span>
-              <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+              <div className="grid gap-6 sm:gap-8 lg:grid-cols-2">
                 {[0, 1].map((table) => (
-                  <div key={table} className="rounded-2xl border border-border/70 bg-card/70 backdrop-blur-sm p-4 sm:p-6 animate-pulse">
-                    <div className="flex items-center justify-between gap-4 mb-4">
-                      <div className="h-5 w-32 bg-muted/60 rounded" />
-                      <div className="h-4 w-16 bg-muted/50 rounded" />
+                  <div key={table} className="rounded-xl border border-border/50 bg-gradient-to-br from-card via-card to-card/90 backdrop-blur-md p-5 sm:p-6 animate-pulse shadow-lg ring-1 ring-border/20">
+                    <div className="flex items-center justify-between gap-4 mb-5">
+                      <div className="flex items-center gap-3">
+                        <div className="h-3 w-3 bg-muted/60 rounded-full" />
+                        <div className="h-5 w-36 bg-muted/50 rounded-md" />
+                      </div>
+                      <div className="h-6 w-20 bg-muted/40 rounded-full" />
                     </div>
-                    <div className="grid grid-cols-[auto,1fr,auto] gap-3 text-sm text-muted-foreground">
-                      {[...Array(5)].map((_, rowIndex) => (
-                        <div key={rowIndex} className="col-span-3 grid grid-cols-[auto,1fr,auto] gap-3 items-center">
-                          <div className="h-8 w-8 rounded-full bg-muted/50" />
-                          <div className="space-y-2 py-1">
-                            <div className="h-4 w-32 bg-muted/70 rounded" />
-                            <div className="h-3 w-24 bg-muted/50 rounded" />
+                    <div className="space-y-4">
+                      {[...Array(4)].map((_, rowIndex) => (
+                        <div key={rowIndex} className="flex items-center gap-4 p-3 rounded-lg bg-muted/20">
+                          <div className="h-10 w-10 rounded-full bg-muted/40" />
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 w-32 bg-muted/50 rounded-md" />
+                            <div className="h-3 w-20 bg-muted/30 rounded-md" />
                           </div>
-                          <div className="h-4 w-20 bg-muted/40 rounded justify-self-end" />
+                          <div className="h-8 w-8 bg-muted/30 rounded-md" />
                         </div>
                       ))}
                     </div>
@@ -474,7 +481,7 @@ export default function HomePage() {
             {!isClosed && manualClockForms}
 
             {/* Tables Grid */}
-            <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
+            <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-10">
               <ClockedInTable clockedInUsers={clockedInUsers} onClockOutClick={handleClockOutFromTable} />
               <ExpectedArrivalsTable
                 expectedArrivals={expectedArrivals}

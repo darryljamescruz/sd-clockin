@@ -22,7 +22,15 @@ export function AdminDashboard({
   initialStudents,
   initialSelectedTerm,
 }: AdminDashboardProps) {
-  const [selectedDate, setSelectedDate] = useState(new Date())
+  // Initialize with a deterministic date to avoid hydration mismatch
+  // This will be updated by useEffect on mount to today's date if within term
+  const getInitialDate = () => {
+    const date = new Date()
+    date.setHours(0, 0, 0, 0)
+    return date
+  }
+  
+  const [selectedDate, setSelectedDate] = useState(() => getInitialDate())
   const [dateError, setDateError] = useState("")
 
   // Data state - initialized with server-fetched data

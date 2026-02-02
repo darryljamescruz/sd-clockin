@@ -39,19 +39,19 @@ export function ExpectedArrivalsTable({ expectedArrivals, currentTime, onClockIn
   }
 
   return (
-    <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-foreground">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 dark:bg-blue-400 rounded-full"></div>
-            <span className="text-base sm:text-lg">Expected Arrivals</span>
+    <Card className="bg-gradient-to-br from-card via-card to-card/90 backdrop-blur-md shadow-xl border-border/50 ring-1 ring-border/20 overflow-hidden">
+      <CardHeader className="pb-4 pt-5 px-5 sm:px-6 border-b border-border/30 bg-muted/20">
+        <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-3 text-foreground">
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 bg-blue-500 dark:bg-blue-400 rounded-full shadow-sm shadow-blue-500/50"></div>
+            <span className="text-base sm:text-lg font-semibold">Expected Arrivals</span>
           </div>
-          <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 sm:ml-auto">
+          <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 sm:ml-auto font-medium shadow-sm">
             {expectedArrivals.length} Pending
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-0 sm:p-6">
+      <CardContent className="p-0 sm:p-6 sm:pt-4">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -65,8 +65,13 @@ export function ExpectedArrivalsTable({ expectedArrivals, currentTime, onClockIn
             <TableBody>
               {expectedArrivals.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    No expected arrivals in the next 2 hours
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-12">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
+                        <UserCheck className="w-6 h-6 text-muted-foreground/60" />
+                      </div>
+                      <span className="text-sm font-medium">No expected arrivals in the next 2 hours</span>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
