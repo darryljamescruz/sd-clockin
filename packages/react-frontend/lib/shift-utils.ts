@@ -125,6 +125,72 @@ export function parseScheduleBlocks(schedule: string[]): ShiftTime[] {
 }
 
 /**
+ * Aggregate consecutive shifts into single continuous shifts
+ * Example: ["8-9", "9-10", "10-11"] => ["8-11"]
+ */
+export function aggregateConsecutiveShifts(shifts: ShiftTime[]): ShiftTime[] {
+  if (shifts.length === 0) return []
+
+  // Sort shifts by start time
+  const sortedShifts = [...shifts].sort((a, b) => {
+    const aMinutes = timeToMinutes(a.start)
+    const bMinutes = timeToMinutes(b.start)
+    return aMinutes - bMinutes
+  })
+
+  const aggregated: ShiftTime[] = []
+  let currentShift = { ...sortedShifts[0] }
+
+  for (let i = 1; i < sortedShifts.length; i++) {
+    const shift = sortedShifts[i]
+    const currentEndMinutes = timeToMinutes(currentShift.end)
+    const shiftStartMinutes = timeToMinutes(shift.start)
+
+    // Check if shifts are consecutive or overlapping (within 5 minute tolerance)
+    if (Math.abs(currentEndMinutes - shiftStartMinutes) <= 5) {
+      // Extend current shift to include this shift's end time
+      const shiftEndMinutes = timeToMinutes(shift.end)
+      const extendedEndMinutes = Math.max(currentEndMinutes, shiftEndMinutes)
+      currentShift.end = formatMinutesToTime(extendedEndMinutes)
+      currentShift.original = `${currentShift.start}-${currentShift.end}`
+    } else {
+      // Not consecutive, save current shift and start a new one
+      aggregated.push(currentShift)
+      currentShift = { ...shift }
+    }
+  }
+
+  // Add the last shift
+  aggregated.push(currentShift)
+
+  return aggregated
+}
+
+/**
+ * Format minutes since midnight to time string (e.g., 540 -> "9:00 am")
+ */
+export function formatMinutesToTime(totalMinutes: number): string {
+  const hours24 = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+
+  let hours12 = hours24
+  let period = "am"
+
+  if (hours24 === 0) {
+    hours12 = 12
+    period = "am"
+  } else if (hours24 === 12) {
+    hours12 = 12
+    period = "pm"
+  } else if (hours24 > 12) {
+    hours12 = hours24 - 12
+    period = "pm"
+  }
+
+  return `${hours12}:${minutes.toString().padStart(2, "0")} ${period}`
+}
+
+/**
  * Match clock entries to shifts for a given date
  * Handles multiple shifts per day and early clock-ins (up to 1 hour early)
  */
@@ -134,7 +200,9 @@ export function matchClockEntriesToShifts(
 ): MatchedShift[] {
   const dateStr = date.toDateString()
   const expectedSchedule = getTodayScheduleForDate(staff, date)
-  const shifts = parseScheduleBlocks(expectedSchedule)
+  const rawShifts = parseScheduleBlocks(expectedSchedule)
+  // Aggregate consecutive shifts (e.g., 8-9, 9-10, 10-11 becomes 8-11)
+  const shifts = aggregateConsecutiveShifts(rawShifts)
   
   // Get all clock entries for this date
   const clockIns = (staff.clockEntries || [])
@@ -373,7 +441,7 @@ export function formatTimeForDisplay(timeStr: string | null): string {
   
   // If already has AM/PM, convert to lowercase
   if (hasAM || hasPM) {
-    return timeStr.replace(/\s*(AM|PM)\s*/gi, (match, period) => ` ${period.toLowerCase()}`).trim()
+    return timeStr.replace(/\s*(AM|PM)\s*/gi, (_, period) => ` ${period.toLowerCase()}`).trim()
   }
   
   // Parse 24-hour format and convert to 12-hour am/pm
