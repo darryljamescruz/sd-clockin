@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
-import { Users, Plus, Edit, Trash2, Shield, UserCheck, AlertTriangle } from "lucide-react"
+import { Users, Plus, Edit, Trash2, Shield, UserCheck, AlertTriangle, Search } from "lucide-react"
 import { useState } from "react"
 import { StudentManager } from "./student-manager"
 
@@ -29,6 +30,19 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingStudent, setEditingStudent] = useState<Staff | null>(null)
   const [deletingStudent, setDeletingStudent] = useState<Staff | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+
+  // Filter and sort students alphabetically
+  const filteredAndSortedStaff = staffData
+    .filter((staff) => {
+      if (!searchQuery.trim()) return true
+      const query = searchQuery.toLowerCase()
+      return (
+        staff.name.toLowerCase().includes(query) ||
+        staff.cardId.toLowerCase().includes(query)
+      )
+    })
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   const handleEdit = (student: Staff) => {
     setEditingStudent(student)
@@ -84,14 +98,14 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Manage Student Assistants</h2>
           <p className="text-muted-foreground">Add, edit, and manage student assistant information</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="">
+        <Button onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4 mr-2" />
-          Add New Student/Staff
+          Add Student
         </Button>
       </div>
 
@@ -136,44 +150,75 @@ export function StudentsPage({ staffData, onAddStudent, onEditStudent, onDeleteS
 
       {/* Students Table */}
       <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-        <CardHeader>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between space-y-0 pb-4">
           <CardTitle>All Students & Staff ({staffData.length})</CardTitle>
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or card ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Card ID</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {staffData.map((staff) => (
-                <TableRow key={staff.id}>
-                  <TableCell className="font-medium">{staff.name}</TableCell>
-                  <TableCell className="font-mono text-sm">{staff.cardId}</TableCell>
-                  <TableCell>{getRoleBadge(staff.role)}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2 justify-end">
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(staff)}>
-                        <Edit className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDeleteClick(staff)}
-                        className="text-red-600 hover:text-destructive"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {filteredAndSortedStaff.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              {searchQuery ? (
+                <>
+                  <p className="text-muted-foreground font-medium">No students found</p>
+                  <p className="text-sm text-muted-foreground">Try adjusting your search query</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-muted-foreground font-medium">No students yet</p>
+                  <p className="text-sm text-muted-foreground">Add your first student to get started</p>
+                </>
+              )}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Card ID</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredAndSortedStaff.map((staff) => (
+                  <TableRow key={staff.id}>
+                    <TableCell className="font-medium">{staff.name}</TableCell>
+                    <TableCell className="font-mono text-sm text-muted-foreground">{staff.cardId}</TableCell>
+                    <TableCell>{getRoleBadge(staff.role)}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2 justify-end">
+                        <Button size="sm" variant="ghost" onClick={() => handleEdit(staff)}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteClick(staff)}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+          {searchQuery && filteredAndSortedStaff.length > 0 && (
+            <p className="text-sm text-muted-foreground mt-4">
+              Showing {filteredAndSortedStaff.length} of {staffData.length} students
+            </p>
+          )}
         </CardContent>
       </Card>
 
