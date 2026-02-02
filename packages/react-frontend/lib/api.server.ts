@@ -6,7 +6,7 @@
 import { type Student, type Term } from "./api"
 
 // Use environment variable for API URL with fallback
-const API_BASE_URL = process.env.API_URL || "http://localhost:8000/api"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
 
 async function fetchServerAPI<T>(endpoint: string): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
