@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { AlertTriangle } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 
 import { DashboardHeader } from "@/components/admin/dashboard/dashboard-header"
@@ -42,6 +42,9 @@ export function AdminDashboard({
   const [isLoadingStudents, setIsLoadingStudents] = useState(false)
   const [error, setError] = useState("")
 
+  // Track if user has navigated away from initial term (to know when to re-fetch)
+  const hasNavigatedAwayRef = useRef(false)
+
   // Set initial date to today if within term
   useEffect(() => {
     if (terms.length > 0) {
@@ -64,8 +67,14 @@ export function AdminDashboard({
     const fetchStudents = async () => {
       if (!selectedTerm) return
 
-      // Skip if this is the initial term (data already fetched server-side)
-      if (selectedTerm === initialSelectedTerm && staffData.length > 0) return
+      // On initial render, skip fetch if we're on the initial term (use server-side data)
+      // Once the user navigates away, we need to re-fetch when returning to initial term
+      if (selectedTerm === initialSelectedTerm && !hasNavigatedAwayRef.current) {
+        return
+      }
+
+      // Mark that user has navigated away from initial state
+      hasNavigatedAwayRef.current = true
 
       try {
         setIsLoadingStudents(true)
