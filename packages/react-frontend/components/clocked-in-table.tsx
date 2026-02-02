@@ -152,7 +152,7 @@ export function ClockedInTable({ clockedInUsers, onClockOutClick }: ClockedInTab
                       </TableCell>
                       <TableCell>{getRoleBadge(user.role)}</TableCell>
                       <TableCell className="font-mono text-sm">{formatClockInTime(user.todayActual || null)}</TableCell>
-                      <TableCell className="text-sm">{getShiftEndTime(user)}</TableCell>
+                      <TableCell className="font-mono text-sm">{getShiftEndTime(user)}</TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="ghost"
