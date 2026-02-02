@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DoorOpen, Shield, UserCheck } from "lucide-react"
 import { type Student } from "@/lib/api"
+import { formatTimestampToDisplay, formatTimeForDisplay } from "@/lib/time-utils"
 
 interface ClockedInTableProps {
   clockedInUsers: Student[]
@@ -31,55 +32,22 @@ export function ClockedInTable({ clockedInUsers, onClockOutClick }: ClockedInTab
     if (!timeStr) return ""
 
     // If it's already formatted (includes AM/PM), return as is
-    if (timeStr.includes("AM") || timeStr.includes("PM")) {
+    if (timeStr.includes("AM") || timeStr.includes("PM") || timeStr.includes("am") || timeStr.includes("pm")) {
       return timeStr
     }
 
-    // If it's an ISO timestamp, parse and format in user's timezone
+    // If it's an ISO timestamp, parse and format
     try {
-      const date = new Date(timeStr)
-      // Use numeric hour to avoid leading zeros (e.g., 8:05 AM instead of 08:05 AM)
-      return date.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      })
-    } catch (e) {
-      // Fallback: try to parse as HH:MM format
-      const [hours, minutes] = timeStr.split(':')
-      const hour = Number.parseInt(hours)
-      const mins = minutes || '00'
-      
-      if (hour === 0) return `12:${mins} AM`
-      if (hour < 12) return `${hour}:${mins} AM`
-      if (hour === 12) return `12:${mins} PM`
-      return `${hour - 12}:${mins} PM`
+      return formatTimestampToDisplay(timeStr)
+    } catch {
+      // Fallback to formatTimeForDisplay for other formats
+      return formatTimeForDisplay(timeStr)
     }
-  }
-  
-  const convertTo12Hour = (timeStr: string) => {
-    if (!timeStr || timeStr === "No schedule") return timeStr
-
-    if (timeStr.includes("AM") || timeStr.includes("PM")) {
-      return timeStr
-    }
-
-    const [hours, minutes] = timeStr.split(':')
-    const hour = Number.parseInt(hours)
-    const mins = minutes || '00'
-    
-    // Remove minutes if they're :00
-    const displayMinutes = mins === '00' ? '' : `:${mins}`
-    
-    if (hour === 0) return `12${displayMinutes} AM`
-    if (hour < 12) return `${hour}${displayMinutes} AM`
-    if (hour === 12) return `12${displayMinutes} PM`
-    return `${hour - 12}${displayMinutes} PM`
   }
 
   const getShiftEndTime = (staff: Student) => {
     if (staff.expectedEndShift) {
-      return convertTo12Hour(staff.expectedEndShift)
+      return formatTimeForDisplay(staff.expectedEndShift)
     }
     return "No schedule"
   }
@@ -127,19 +95,19 @@ export function ClockedInTable({ clockedInUsers, onClockOutClick }: ClockedInTab
 
   return (
     <>
-      <Card className="bg-card/70 backdrop-blur-sm shadow-lg">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-foreground">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 dark:bg-green-400 rounded-full"></div>
-              <span className="text-base sm:text-lg">Currently Clocked In</span>
+      <Card className="bg-gradient-to-br from-card via-card to-card/90 backdrop-blur-md shadow-xl border-border/50 ring-1 ring-border/20 overflow-hidden">
+        <CardHeader className="pb-4 pt-5 px-5 sm:px-6 border-b border-border/30 bg-muted/20">
+          <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-3 text-foreground">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-green-500 dark:bg-green-400 rounded-full shadow-sm shadow-green-500/50 animate-pulse"></div>
+              <span className="text-base sm:text-lg font-semibold">Currently Clocked In</span>
             </div>
-            <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 sm:ml-auto">
+            <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 sm:ml-auto font-medium shadow-sm">
               {clockedInUsers.length} Active
             </Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0 sm:p-6">
+        <CardContent className="p-0 sm:p-6 sm:pt-4">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -154,8 +122,13 @@ export function ClockedInTable({ clockedInUsers, onClockOutClick }: ClockedInTab
               <TableBody>
                 {clockedInUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      No one is currently clocked in
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
+                          <UserCheck className="w-6 h-6 text-muted-foreground/60" />
+                        </div>
+                        <span className="text-sm font-medium">No one is currently clocked in</span>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
