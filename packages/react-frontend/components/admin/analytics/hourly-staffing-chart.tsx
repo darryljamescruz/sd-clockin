@@ -171,12 +171,14 @@ export function HourlyStaffingChart({ staffData, termStartDate, termEndDate, sel
         <ChartContainer config={chartConfig} className="h-[250px] w-full">
           <BarChart data={hourlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            {/* @ts-expect-error - recharts types incompatibility with React 19 */}
             <XAxis
               dataKey="hour"
               tickLine={false}
               axisLine={false}
               tick={{ fontSize: 10 }}
             />
+            {/* @ts-expect-error - recharts types incompatibility with React 19 */}
             <YAxis
               tickLine={false}
               axisLine={false}
@@ -184,21 +186,25 @@ export function HourlyStaffingChart({ staffData, termStartDate, termEndDate, sel
               domain={[0, maxWorkers + 1]}
               allowDecimals={false}
             />
+            {/* @ts-expect-error - recharts types incompatibility with React 19 */}
             <ChartTooltip
               content={<ChartTooltipContent />}
               cursor={{ fill: "hsl(var(--muted))", opacity: 0.3 }}
             />
+            {/* @ts-expect-error - recharts types incompatibility with React 19 */}
             <Legend
               verticalAlign="top"
               height={30}
-              formatter={(value) => <span className="text-xs text-muted-foreground capitalize">{value}</span>}
+              formatter={(value: string) => <span className="text-xs text-muted-foreground capitalize">{value}</span>}
             />
+            {/* @ts-expect-error - recharts types incompatibility with React 19 */}
             <Bar
               dataKey="expected"
               fill="var(--color-expected)"
               radius={[4, 4, 0, 0]}
               opacity={0.5}
             />
+            {/* @ts-expect-error - recharts types incompatibility with React 19 */}
             <Bar
               dataKey="actual"
               fill="var(--color-actual)"

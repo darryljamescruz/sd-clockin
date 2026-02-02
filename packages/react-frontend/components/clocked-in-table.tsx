@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DoorOpen, Shield, UserCheck } from "lucide-react"
 import { type Student } from "@/lib/api"
+import { formatTimestampToDisplay, formatTimeForDisplay } from "@/lib/time-utils"
 
 interface ClockedInTableProps {
   clockedInUsers: Student[]
@@ -31,55 +32,22 @@ export function ClockedInTable({ clockedInUsers, onClockOutClick }: ClockedInTab
     if (!timeStr) return ""
 
     // If it's already formatted (includes AM/PM), return as is
-    if (timeStr.includes("AM") || timeStr.includes("PM")) {
+    if (timeStr.includes("AM") || timeStr.includes("PM") || timeStr.includes("am") || timeStr.includes("pm")) {
       return timeStr
     }
 
-    // If it's an ISO timestamp, parse and format in user's timezone
+    // If it's an ISO timestamp, parse and format
     try {
-      const date = new Date(timeStr)
-      // Use numeric hour to avoid leading zeros (e.g., 8:05 AM instead of 08:05 AM)
-      return date.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      })
-    } catch (e) {
-      // Fallback: try to parse as HH:MM format
-      const [hours, minutes] = timeStr.split(':')
-      const hour = Number.parseInt(hours)
-      const mins = minutes || '00'
-      
-      if (hour === 0) return `12:${mins} AM`
-      if (hour < 12) return `${hour}:${mins} AM`
-      if (hour === 12) return `12:${mins} PM`
-      return `${hour - 12}:${mins} PM`
+      return formatTimestampToDisplay(timeStr)
+    } catch {
+      // Fallback to formatTimeForDisplay for other formats
+      return formatTimeForDisplay(timeStr)
     }
-  }
-  
-  const convertTo12Hour = (timeStr: string) => {
-    if (!timeStr || timeStr === "No schedule") return timeStr
-
-    if (timeStr.includes("AM") || timeStr.includes("PM")) {
-      return timeStr
-    }
-
-    const [hours, minutes] = timeStr.split(':')
-    const hour = Number.parseInt(hours)
-    const mins = minutes || '00'
-    
-    // Remove minutes if they're :00
-    const displayMinutes = mins === '00' ? '' : `:${mins}`
-    
-    if (hour === 0) return `12${displayMinutes} AM`
-    if (hour < 12) return `${hour}${displayMinutes} AM`
-    if (hour === 12) return `12${displayMinutes} PM`
-    return `${hour - 12}${displayMinutes} PM`
   }
 
   const getShiftEndTime = (staff: Student) => {
     if (staff.expectedEndShift) {
-      return convertTo12Hour(staff.expectedEndShift)
+      return formatTimeForDisplay(staff.expectedEndShift)
     }
     return "No schedule"
   }

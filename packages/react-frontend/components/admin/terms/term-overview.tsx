@@ -8,6 +8,17 @@ import { useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { type Student, type Term } from "@/lib/api"
 import { formatDateString, parseDateString } from "@/lib/utils"
+import {
+  timeToMinutes,
+  dateToMinutes,
+} from "@/lib/time-utils"
+import {
+  getTodayScheduleForDate,
+  getExpectedStartTimeFromSchedule,
+  getExpectedEndTimeFromSchedule,
+  isDayOff as checkIsDayOff,
+  formatShiftTimeCompact,
+} from "@/lib/schedule-utils"
 
 interface TermOverviewProps {
   staffData: Student[]
@@ -19,27 +30,8 @@ interface TermOverviewProps {
 
 export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDate, onDateChange }: TermOverviewProps) {
   
-  // Helper function to check if a date is a day off
-  const isDayOff = (date: Date): boolean => {
-    if (!currentTerm || !currentTerm.daysOff || currentTerm.daysOff.length === 0) {
-      return false
-    }
-
-    const dateStr = date.toISOString().split('T')[0]
-    
-    return currentTerm.daysOff.some((range) => {
-      const rangeStart = new Date(range.startDate)
-      const rangeEnd = new Date(range.endDate)
-      const checkDate = new Date(dateStr)
-      
-      // Set to midnight for accurate comparison
-      rangeStart.setHours(0, 0, 0, 0)
-      rangeEnd.setHours(23, 59, 59, 999)
-      checkDate.setHours(0, 0, 0, 0)
-      
-      return checkDate >= rangeStart && checkDate <= rangeEnd
-    })
-  }
+  // Helper function to check if a date is a day off (uses imported utility)
+  const isDayOff = (date: Date): boolean => checkIsDayOff(date, currentTerm)
 
   // Check if selected term is current, past, or future
   const getTermStatus = () => {
@@ -118,7 +110,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
             if (entryDate.toDateString() !== dateStr || entry.type !== "in") return false
 
             // Check if this clock-in falls within 4-hour window before shift or during shift
-            const entryMinutes = entryDate.getHours() * 60 + entryDate.getMinutes()
+            const entryMinutes = dateToMinutes(entryDate)
             return entryMinutes >= shiftStartMinutes - 240 && entryMinutes <= shiftEndMinutes
           }) || []
 
@@ -128,7 +120,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
           
           candidateClockIns.forEach(entry => {
             const entryDate = new Date(entry.timestamp)
-            const entryMinutes = entryDate.getHours() * 60 + entryDate.getMinutes()
+            const entryMinutes = dateToMinutes(entryDate)
             const distance = Math.abs(entryMinutes - shiftStartMinutes)
             
             if (distance < minDistance) {
@@ -152,8 +144,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
             // Calculate status based on arrival time vs expected time
             if (shiftStartTime) {
               const expectedMinutes = timeToMinutes(shiftStartTime)
-              const actualMinutes =
-                new Date(clockInEntry.timestamp).getHours() * 60 + new Date(clockInEntry.timestamp).getMinutes()
+              const actualMinutes = dateToMinutes(new Date(clockInEntry.timestamp))
               const diffMinutes = actualMinutes - expectedMinutes
 
               // Categorize: early (>10 min early), on-time/present (-10 to +10 min), late (>10 min late)
@@ -176,7 +167,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
               // Only mark as absent/incoming if we're viewing today's data
               if (isToday) {
                 const startMinutes = timeToMinutes(shiftStartTime)
-                const nowMinutes = now.getHours() * 60 + now.getMinutes()
+                const nowMinutes = dateToMinutes(now)
                 const minutesLate = nowMinutes - startMinutes
                 
                 // "incoming" = shift hasn't started yet
@@ -241,100 +232,6 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     })
 
     return dayData
-  }
-
-  const timeToMinutes = (timeStr: string) => {
-    const [time, period] = timeStr.split(" ")
-    const [hours, minutes] = time.split(":").map(Number)
-    let totalMinutes = hours * 60 + minutes
-
-    if (period === "PM" && hours !== 12) {
-      totalMinutes += 12 * 60
-    } else if (period === "AM" && hours === 12) {
-      totalMinutes -= 12 * 60
-    }
-
-    return totalMinutes
-  }
-
-  const getTodayScheduleForDate = (staff: Student, date: Date): string[] => {
-    // Map getDay() (0=Sunday, 1=Monday...6=Saturday) to schedule keys
-    // Weekends (0=Sunday, 6=Saturday) return null
-    const dayNames: Array<keyof NonNullable<Student['weeklySchedule']> | null> = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null]
-    const dayName = dayNames[date.getDay()]
-    
-    // Return empty array for weekends or if no schedule exists
-    if (!dayName) return []
-    return staff.weeklySchedule?.[dayName] || []
-  }
-
-  const getExpectedStartTimeFromSchedule = (scheduleBlock: string): string | null => {
-    if (!scheduleBlock) return null
-    let startTime = scheduleBlock.split("-")[0].trim()
-
-    // Normalize to uppercase for consistency
-    const upperTime = startTime.toUpperCase()
-    
-    // Check if it has a colon (has minutes)
-    const hasMinutes = startTime.includes(":")
-    
-    // Check if it already has AM/PM (case insensitive)
-    const hasAMPM = upperTime.includes("AM") || upperTime.includes("PM")
-    
-    if (hasAMPM) {
-      // Standardize: ensure space before AM/PM, uppercase, and add :00 if no minutes
-      let normalized = startTime.replace(/([ap]m)/gi, (match: string) => ` ${match.toUpperCase()}`)
-        .replace(/\s+/g, ' ') // Remove any duplicate spaces
-      
-      // If no colon, add :00 for minutes
-      if (!hasMinutes) {
-        // Insert :00 before the space and AM/PM
-        normalized = normalized.replace(/\s(AM|PM)/, ':00 $1')
-      }
-      return normalized
-    } else {
-      // No AM/PM, assume it's 24-hour format
-      const hour = Number.parseInt(startTime)
-      if (hour === 0) return "12:00 AM"
-      if (hour < 12) return `${hour}:00 AM`
-      if (hour === 12) return "12:00 PM"
-      return `${hour - 12}:00 PM`
-    }
-  }
-
-  const getExpectedEndTimeFromSchedule = (scheduleBlock: string): string | null => {
-    if (!scheduleBlock) return null
-    let endTime = scheduleBlock.split("-")[1]?.trim()
-    if (!endTime) return null
-
-    // Normalize to uppercase for consistency
-    const upperTime = endTime.toUpperCase()
-    
-    // Check if it has a colon (has minutes)
-    const hasMinutes = endTime.includes(":")
-    
-    // Check if it already has AM/PM (case insensitive)
-    const hasAMPM = upperTime.includes("AM") || upperTime.includes("PM")
-    
-    if (hasAMPM) {
-      // Standardize: ensure space before AM/PM, uppercase, and add :00 if no minutes
-      let normalized = endTime.replace(/([ap]m)/gi, (match: string) => ` ${match.toUpperCase()}`)
-        .replace(/\s+/g, ' ') // Remove any duplicate spaces
-      
-      // If no colon, add :00 for minutes
-      if (!hasMinutes) {
-        // Insert :00 before the space and AM/PM
-        normalized = normalized.replace(/\s(AM|PM)/, ':00 $1')
-      }
-      return normalized
-    } else {
-      // No AM/PM, assume it's 24-hour format
-      const hour = Number.parseInt(endTime)
-      if (hour === 0) return "12:00 AM"
-      if (hour < 12) return `${hour}:00 AM`
-      if (hour === 12) return "12:00 PM"
-      return `${hour - 12}:00 PM`
-    }
   }
 
   // Navigation functions
@@ -447,32 +344,6 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
     } else {
       return <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary/80">Student Assistant</Badge>
     }
-  }
-
-  // Convert 24-hour time to 12-hour format with am/pm (e.g., "08:00-12:00" -> "8am-12pm")
-  const formatShiftTime = (shift: string) => {
-    if (!shift || shift === "Not scheduled") return shift
-    
-    const parts = shift.split("-")
-    if (parts.length !== 2) return shift
-    
-    const formatTime = (time: string) => {
-      const [hourStr, minute] = time.trim().split(":")
-      const hour = parseInt(hourStr, 10)
-      
-      if (isNaN(hour)) return time
-      
-      const period = hour >= 12 ? "pm" : "am"
-      const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
-      
-      // Only show minutes if they're not :00
-      if (minute && minute !== "00") {
-        return `${hour12}:${minute}${period}`
-      }
-      return `${hour12}${period}`
-    }
-    
-    return `${formatTime(parts[0])}-${formatTime(parts[1])}`
   }
 
   return (
@@ -611,7 +482,7 @@ export function TermOverview({ staffData, selectedTerm, currentTerm, selectedDat
                   <TableCell>
                     {staff.currentShift ? (
                       <div className="text-xs bg-card border px-2 py-1 rounded shadow-sm inline-block">
-                        {formatShiftTime(staff.currentShift)}
+                        {formatShiftTimeCompact(staff.currentShift)}
                       </div>
                     ) : (
                       <span className="text-muted-foreground italic text-xs">Not scheduled</span>

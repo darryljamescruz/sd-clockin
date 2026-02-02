@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BarChart3, Clock, Calendar, LogOut, Timer } from "lucide-react"
 import { type Student } from "@/lib/api"
 import { parseDateString } from "@/lib/utils"
+import { timeToMinutes, dateToMinutes } from "@/lib/time-utils"
+import { getTodayScheduleForDate, getExpectedStartTimeFromSchedule } from "@/lib/schedule-utils"
 import { PunctualityChart } from "@/components/admin/analytics/punctuality-chart"
 import { WeeklyHoursChart } from "@/components/admin/analytics/weekly-hours-chart"
 
@@ -17,36 +19,11 @@ interface TermAnalyticsProps {
   termEndDate: string
 }
 
-// Helper: Convert time string to minutes
-const timeToMinutes = (timeStr: string): number => {
-  if (!timeStr) return 0
-  const [time, period] = timeStr.split(" ")
-  if (!time) return 0
-  const [hours, minutes] = time.split(":").map(Number)
-  let total = (hours || 0) * 60 + (minutes || 0)
-  if (period === "PM" && hours !== 12) total += 720
-  else if (period === "AM" && hours === 12) total -= 720
-  return total
-}
-
 // Helper: Get expected start time for a staff member on a specific date
 const getExpectedStartTime = (staff: Student, date: Date): string | null => {
-  const dayNames = [null, "monday", "tuesday", "wednesday", "thursday", "friday", null] as const
-  const dayName = dayNames[date.getDay()]
-  if (!dayName) return null
-
-  const schedule = staff.weeklySchedule?.[dayName as keyof typeof staff.weeklySchedule]
+  const schedule = getTodayScheduleForDate(staff, date)
   if (!schedule?.length) return null
-
-  const startTime = schedule[0].split("-")[0].trim()
-  if (startTime.includes(":")) {
-    return startTime.includes("AM") || startTime.includes("PM") ? startTime : startTime + " AM"
-  }
-  const hour = parseInt(startTime)
-  if (hour === 0) return "12:00 AM"
-  if (hour < 12) return `${hour}:00 AM`
-  if (hour === 12) return "12:00 PM"
-  return `${hour - 12}:00 PM`
+  return getExpectedStartTimeFromSchedule(schedule[0])
 }
 
 export function TermAnalytics({ staffData, termStartDate, termEndDate }: TermAnalyticsProps) {
@@ -90,7 +67,7 @@ export function TermAnalytics({ staffData, termStartDate, termEndDate }: TermAna
           const expected = getExpectedStartTime(staff, entryDate)
           if (!expected) { onTime++; return }
 
-          const diff = (entryDate.getHours() * 60 + entryDate.getMinutes()) - timeToMinutes(expected)
+          const diff = dateToMinutes(entryDate) - timeToMinutes(expected)
           if (diff < -10) { early++; onTime++ }
           else if (diff <= 10) { onTime++ }
           else { late++ }
@@ -245,7 +222,7 @@ export function TermAnalytics({ staffData, termStartDate, termEndDate }: TermAna
       <div className="grid md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <div className="flex justify-end">
-            <Select value={punctualityPeriod} onValueChange={(v) => setPunctualityPeriod(v as PunctualityPeriod)}>
+            <Select value={punctualityPeriod} onValueChange={(v: string) => setPunctualityPeriod(v as PunctualityPeriod)}>
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
