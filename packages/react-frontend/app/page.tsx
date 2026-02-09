@@ -9,13 +9,13 @@ import { ExpectedArrivalsTable } from "@/components/expected-arrivals-table"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Toaster } from "@/components/ui/sonner"
 import { toast } from "sonner"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { api, type Student, type Term } from "@/lib/api"
 import { getUpcomingShifts, isCurrentlyClockedIn, timeToMinutes } from "@/lib/shift-utils"
 
-export default function HomePage() {
-  const router = useRouter()
+function HomePageContent() {
+  const searchParams = useSearchParams()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isClosed, setIsClosed] = useState(false)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
@@ -104,6 +104,44 @@ export default function HomePage() {
     return () => clearInterval(interval)
   }, [])
 
+  useEffect(() => {
+    const authRequired = searchParams.get("authRequired")
+    const authError = searchParams.get("authError")
+
+    if (!authRequired && !authError) {
+      return
+    }
+
+    if (authRequired) {
+      toast.error("Admin login required.")
+    }
+
+    if (authError) {
+      const authErrorMessages: Record<string, string> = {
+        auth_config: "Microsoft auth is not configured correctly.",
+        microsoft_error: "Microsoft sign-in was cancelled or failed.",
+        invalid_state: "Sign-in session expired. Please try again.",
+        invalid_nonce: "Sign-in validation failed. Please try again.",
+        missing_code: "Microsoft did not return an authorization code.",
+        missing_id_token: "Microsoft login did not return an ID token.",
+        invalid_token: "Microsoft ID token validation failed.",
+        not_allowed: "This account is not authorized for admin access.",
+        not_allowed_admin: "This account is not in the admin access list.",
+        admin_api_unreachable: "Admin access service is unreachable. Check API URL configuration.",
+        missing_subject: "Unable to identify signed-in account.",
+        callback_failed: "Microsoft authentication failed.",
+        session_invalid: "Admin session is invalid or expired.",
+      }
+
+      toast.error(authErrorMessages[authError] || "Authentication failed.")
+    }
+
+    const url = new URL(window.location.href)
+    url.searchParams.delete("authRequired")
+    url.searchParams.delete("authError")
+    window.history.replaceState({}, "", `${url.pathname}${url.search}`)
+  }, [searchParams])
+
   // Disable swipe/manual interactions when closed
   useEffect(() => {
     if (isClosed) {
@@ -152,15 +190,6 @@ export default function HomePage() {
       month: "long",
       day: "numeric",
     })
-  }
-
-  const handleAdminLogin = (username: string, password: string) => {
-    if (username === "admin" && password === "admin123") {
-      setIsAdminLoginOpen(false)
-      router.push("/admin")
-      return true
-    }
-    return false
   }
 
   const addClockEntry = async (staffId: string, type: "in" | "out", isManual = false) => {
@@ -398,7 +427,6 @@ export default function HomePage() {
                 setIsAdminLoginOpen(!isAdminLoginOpen)
                 setIsCardSwipeDisabled(!isAdminLoginOpen)
               }}
-              onLogin={handleAdminLogin}
             />
           </div>
         </div>
@@ -494,5 +522,13 @@ export default function HomePage() {
       </div>
       <Toaster />
     </div>
+  )
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={null}>
+      <HomePageContent />
+    </Suspense>
   )
 }

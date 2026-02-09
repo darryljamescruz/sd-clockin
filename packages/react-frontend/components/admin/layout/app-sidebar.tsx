@@ -5,6 +5,7 @@ import {
   Clock,
   LayoutDashboard,
   Users,
+  UserCog,
   Calendar,
   ClipboardList,
   Settings,
@@ -13,9 +14,8 @@ import {
   User2,
   BarChart3,
   FileText,
-  MapPin,
 } from "lucide-react"
-import { useRouter, usePathname } from "next/navigation"
+import { usePathname } from "next/navigation"
 import Link from "next/link"
 
 import {
@@ -54,6 +54,11 @@ const navigationItems = [
 
 const manageItems = [
   {
+    title: "Admin Access",
+    url: "/admin/admins",
+    icon: UserCog,
+  },
+  {
     title: "Students",
     url: "/admin/students",
     icon: Users,
@@ -84,16 +89,51 @@ const analyticsItems = [
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const router = useRouter()
   const pathname = usePathname()
   const [mounted, setMounted] = React.useState(false)
+  const [sessionIdentity, setSessionIdentity] = React.useState<{ name: string; email: string } | null>(null)
 
   React.useEffect(() => {
     setMounted(true)
   }, [])
 
+  React.useEffect(() => {
+    if (!mounted) return
+
+    let isCancelled = false
+
+    const loadSessionIdentity = async () => {
+      try {
+        const response = await fetch("/api/auth/me", {
+          method: "GET",
+          cache: "no-store",
+        })
+
+        if (!response.ok) {
+          return
+        }
+
+        const payload = (await response.json()) as { name?: string; email?: string }
+        if (isCancelled) return
+
+        setSessionIdentity({
+          name: payload.name || "Admin User",
+          email: payload.email || "",
+        })
+      } catch (error) {
+        console.error("Failed to load admin session identity:", error)
+      }
+    }
+
+    loadSessionIdentity()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [mounted])
+
   const handleLogout = () => {
-    router.push("/")
+    window.location.assign("/api/auth/logout")
   }
 
   return (
@@ -198,8 +238,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       <User2 className="size-4" />
                     </div>
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">servicedesk</span>
-                      <span className="truncate text-xs">its-servicedesk@calpoly.edu</span>
+                      <span className="truncate font-semibold">{sessionIdentity?.name || "Admin User"}</span>
+                      <span className="truncate text-xs">{sessionIdentity?.email || "Signed in"}</span>
                     </div>
                     <ChevronUp className="ml-auto size-4" />
                   </SidebarMenuButton>
@@ -234,7 +274,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Admin User</span>
-                  <span className="truncate text-xs">its-servicedesk@calpoly.edu</span>
+                  <span className="truncate text-xs">Signed in</span>
                 </div>
                 <ChevronUp className="ml-auto size-4" />
               </SidebarMenuButton>
@@ -246,4 +286,3 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     </Sidebar>
   )
 }
-

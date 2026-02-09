@@ -1,5 +1,5 @@
 // API configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8000/api';
 
 // Types
 export interface Student {
@@ -67,6 +67,18 @@ export interface CheckIn {
   timestamp: string;
   isManual: boolean;
   isAutoClockOut?: boolean;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name?: string;
+  role: 'admin';
+  isAdmin: boolean;
+  isActive: boolean;
+  lastLoginAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Helper function for making API requests
@@ -288,6 +300,41 @@ export const healthAPI = {
   },
 };
 
+// ============ ADMIN USERS API ============
+
+export const adminUsersAPI = {
+  // Get all admin users
+  getAll: async (): Promise<AdminUser[]> => {
+    return fetchAPI<AdminUser[]>('/admin-users');
+  },
+
+  // Create a new admin user
+  create: async (data: { email: string; name?: string; isActive?: boolean }): Promise<AdminUser> => {
+    return fetchAPI<AdminUser>('/admin-users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Update an existing admin user
+  update: async (
+    id: string,
+    data: { email?: string; name?: string; isActive?: boolean }
+  ): Promise<AdminUser> => {
+    return fetchAPI<AdminUser>(`/admin-users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Delete an admin user
+  delete: async (id: string): Promise<{ message: string }> => {
+    return fetchAPI<{ message: string }>(`/admin-users/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 // Export all APIs as a single object
 export const api = {
   students: studentsAPI,
@@ -296,7 +343,7 @@ export const api = {
   checkins: checkinsAPI,
   import: importAPI,
   health: healthAPI,
+  adminUsers: adminUsersAPI,
 };
 
 export default api;
-
