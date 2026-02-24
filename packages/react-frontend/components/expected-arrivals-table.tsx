@@ -86,9 +86,9 @@ export function ExpectedArrivalsTable({ expectedArrivals, currentTime, onClockIn
                       <TableCell>
                         {upcomingShifts.length > 0 ? (
                           <div className="space-y-1">
-                            {upcomingShifts.map((shift, index) => (
+                            {upcomingShifts.map((shift) => (
                               <div
-                                key={index}
+                                key={`${user.id}-${shift.start}-${shift.end ?? "no-end"}`}
                                 className="font-mono px-2 py-1 mr-1"
                               >
                                 {formatShiftTime(shift.start, shift.end)}

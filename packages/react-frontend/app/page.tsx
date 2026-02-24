@@ -41,17 +41,17 @@ function HomePageContent() {
         const terms = await api.terms.getAll()
         const activeTerm = terms.find((t) => t.isActive) || terms[0]
         
-        if (!activeTerm) {
+        if (activeTerm) {
+          setCurrentTerm(activeTerm)
+
+          // Fetch students for the active term
+          const students = await api.students.getAll(activeTerm.id)
+          setStaffData(students)
+        } else {
           setError("No term found. Please contact administrator.")
           setIsLoading(false)
           return
         }
-        
-        setCurrentTerm(activeTerm)
-        
-        // Fetch students for the active term
-        const students = await api.students.getAll(activeTerm.id)
-        setStaffData(students)
         
       } catch (err) {
         console.error("Error fetching data:", err)
@@ -87,11 +87,11 @@ function HomePageContent() {
 
       if (closedNow) {
         const dateKey = pstNow.toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" })
-        const lastRefresh = typeof window !== "undefined" ? localStorage.getItem(refreshKey) : null
+        const lastRefresh = localStorage.getItem(refreshKey)
 
         if (lastRefresh !== dateKey) {
           localStorage.setItem(refreshKey, dateKey)
-          window.location.reload()
+          globalThis.window.location.reload()
         }
       } else {
         localStorage.removeItem(refreshKey)
@@ -107,39 +107,38 @@ function HomePageContent() {
   useEffect(() => {
     const authRequired = searchParams.get("authRequired")
     const authError = searchParams.get("authError")
+    const hasAuthMessage = Boolean(authRequired || authError)
 
-    if (!authRequired && !authError) {
-      return
-    }
-
-    if (authRequired) {
-      toast.error("Admin login required.")
-    }
-
-    if (authError) {
-      const authErrorMessages: Record<string, string> = {
-        auth_config: "Microsoft auth is not configured correctly.",
-        microsoft_error: "Microsoft sign-in was cancelled or failed.",
-        invalid_state: "Sign-in session expired. Please try again.",
-        invalid_nonce: "Sign-in validation failed. Please try again.",
-        missing_code: "Microsoft did not return an authorization code.",
-        missing_id_token: "Microsoft login did not return an ID token.",
-        invalid_token: "Microsoft ID token validation failed.",
-        not_allowed: "This account is not authorized for admin access.",
-        not_allowed_admin: "This account is not in the admin access list.",
-        admin_api_unreachable: "Admin access service is unreachable. Check API URL configuration.",
-        missing_subject: "Unable to identify signed-in account.",
-        callback_failed: "Microsoft authentication failed.",
-        session_invalid: "Admin session is invalid or expired.",
+    if (hasAuthMessage) {
+      if (authRequired) {
+        toast.error("Admin login required.")
       }
 
-      toast.error(authErrorMessages[authError] || "Authentication failed.")
-    }
+      if (authError) {
+        const authErrorMessages: Record<string, string> = {
+          auth_config: "Microsoft auth is not configured correctly.",
+          microsoft_error: "Microsoft sign-in was cancelled or failed.",
+          invalid_state: "Sign-in session expired. Please try again.",
+          invalid_nonce: "Sign-in validation failed. Please try again.",
+          missing_code: "Microsoft did not return an authorization code.",
+          missing_id_token: "Microsoft login did not return an ID token.",
+          invalid_token: "Microsoft ID token validation failed.",
+          not_allowed: "This account is not authorized for admin access.",
+          not_allowed_admin: "This account is not in the admin access list.",
+          admin_api_unreachable: "Admin access service is unreachable. Check API URL configuration.",
+          missing_subject: "Unable to identify signed-in account.",
+          callback_failed: "Microsoft authentication failed.",
+          session_invalid: "Admin session is invalid or expired.",
+        }
 
-    const url = new URL(window.location.href)
-    url.searchParams.delete("authRequired")
-    url.searchParams.delete("authError")
-    window.history.replaceState({}, "", `${url.pathname}${url.search}`)
+        toast.error(authErrorMessages[authError] || "Authentication failed.")
+      }
+
+      const url = new URL(globalThis.window.location.href)
+      url.searchParams.delete("authRequired")
+      url.searchParams.delete("authError")
+      globalThis.window.history.replaceState({}, "", `${url.pathname}${url.search}`)
+    }
   }, [searchParams])
 
   // Disable swipe/manual interactions when closed
@@ -155,7 +154,8 @@ function HomePageContent() {
   // Card swiper simulation
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
-      if (!isCardSwipeDisabled && !isLoginOpen && !isAdminLoginOpen) {
+      const canProcessSwipe = !isCardSwipeDisabled && !isLoginOpen && !isAdminLoginOpen
+      if (canProcessSwipe) {
         if (event.key === "Enter" && cardSwipeData.length > 0) {
           handleCardSwipe(cardSwipeData)
           setCardSwipeData("")
@@ -170,8 +170,8 @@ function HomePageContent() {
       }
     }
 
-    window.addEventListener("keypress", handleKeyPress)
-    return () => window.removeEventListener("keypress", handleKeyPress)
+    globalThis.window.addEventListener("keypress", handleKeyPress)
+    return () => globalThis.window.removeEventListener("keypress", handleKeyPress)
   }, [cardSwipeData, isCardSwipeDisabled, isLoginOpen, isAdminLoginOpen])
 
   const formatTime = (date: Date) => {
@@ -193,27 +193,28 @@ function HomePageContent() {
   }
 
   const addClockEntry = async (staffId: string, type: "in" | "out", isManual = false) => {
-    if (!currentTerm) return
-    if (isClosed) {
-      toast.error("Service Desk is closed. Clock-ins resume next business day.")
-      return
-    }
+    if (currentTerm) {
+      if (isClosed) {
+        toast.error("Service Desk is closed. Clock-ins resume next business day.")
+        return
+      }
 
-    try {
-      // Create check-in via API
-      await api.checkins.create({
-        studentId: staffId,
-        termId: currentTerm.id,
-        type,
-        isManual,
-      })
+      try {
+        // Create check-in via API
+        await api.checkins.create({
+          studentId: staffId,
+          termId: currentTerm.id,
+          type,
+          isManual,
+        })
 
-      // Re-fetch all students to get accurate computed status from backend
-      const students = await api.students.getAll(currentTerm.id)
-      setStaffData(students)
-    } catch (err) {
-      console.error("Error recording clock entry:", err)
-      toast.error("Failed to record check-in. Please try again.")
+        // Re-fetch all students to get accurate computed status from backend
+        const students = await api.students.getAll(currentTerm.id)
+        setStaffData(students)
+      } catch (err) {
+        console.error("Error recording clock entry:", err)
+        toast.error("Failed to record check-in. Please try again.")
+      }
     }
   }
 
@@ -222,12 +223,10 @@ function HomePageContent() {
     // Format: %FIRST_NUMBER^NAME?;ISO_NUMBER?
     let isoNumber = cardData
 
-    if (cardData.includes(';')) {
-      // Extract ISO number after the semicolon
-      const match = cardData.match(/;(\d+)/)
-      if (match && match[1]) {
-        isoNumber = match[1]
-      }
+    // Extract ISO number after the semicolon.
+    const extractedIso = /;(\d+)/.exec(cardData)?.[1]
+    if (extractedIso) {
+      isoNumber = extractedIso
     }
 
     const staff = staffData.find((s) => s.cardId?.toUpperCase() === isoNumber.toUpperCase())
@@ -288,8 +287,7 @@ function HomePageContent() {
       const aHasSchedule = a.expectedEndShift && a.expectedEndShift !== "No schedule"
       const bHasSchedule = b.expectedEndShift && b.expectedEndShift !== "No schedule"
       
-      if (aHasSchedule && !bHasSchedule) return -1
-      if (!aHasSchedule && bHasSchedule) return 1
+      if (aHasSchedule !== bHasSchedule) return aHasSchedule ? -1 : 1
       
       // Then sort by clock-in time (chronological)
       if (a.todayActual && b.todayActual) {
@@ -402,6 +400,9 @@ function HomePageContent() {
     </Card>
   )
 
+  const loadingTableKeys = ["clocked-in", "expected-arrivals"]
+  const loadingRowKeys = new Array(4).fill(null).map((_, index) => `row-${index + 1}`)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30 p-4 sm:p-8 lg:p-10">
       <div className="max-w-screen-2xl mx-auto">
@@ -444,7 +445,7 @@ function HomePageContent() {
         )}
 
         {/* Closed Notice */}
-        {isClosed && !error && (
+        {isClosed && error === "" && (
           <Card className="mb-6 sm:mb-8 bg-gradient-to-r from-amber-50 to-amber-50/50 dark:from-amber-900/20 dark:to-amber-900/10 border-amber-200/80 dark:border-amber-700/50 shadow-lg ring-1 ring-amber-200/50 dark:ring-amber-700/30">
             <CardContent className="p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
               <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0">
@@ -465,12 +466,12 @@ function HomePageContent() {
           <div className="mb-8 sm:mb-12 space-y-6 sm:space-y-8">
             {cardSwiperInstructions}
             {currentTimeCard}
-            {!isClosed && manualClockForms}
+            {isClosed ? null : manualClockForms}
             <div>
               <span className="sr-only">Loading attendance data...</span>
               <div className="grid gap-6 sm:gap-8 lg:grid-cols-2">
-                {[0, 1].map((table) => (
-                  <div key={table} className="rounded-xl border border-border/50 bg-gradient-to-br from-card via-card to-card/90 backdrop-blur-md p-5 sm:p-6 animate-pulse shadow-lg ring-1 ring-border/20">
+                {loadingTableKeys.map((tableKey) => (
+                  <div key={tableKey} className="rounded-xl border border-border/50 bg-gradient-to-br from-card via-card to-card/90 backdrop-blur-md p-5 sm:p-6 animate-pulse shadow-lg ring-1 ring-border/20">
                     <div className="flex items-center justify-between gap-4 mb-5">
                       <div className="flex items-center gap-3">
                         <div className="h-3 w-3 bg-muted/60 rounded-full" />
@@ -479,8 +480,8 @@ function HomePageContent() {
                       <div className="h-6 w-20 bg-muted/40 rounded-full" />
                     </div>
                     <div className="space-y-4">
-                      {[...Array(4)].map((_, rowIndex) => (
-                        <div key={rowIndex} className="flex items-center gap-4 p-3 rounded-lg bg-muted/20">
+                      {loadingRowKeys.map((rowKey) => (
+                        <div key={rowKey} className="flex items-center gap-4 p-3 rounded-lg bg-muted/20">
                           <div className="h-10 w-10 rounded-full bg-muted/40" />
                           <div className="flex-1 space-y-2">
                             <div className="h-4 w-32 bg-muted/50 rounded-md" />
@@ -497,7 +498,7 @@ function HomePageContent() {
           </div>
         )}
 
-        {!isLoading && !error && (
+        {isLoading || error ? null : (
           <>
             {/* Card Swiper Instructions */}
             {cardSwiperInstructions}
@@ -506,7 +507,7 @@ function HomePageContent() {
             {currentTimeCard}
 
             {/* Manual Clock In/Out Buttons */}
-            {!isClosed && manualClockForms}
+            {isClosed ? null : manualClockForms}
 
             {/* Tables Grid */}
             <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-10">
