@@ -83,6 +83,7 @@ router.post('/', (async (req: Request, res: Response) => {
     const newAdmin = await AdminUser.create({
       email,
       emailLower,
+      usernameLower: emailLower,
       name: name || undefined,
       role: 'admin',
       isAdmin: true,
@@ -124,6 +125,7 @@ router.put('/:id', (async (req: Request, res: Response) => {
 
     adminUser.email = email;
     adminUser.emailLower = emailLower;
+    adminUser.usernameLower = emailLower;
     adminUser.name = name || undefined;
     if (hasIsActive) {
       adminUser.isActive = req.body.isActive;

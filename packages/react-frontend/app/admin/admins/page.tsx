@@ -5,7 +5,7 @@ import { api, type AdminUser } from "@/lib/api"
 import { AdminUsersPage } from "@/components/admin/admin-users/admin-users-page"
 import { Card, CardContent } from "@/components/ui/card"
 import { AlertTriangle } from "lucide-react"
-import { StudentsSkeleton } from "@/components/admin/loading-skeletons"
+import { AdminAccessSkeleton } from "@/components/admin/loading-skeletons"
 
 export default function AdminUsersManagementPage() {
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([])
@@ -64,7 +64,7 @@ export default function AdminUsersManagementPage() {
   }
 
   if (isLoading) {
-    return <StudentsSkeleton />
+    return <AdminAccessSkeleton />
   }
 
   if (error) {

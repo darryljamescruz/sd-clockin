@@ -24,6 +24,38 @@ export interface ProcessedSchedule {
   };
 }
 
+function parseUsDateToUtc(dateStr: string): Date | null {
+  const match = dateStr.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!match) {
+    return null;
+  }
+
+  const month = Number(match[1]);
+  const day = Number(match[2]);
+  const year = Number(match[3]);
+
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+
+  // Reject invalid rollovers like 02/31/2026.
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function getMondayOfWeek(date: Date): Date {
+  const monday = new Date(date.getTime());
+  const day = monday.getUTCDay(); // 0 = Sunday, 1 = Monday, ... 6 = Saturday
+  const offsetToMonday = day === 0 ? -6 : 1 - day;
+  monday.setUTCDate(monday.getUTCDate() + offsetToMonday);
+  return monday;
+}
+
 /**
  * Parse CSV line handling quoted values
  */
@@ -65,12 +97,18 @@ function parseCSVLine(line: string): string[] {
  * We extract Name, StartDate, StartTime, EndDate, EndTime (ignoring Role column)
  */
 export function parseTeamsCSVRow(line: string): TeamsShiftRow | null {
-  // Skip header row
-  if (line.trim().toLowerCase().startsWith('name')) {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.toLowerCase() === 'sep=,') {
     return null;
   }
 
   const parts = parseCSVLine(line);
+  const firstColumn = (parts[0] || '').trim().replace(/^\uFEFF/, '').toLowerCase();
+
+  // Skip header row
+  if (firstColumn === 'name') {
+    return null;
+  }
 
   if (parts.length < 7) {
     console.warn(`CSV row has insufficient columns (${parts.length}):`, line);
@@ -114,13 +152,9 @@ export function findEarliestDate(shifts: TeamsShiftRow[]): Date {
   let earliest: Date | null = null;
 
   for (const shift of shifts) {
-    const [month, day, year] = shift.startDate
-      .split('/')
-      .map((n) => parseInt(n));
-    const date = new Date(year, month - 1, day);
+    const date = parseUsDateToUtc(shift.startDate);
 
-    // Skip invalid dates instead of poisoning the calculation
-    if (Number.isNaN(date.getTime())) {
+    if (!date) {
       console.warn(`Skipping invalid start date: ${shift.startDate}`);
       continue;
     }
@@ -141,8 +175,11 @@ export function getDayOfWeekFromMonday(
   dateStr: string,
   mondayDate: Date
 ): string {
-  const [month, day, year] = dateStr.split('/').map((n) => parseInt(n));
-  const date = new Date(year, month - 1, day);
+  const date = parseUsDateToUtc(dateStr);
+  if (!date) {
+    console.warn(`Invalid date encountered while mapping day: ${dateStr}`);
+    return 'monday';
+  }
 
   // Calculate days difference from Monday
   const diffTime = date.getTime() - mondayDate.getTime();
@@ -157,7 +194,7 @@ export function getDayOfWeekFromMonday(
     'saturday',
     'sunday',
   ];
-  const dayIndex = diffDays % 7;
+  const dayIndex = ((diffDays % 7) + 7) % 7;
 
   return days[dayIndex] || 'monday';
 }
@@ -173,9 +210,9 @@ export function aggregateSchedules(
     return [];
   }
 
-  // Find the earliest date (this is our Monday reference)
-  const mondayDate = findEarliestDate(shifts);
-  console.log('Using reference Monday date:', mondayDate.toISOString());
+  // Use Monday of the earliest shift's week as reference.
+  const earliestDate = findEarliestDate(shifts);
+  const mondayDate = getMondayOfWeek(earliestDate);
 
   const studentMap = new Map<string, ProcessedSchedule>();
 
@@ -242,10 +279,7 @@ export function aggregateSchedules(
  * Parse full CSV content and return processed schedules
  */
 export function parseTeamsCSV(csvContent: string): ProcessedSchedule[] {
-  const lines = csvContent
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
+  const lines = csvContent.split(/\r?\n/).filter((line) => line.trim().length > 0);
 
   const shifts: TeamsShiftRow[] = [];
 

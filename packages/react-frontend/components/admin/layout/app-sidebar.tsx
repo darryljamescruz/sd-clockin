@@ -54,11 +54,6 @@ const navigationItems = [
 
 const manageItems = [
   {
-    title: "Admin Access",
-    url: "/admin/admins",
-    icon: UserCog,
-  },
-  {
     title: "Students",
     url: "/admin/students",
     icon: Users,
@@ -72,6 +67,11 @@ const manageItems = [
     title: "Terms",
     url: "/admin/terms",
     icon: Calendar,
+  },
+  {
+    title: "Admin Access",
+    url: "/admin/admins",
+    icon: UserCog,
   },
 ]
 

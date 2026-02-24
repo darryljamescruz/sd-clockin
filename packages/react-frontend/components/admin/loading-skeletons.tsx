@@ -147,3 +147,17 @@ export const TermsSkeleton = ({ showHeader = true }: SkeletonProps = {}) => (
     </div>
   </div>
 )
+
+export const AdminAccessSkeleton = ({ showHeader = true }: SkeletonProps = {}) => (
+  <div className="space-y-6">
+    {showHeader && (
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Admin Access</h2>
+          <p className="text-muted-foreground">Manage who can sign in to the admin dashboard.</p>
+        </div>
+      </div>
+    )}
+    <TableSkeleton rows={6} columns={4} />
+  </div>
+)

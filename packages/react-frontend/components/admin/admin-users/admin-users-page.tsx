@@ -33,6 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Plus, Edit, Trash2, Search, UserCog, MoreHorizontal, Ban, CheckCircle2 } from "lucide-react"
+import { toast } from "sonner"
 import type { AdminUser } from "@/lib/api"
 
 interface AdminUsersPageProps {
@@ -100,7 +101,7 @@ function AdminUserFormDialog({
           <DialogDescription>
             {editingUser
               ? "Update this admin account."
-              : "Create an admin account that can access the dashboard."}
+              : "Use the exact email address they sign in with (e.g. their Cal Poly email). They can access the dashboard after signing in with Microsoft."}
           </DialogDescription>
         </DialogHeader>
 
@@ -180,6 +181,7 @@ export function AdminUsersPage({ adminUsers, onCreate, onUpdate, onDelete }: Adm
 
   const handleCreate = async (data: { email: string; name?: string }) => {
     await onCreate({ ...data, isActive: true })
+    toast.success("Admin added. They can now sign in with Microsoft.")
   }
 
   const handleUpdate = async (data: { email: string; name?: string }) => {
