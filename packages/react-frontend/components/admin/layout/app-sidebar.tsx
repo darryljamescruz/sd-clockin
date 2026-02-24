@@ -70,7 +70,7 @@ const manageItems = [
   },
   {
     title: "Admin Access",
-    url: "/admin/admins",
+    url: "/admin/manageadmins",
     icon: UserCog,
   },
 ]
