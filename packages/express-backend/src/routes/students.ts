@@ -11,6 +11,82 @@ import cache, { CacheKeys, CacheTTL } from '../utils/cache.js';
 
 const router = express.Router();
 
+interface TimeRange {
+  startTime: string;
+  endTime: string;
+  startMinutes: number;
+  endMinutes: number;
+}
+
+function parseTimeToMinutes(time: string): number {
+  const [hourStr, minuteStr] = time.trim().split(':');
+  const hour = parseInt(hourStr, 10);
+  const minute = parseInt(minuteStr, 10);
+
+  if (
+    Number.isNaN(hour) ||
+    Number.isNaN(minute) ||
+    hour < 0 ||
+    hour > 23 ||
+    minute < 0 ||
+    minute > 59
+  ) {
+    return -1;
+  }
+
+  return hour * 60 + minute;
+}
+
+function aggregateConsecutiveScheduleBlocks(
+  blocks: string[],
+  toleranceMinutes: number = 5
+): TimeRange[] {
+  const parsedBlocks = blocks
+    .map((block) => {
+      const [startTimeRaw, endTimeRaw] = block.split('-');
+      if (!startTimeRaw || !endTimeRaw) return null;
+
+      const startTime = startTimeRaw.trim();
+      const endTime = endTimeRaw.trim();
+      const startMinutes = parseTimeToMinutes(startTime);
+      const endMinutes = parseTimeToMinutes(endTime);
+
+      if (startMinutes < 0 || endMinutes < 0 || endMinutes <= startMinutes) {
+        return null;
+      }
+
+      return {
+        startTime,
+        endTime,
+        startMinutes,
+        endMinutes,
+      };
+    })
+    .filter((block): block is TimeRange => block !== null)
+    .sort((a, b) => a.startMinutes - b.startMinutes);
+
+  if (parsedBlocks.length === 0) return [];
+
+  const aggregated: TimeRange[] = [];
+  let current = { ...parsedBlocks[0] };
+
+  for (let i = 1; i < parsedBlocks.length; i++) {
+    const next = parsedBlocks[i];
+    if (next.startMinutes <= current.endMinutes + toleranceMinutes) {
+      if (next.endMinutes > current.endMinutes) {
+        current.endMinutes = next.endMinutes;
+        current.endTime = next.endTime;
+      }
+    } else {
+      aggregated.push(current);
+      current = { ...next };
+    }
+  }
+
+  aggregated.push(current);
+  return aggregated;
+}
+
 // GET all students with their schedules for a specific term
 router.get('/', (async (req: Request, res: Response) => {
   try {
@@ -181,6 +257,8 @@ router.get('/', (async (req: Request, res: Response) => {
               const todaySchedule = dayName
                 ? schedule.availability[dayName] || []
                 : [];
+              const mergedTodaySchedule =
+                aggregateConsecutiveScheduleBlocks(todaySchedule);
 
               console.log('Server time (now):', now.toString());
               console.log('Current time (PST):', nowPST.toString());
@@ -211,25 +289,12 @@ router.get('/', (async (req: Request, res: Response) => {
                   distance: number;
                 } | null = null;
 
-                for (const shiftBlock of todaySchedule) {
-                  const [startTime, endTime] = shiftBlock.split('-');
-                  if (!startTime || !endTime) continue;
-
-                  const [startHourStr, startMinuteStr] = startTime
-                    .trim()
-                    .split(':');
-                  const shiftStartHour = parseInt(startHourStr, 10);
-                  const shiftStartMinute = parseInt(startMinuteStr, 10);
-                  const shiftStartMinutes =
-                    shiftStartHour * 60 + shiftStartMinute;
-
-                  const [endHourStr, endMinuteStr] = endTime.trim().split(':');
-                  const shiftEndHour = parseInt(endHourStr, 10);
-                  const shiftEndMinute = parseInt(endMinuteStr, 10);
-                  const shiftEndMinutes = shiftEndHour * 60 + shiftEndMinute;
+              for (const shift of mergedTodaySchedule) {
+                  const shiftStartMinutes = shift.startMinutes;
+                  const shiftEndMinutes = shift.endMinutes;
 
                   console.log(
-                    `Checking shift ${shiftBlock}: start=${shiftStartMinutes}, end=${shiftEndMinutes}`
+                    `Checking shift ${shift.startTime}-${shift.endTime}: start=${shiftStartMinutes}, end=${shiftEndMinutes}`
                   );
 
                   // Check if clocked in within the shift window (including up to 4 hours before start)
@@ -245,8 +310,8 @@ router.get('/', (async (req: Request, res: Response) => {
 
                     if (!bestMatch || distance < bestMatch.distance) {
                       bestMatch = {
-                        startTime: startTime.trim(),
-                        endTime: endTime.trim(),
+                        startTime: shift.startTime,
+                        endTime: shift.endTime,
                         distance,
                       };
                       console.log(
@@ -331,6 +396,8 @@ router.get('/', (async (req: Request, res: Response) => {
             const todaySchedule = dayName
               ? schedule.availability[dayName] || []
               : [];
+            const mergedTodaySchedule =
+              aggregateConsecutiveScheduleBlocks(todaySchedule);
 
             console.log('Today schedule:', todaySchedule);
 
@@ -347,34 +414,19 @@ router.get('/', (async (req: Request, res: Response) => {
               'minutes)'
             );
 
-            for (const shiftBlock of todaySchedule) {
-              console.log('Processing shift block:', shiftBlock);
-
-              // Parse shift block (e.g., "08:00-12:00")
-              const [startTime, endTime] = shiftBlock.split('-');
-              if (!startTime || !endTime) {
-                console.log('Invalid shift block format');
-                continue;
-              }
-
-              const [startHourStr, startMinuteStr] = startTime
-                .trim()
-                .split(':');
-              const shiftStartHour = parseInt(startHourStr, 10);
-              const shiftStartMinute = parseInt(startMinuteStr, 10);
-              const shiftStartTotalMinutes =
-                shiftStartHour * 60 + shiftStartMinute;
-
-              const [endHourStr, endMinuteStr] = endTime.trim().split(':');
-              const shiftEndHour = parseInt(endHourStr, 10);
-              const shiftEndMinute = parseInt(endMinuteStr, 10);
-              const shiftEndTotalMinutes = shiftEndHour * 60 + shiftEndMinute;
+            for (const shift of mergedTodaySchedule) {
+              console.log(
+                'Processing shift block:',
+                `${shift.startTime}-${shift.endTime}`
+              );
+              const shiftStartTotalMinutes = shift.startMinutes;
+              const shiftEndTotalMinutes = shift.endMinutes;
 
               console.log(
                 'Shift time:',
-                `${shiftStartHour}:${shiftStartMinute}`,
+                shift.startTime,
                 '-',
-                `${shiftEndHour}:${shiftEndMinute}`
+                shift.endTime
               );
               console.log(
                 'Shift minutes:',
@@ -403,8 +455,8 @@ router.get('/', (async (req: Request, res: Response) => {
               // If currently in an active shift, mark as incoming (they should be here)
               if (isCurrentlyInShift) {
                 currentStatus = 'incoming'; // Currently in shift window but not clocked in
-                expectedStartShift = startTime.trim();
-                expectedEndShift = endTime.trim();
+                expectedStartShift = shift.startTime;
+                expectedEndShift = shift.endTime;
                 console.log(
                   '✓ Setting as INCOMING (currently in shift) with shift:',
                   expectedStartShift,
@@ -414,8 +466,8 @@ router.get('/', (async (req: Request, res: Response) => {
                 break; // Use the first matching shift
               } else if (minutesUntilShift >= 0 && minutesUntilShift <= 180) {
                 currentStatus = 'incoming'; // Expected to arrive within 3 hours
-                expectedStartShift = startTime.trim();
-                expectedEndShift = endTime.trim();
+                expectedStartShift = shift.startTime;
+                expectedEndShift = shift.endTime;
                 console.log(
                   '✓ Setting as INCOMING (shift starting soon) with shift:',
                   expectedStartShift,
@@ -605,6 +657,8 @@ router.get('/:id', (async (req: Request, res: Response) => {
           const todaySchedule = dayName
             ? schedule.availability[dayName] || []
             : [];
+          const mergedTodaySchedule =
+            aggregateConsecutiveScheduleBlocks(todaySchedule);
 
           if (todaySchedule.length > 0) {
             const clockInTime = new Date(todayActual);
@@ -622,21 +676,9 @@ router.get('/:id', (async (req: Request, res: Response) => {
               distance: number;
             } | null = null;
 
-            for (const shiftBlock of todaySchedule) {
-              const [startTime, endTime] = shiftBlock.split('-');
-              if (!startTime || !endTime) continue;
-
-              const [startHourStr, startMinuteStr] = startTime
-                .trim()
-                .split(':');
-              const shiftStartHour = parseInt(startHourStr, 10);
-              const shiftStartMinute = parseInt(startMinuteStr, 10);
-              const shiftStartMinutes = shiftStartHour * 60 + shiftStartMinute;
-
-              const [endHourStr, endMinuteStr] = endTime.trim().split(':');
-              const shiftEndHour = parseInt(endHourStr, 10);
-              const shiftEndMinute = parseInt(endMinuteStr, 10);
-              const shiftEndMinutes = shiftEndHour * 60 + shiftEndMinute;
+            for (const shift of mergedTodaySchedule) {
+              const shiftStartMinutes = shift.startMinutes;
+              const shiftEndMinutes = shift.endMinutes;
 
               if (
                 clockInMinutes >= shiftStartMinutes - 240 &&
@@ -645,8 +687,8 @@ router.get('/:id', (async (req: Request, res: Response) => {
                 const distance = Math.abs(clockInMinutes - shiftStartMinutes);
                 if (!bestMatch || distance < bestMatch.distance) {
                   bestMatch = {
-                    startTime: startTime.trim(),
-                    endTime: endTime.trim(),
+                    startTime: shift.startTime,
+                    endTime: shift.endTime,
                     distance,
                   };
                 }
@@ -685,24 +727,16 @@ router.get('/:id', (async (req: Request, res: Response) => {
         const todaySchedule = dayName
           ? schedule.availability[dayName] || []
           : [];
+        const mergedTodaySchedule =
+          aggregateConsecutiveScheduleBlocks(todaySchedule);
 
         const currentHour = nowPST.getHours();
         const currentMinute = nowPST.getMinutes();
         const currentTotalMinutes = currentHour * 60 + currentMinute;
 
-        for (const shiftBlock of todaySchedule) {
-          const [startTime, endTime] = shiftBlock.split('-');
-          if (!startTime || !endTime) continue;
-
-          const [startHourStr, startMinuteStr] = startTime.trim().split(':');
-          const shiftStartHour = parseInt(startHourStr, 10);
-          const shiftStartMinute = parseInt(startMinuteStr, 10);
-          const shiftStartTotalMinutes = shiftStartHour * 60 + shiftStartMinute;
-
-          const [endHourStr, endMinuteStr] = endTime.trim().split(':');
-          const shiftEndHour = parseInt(endHourStr, 10);
-          const shiftEndMinute = parseInt(endMinuteStr, 10);
-          const shiftEndTotalMinutes = shiftEndHour * 60 + shiftEndMinute;
+        for (const shift of mergedTodaySchedule) {
+          const shiftStartTotalMinutes = shift.startMinutes;
+          const shiftEndTotalMinutes = shift.endMinutes;
 
           const isCurrentlyInShift =
             currentTotalMinutes >= shiftStartTotalMinutes &&
@@ -712,13 +746,13 @@ router.get('/:id', (async (req: Request, res: Response) => {
 
           if (isCurrentlyInShift) {
             currentStatus = 'incoming';
-            expectedStartShift = startTime.trim();
-            expectedEndShift = endTime.trim();
+            expectedStartShift = shift.startTime;
+            expectedEndShift = shift.endTime;
             break;
           } else if (minutesUntilShift >= 0 && minutesUntilShift <= 180) {
             currentStatus = 'incoming';
-            expectedStartShift = startTime.trim();
-            expectedEndShift = endTime.trim();
+            expectedStartShift = shift.startTime;
+            expectedEndShift = shift.endTime;
             break;
           }
         }

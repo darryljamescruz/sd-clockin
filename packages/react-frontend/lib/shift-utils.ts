@@ -253,7 +253,7 @@ export function getUpcomingShifts(
   minutesAfterStart: number = 10
 ): ShiftTime[] {
   const todaySchedule = getTodayScheduleForDate(staff, currentTime)
-  const shifts = parseScheduleBlocks(todaySchedule)
+  const shifts = aggregateConsecutiveShifts(parseScheduleBlocks(todaySchedule))
 
   const currentTotalMinutes = dateToMinutes(currentTime)
 
