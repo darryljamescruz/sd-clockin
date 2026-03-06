@@ -1,6 +1,8 @@
 import { getTerms, getStudents, getActiveTerm } from "@/lib/api.server"
 import { AdminDashboard } from "@/components/admin/dashboard/admin-dashboard"
 
+export const dynamic = "force-dynamic"
+
 export default async function AdminDashboardPage() {
   // Fetch data on the server
   const terms = await getTerms()

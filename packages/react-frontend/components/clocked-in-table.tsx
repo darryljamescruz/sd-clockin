@@ -17,7 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DoorOpen, Shield, UserCheck } from "lucide-react"
 import { type Student } from "@/lib/api"
-import { formatTimestampToDisplay, formatTimeForDisplay } from "@/lib/time-utils"
+import { formatTimestampToDisplay, formatTimeForDisplay, dateToMinutes } from "@/lib/time-utils"
+import { aggregateConsecutiveShifts, getTodayScheduleForDate, parseScheduleBlocks, timeToMinutes } from "@/lib/shift-utils"
 
 interface ClockedInTableProps {
   clockedInUsers: Student[]
@@ -46,6 +47,30 @@ export function ClockedInTable({ clockedInUsers, onClockOutClick }: ClockedInTab
   }
 
   const getShiftEndTime = (staff: Student) => {
+    // Derive end-time from merged schedule blocks to avoid showing hourly fragments
+    // (e.g., 11:00-12:00 + 12:00-1:00 should display 1:00 PM).
+    if (staff.todayActual) {
+      const clockInDate = new Date(staff.todayActual)
+      if (!Number.isNaN(clockInDate.getTime())) {
+        const mergedShifts = aggregateConsecutiveShifts(
+          parseScheduleBlocks(getTodayScheduleForDate(staff, new Date()))
+        )
+        const clockInMinutes = dateToMinutes(clockInDate)
+
+        const matchingShift = mergedShifts
+          .filter((shift) => {
+            const shiftStart = timeToMinutes(shift.start)
+            const shiftEnd = timeToMinutes(shift.end)
+            return clockInMinutes >= shiftStart - 240 && clockInMinutes <= shiftEnd
+          })
+          .sort((a, b) => Math.abs(clockInMinutes - timeToMinutes(a.start)) - Math.abs(clockInMinutes - timeToMinutes(b.start)))[0]
+
+        if (matchingShift?.end) {
+          return formatTimeForDisplay(matchingShift.end)
+        }
+      }
+    }
+
     if (staff.expectedEndShift) {
       return formatTimeForDisplay(staff.expectedEndShift)
     }

@@ -15,8 +15,7 @@ async function fetchServerAPI<T>(endpoint: string): Promise<T> {
     headers: {
       "Content-Type": "application/json",
     },
-    // Revalidate every 60 seconds for ISR-like behavior
-    next: { revalidate: 60 },
+    cache: "no-store",
   })
 
   if (!response.ok) {

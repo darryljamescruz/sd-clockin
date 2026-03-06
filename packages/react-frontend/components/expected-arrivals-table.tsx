@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DoorOpen, Shield, UserCheck } from "lucide-react"
 import { type Student } from "@/lib/api"
-import { getUpcomingShifts, formatTimeForDisplay } from "@/lib/shift-utils"
+import { getUpcomingShifts, formatTimeForDisplay, aggregateConsecutiveShifts } from "@/lib/shift-utils"
 
 interface ExpectedArrivalsTableProps {
   expectedArrivals: Student[]
@@ -77,7 +77,9 @@ export function ExpectedArrivalsTable({ expectedArrivals, currentTime, onClockIn
               ) : (
                 expectedArrivals.map((user) => {
                   // Get all upcoming shifts for this user
-                  const upcomingShifts = getUpcomingShifts(user, currentTime, 2, 10)
+                  const upcomingShifts = aggregateConsecutiveShifts(
+                    getUpcomingShifts(user, currentTime, 2, 10)
+                  )
                   
                   return (
                     <TableRow key={user.id}>

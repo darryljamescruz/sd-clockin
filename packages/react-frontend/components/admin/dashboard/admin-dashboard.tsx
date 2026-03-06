@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { AlertTriangle } from "lucide-react"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 
 import { DashboardHeader } from "@/components/admin/dashboard/dashboard-header"
@@ -42,9 +42,6 @@ export function AdminDashboard({
   const [isLoadingStudents, setIsLoadingStudents] = useState(false)
   const [error, setError] = useState("")
 
-  // Track if user has navigated away from initial term (to know when to re-fetch)
-  const hasNavigatedAwayRef = useRef(false)
-
   // Set initial date to today if within term
   useEffect(() => {
     if (terms.length > 0) {
@@ -62,37 +59,47 @@ export function AdminDashboard({
     }
   }, []) // Only on mount
 
-  // Fetch students when selected term changes 
+  // Refresh the selected term on mount and term changes so the dashboard
+  // does not depend on stale server-rendered data from a prior navigation.
   useEffect(() => {
+    let isCancelled = false
+
     const fetchStudents = async () => {
       if (!selectedTerm) return
+      const currentTerm = terms.find((t) => t.name === selectedTerm)
+      if (!currentTerm) return
 
-      // On initial render, skip fetch if we're on the initial term (use server-side data)
-      // Once the user navigates away, we need to re-fetch when returning to initial term
-      if (selectedTerm === initialSelectedTerm && !hasNavigatedAwayRef.current) {
-        return
-      }
-
-      // Mark that user has navigated away from initial state
-      hasNavigatedAwayRef.current = true
+      const shouldShowLoadingState =
+        selectedTerm !== initialSelectedTerm || initialStudents.length === 0
 
       try {
-        setIsLoadingStudents(true)
-        const currentTerm = terms.find((t) => t.name === selectedTerm)
-        if (currentTerm) {
-          const fetchedStudents = await api.students.getAll(currentTerm.id)
+        setError("")
+        if (shouldShowLoadingState) {
+          setIsLoadingStudents(true)
+        }
+
+        const fetchedStudents = await api.students.getAll(currentTerm.id)
+        if (!isCancelled) {
           setStaffData(fetchedStudents)
         }
       } catch (err) {
         console.error("Error fetching students:", err)
-        setError("Failed to load student data. Please refresh the page.")
+        if (!isCancelled) {
+          setError("Failed to load student data. Please refresh the page.")
+        }
       } finally {
-        setIsLoadingStudents(false)
+        if (!isCancelled) {
+          setIsLoadingStudents(false)
+        }
       }
     }
 
     fetchStudents()
-  }, [selectedTerm, terms, initialSelectedTerm])
+
+    return () => {
+      isCancelled = true
+    }
+  }, [selectedTerm, terms, initialSelectedTerm, initialStudents.length])
 
   const getCurrentTerm = () => {
     return terms.find((term) => term.name === selectedTerm) || terms[0]
