@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Clock, Calendar, CreditCard, AlertTriangle } from "lucide-react"
+import { Clock, Calendar, AlertTriangle } from "lucide-react"
 import { ClockInForm } from "@/components/clock-in-form"
 import { AdminLogin } from "@/components/admin/layout/admin-login"
 import { ClockedInTable } from "@/components/clocked-in-table"
@@ -140,6 +140,12 @@ function HomePageContent() {
       globalThis.window.history.replaceState({}, "", `${url.pathname}${url.search}`)
     }
   }, [searchParams])
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error)
+    }
+  }, [error])
 
   // Disable swipe/manual interactions when closed
   useEffect(() => {
@@ -383,6 +389,8 @@ function HomePageContent() {
     </div>
   )
 
+  /*
+  TODO: restore this when we want to bring swipe guidance back as a visible homepage feature.
   const cardSwiperInstructions = (
     <Card className="mb-6 sm:mb-8 bg-card/80 backdrop-blur-md shadow-lg border-border/50 ring-1 ring-border/20 overflow-hidden">
       <CardContent className="p-5 sm:p-6">
@@ -399,6 +407,7 @@ function HomePageContent() {
       </CardContent>
     </Card>
   )
+  */
 
   const loadingTableKeys = ["clocked-in", "expected-arrivals"]
   const loadingRowKeys = new Array(4).fill(null).map((_, index) => `row-${index + 1}`)
@@ -432,28 +441,16 @@ function HomePageContent() {
           </div>
         </div>
 
-        {/* Error Message */}
-        {error && (
+        {/* Closed Notice */}
+        {isClosed && (
           <Card className="mb-6 sm:mb-8 bg-gradient-to-r from-red-50 to-red-50/50 dark:from-red-900/20 dark:to-red-900/10 border-red-200/80 dark:border-red-800/50 shadow-lg ring-1 ring-red-200/50 dark:ring-red-800/30">
-            <CardContent className="p-4 sm:p-5 flex items-start sm:items-center gap-3 sm:gap-4">
+            <CardContent className="p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
               <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
-              <span className="text-sm sm:text-base text-red-800 dark:text-red-300 font-medium break-words">{error}</span>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Closed Notice */}
-        {isClosed && error === "" && (
-          <Card className="mb-6 sm:mb-8 bg-gradient-to-r from-amber-50 to-amber-50/50 dark:from-amber-900/20 dark:to-amber-900/10 border-amber-200/80 dark:border-amber-700/50 shadow-lg ring-1 ring-amber-200/50 dark:ring-amber-700/30">
-            <CardContent className="p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
-              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-              </div>
               <div className="space-y-1.5">
-                <p className="text-sm sm:text-base font-semibold text-foreground">Service Desk is Closed</p>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm sm:text-base font-semibold text-red-800 dark:text-red-300">Service Desk is Closed</p>
+                <p className="text-xs sm:text-sm text-red-700/90 dark:text-red-300/90 leading-relaxed">
                   All staff are auto clocked out at 5:00 PM PT. Clock-ins are disabled until the next business day.
                 </p>
               </div>
@@ -464,7 +461,6 @@ function HomePageContent() {
         {/* Loading State */}
         {isLoading && (
           <div className="mb-8 sm:mb-12 space-y-6 sm:space-y-8">
-            {cardSwiperInstructions}
             {currentTimeCard}
             {isClosed ? null : manualClockForms}
             <div>
@@ -500,9 +496,6 @@ function HomePageContent() {
 
         {isLoading || error ? null : (
           <>
-            {/* Card Swiper Instructions */}
-            {cardSwiperInstructions}
-
             {/* Current Time Display */}
             {currentTimeCard}
 

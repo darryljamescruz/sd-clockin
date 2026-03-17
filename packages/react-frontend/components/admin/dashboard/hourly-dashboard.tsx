@@ -3,8 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Clock, AlertCircle, CheckCircle2, XCircle, UserCheck, Shield } from "lucide-react"
-import { useMemo, useState, useEffect } from "react"
+import { Clock, AlertCircle, CheckCircle2, XCircle, UserCheck, Shield, ChevronUp, ChevronDown } from "lucide-react"
+import { useMemo, useState, useEffect, useCallback } from "react"
 import { type Student } from "@/lib/api"
 import {
   timeToMinutes,
@@ -31,6 +31,41 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
 
     return () => clearInterval(timer)
   }, [])
+
+  // Floating "Now" pill state
+  const [activeHourEl, setActiveHourEl] = useState<HTMLDivElement | null>(null)
+  const [showNowPill, setShowNowPill] = useState(false)
+  const [nowIsAbove, setNowIsAbove] = useState(false)
+
+  const activeHourRef = useCallback((el: HTMLDivElement | null) => {
+    setActiveHourEl(el)
+  }, [])
+
+  useEffect(() => {
+    if (!activeHourEl) {
+      setShowNowPill(false)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          setShowNowPill(true)
+          setNowIsAbove(entry.boundingClientRect.top < 0)
+        } else {
+          setShowNowPill(false)
+        }
+      },
+      { threshold: 0 }
+    )
+
+    observer.observe(activeHourEl)
+    return () => observer.disconnect()
+  }, [activeHourEl])
+
+  const scrollToNow = () => {
+    activeHourEl?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
 
   // Generate hours from 6 AM to 11 PM
   const hours = useMemo(() => {
@@ -238,6 +273,16 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
   }, [shiftsByHour])
 
   return (
+    <>
+    {showNowPill && (
+      <button
+        onClick={scrollToNow}
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-red-600 dark:bg-red-500 text-white text-sm font-medium shadow-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors"
+      >
+        {nowIsAbove ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        Now
+      </button>
+    )}
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
       {/* Day Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 w-full max-w-full min-w-0">
@@ -312,7 +357,7 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
               const isActive = isActiveTime(hour)
 
               return (
-                <div key={hour} className={`border-b last:border-b-0 pb-4 sm:pb-6 last:pb-0 ${isActive ? 'border-primary/30' : ''}`}>
+                <div key={hour} ref={isActive ? activeHourRef : undefined} className={`border-b last:border-b-0 pb-4 sm:pb-6 last:pb-0 ${isActive ? 'border-primary/30' : ''}`}>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4 px-4 sm:px-0">
                     <div className={`flex items-center gap-2 text-base sm:text-lg font-semibold ${isActive ? 'text-primary' : 'text-foreground'}`}>
                       {formatHour(hour)}
@@ -391,6 +436,7 @@ export function HourlyDashboard({ staffData, selectedDate }: HourlyDashboardProp
         </CardContent>
       </Card>
     </div>
+    </>
   )
 }
 
