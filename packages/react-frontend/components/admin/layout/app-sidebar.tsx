@@ -14,6 +14,7 @@ import {
   User2,
   BarChart3,
   FileText,
+  UsersRound,
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
@@ -85,6 +86,11 @@ const analyticsItems = [
     title: "Student Records",
     url: "/admin/records",
     icon: FileText,
+  },
+  {
+    title: "Group schedule",
+    url: "/admin/group-schedule",
+    icon: UsersRound,
   },
 ]
 

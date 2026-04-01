@@ -138,21 +138,24 @@ export default function RecordsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Student Records</h2>
-        <p className="text-muted-foreground">View detailed records by term</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold">Student Records</h2>
+          <p className="text-muted-foreground">View detailed records by term</p>
+        </div>
+        {!isLoading && (
+          <TermSelector
+            terms={terms}
+            selectedTerm={selectedTerm}
+            onTermChange={setSelectedTerm}
+          />
+        )}
       </div>
 
       {isLoading ? (
         <RecordsSkeleton showHeader={false} />
       ) : (
         <>
-          <TermSelector
-            terms={terms}
-            selectedTerm={selectedTerm}
-            onTermChange={setSelectedTerm}
-          />
-          
           {currentTerm && (
             <IndividualRecords
               staffData={staffData}
@@ -171,4 +174,5 @@ export default function RecordsPage() {
     </div>
   )
 }
+
 

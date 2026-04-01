@@ -24,9 +24,12 @@ interface ClockedInTableProps {
   clockedInUsers: Student[]
   onClockOutClick?: (user: Student) => void
   onClockOutAll?: (users: Student[]) => void | Promise<void>
+  currentTime?: Date
 }
 
-export function ClockedInTable({ clockedInUsers, onClockOutClick, onClockOutAll }: ClockedInTableProps) {
+export function ClockedInTable({ clockedInUsers, onClockOutClick, onClockOutAll, currentTime }: ClockedInTableProps) {
+  const pstNow = new Date((currentTime ?? new Date()).toLocaleString("en-US", { timeZone: "America/Los_Angeles" }))
+  const isLastHour = (pstNow.getHours() === 16) || (pstNow.getHours() === 17 && pstNow.getMinutes() < 20) // 4:00 PM – 5:19 PM PST
   const [selectedUser, setSelectedUser] = useState<Student | null>(null)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [allOutSnapshot, setAllOutSnapshot] = useState<Student[] | null>(null)
@@ -164,7 +167,7 @@ export function ClockedInTable({ clockedInUsers, onClockOutClick, onClockOutAll 
                 <span className="text-base sm:text-lg font-semibold">Currently Clocked In</span>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-                {onClockOutAll && clockedInUsers.length > 0 ? (
+                {onClockOutAll && clockedInUsers.length > 0 && isLastHour ? (
                   <Button
                     type="button"
                     variant="outline"

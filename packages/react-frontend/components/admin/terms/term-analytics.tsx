@@ -1,17 +1,71 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import type { DateRange } from "react-day-picker"
+import { endOfDay, format, max, min, startOfDay } from "date-fns"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { BarChart3, Clock, Calendar, LogOut, Timer } from "lucide-react"
+import { BarChart3, CalendarDays, Calendar as CalendarIcon, Clock, LogOut, Timer } from "lucide-react"
 import { type Student } from "@/lib/api"
-import { parseDateString } from "@/lib/utils"
 import { timeToMinutes, dateToMinutes } from "@/lib/time-utils"
 import { getTodayScheduleForDate, getExpectedStartTimeFromSchedule } from "@/lib/schedule-utils"
 import { PunctualityChart } from "@/components/admin/analytics/punctuality-chart"
 import { WeeklyHoursChart } from "@/components/admin/analytics/weekly-hours-chart"
+import { LateArrivalsByShiftHourChart } from "@/components/admin/analytics/late-arrivals-by-shift-hour-chart"
+import { cn, parseDateString } from "@/lib/utils"
 
-type PunctualityPeriod = "day" | "week" | "month" | "term"
+type PunctualityPeriod = "day" | "week" | "month" | "term" | "custom_range"
+
+/** Matches late card: no shift that day → score vs 8 AM with same ±10 min window */
+const IMPLIED_UNSCHEDULED_START_MINUTES = timeToMinutes("8:00 AM")
+
+function resolveCustomDateRange(
+  range: DateRange | undefined,
+  termStart: Date,
+  termEnd: Date
+): { start: Date; end: Date } {
+  if (!range?.from) return { start: termStart, end: termEnd }
+  const rawStart = startOfDay(range.from)
+  const rawEnd = startOfDay(range.to ?? range.from)
+  const start = max([rawStart, startOfDay(termStart)])
+  const end = min([endOfDay(rawEnd), endOfDay(termEnd)])
+  if (start.getTime() > end.getTime()) return { start: termStart, end: termEnd }
+  return { start: startOfDay(start), end: endOfDay(end) }
+}
+
+function computeActivePeriodRange(
+  period: PunctualityPeriod,
+  termStart: Date,
+  termEnd: Date,
+  customDateRange: DateRange | undefined
+): { start: Date; end: Date } {
+  const today = new Date()
+  if (period === "day") {
+    const start = new Date(today)
+    start.setHours(0, 0, 0, 0)
+    return { start, end: new Date(start.getTime() + 86399999) }
+  }
+  if (period === "week") {
+    const start = new Date(today)
+    const dayOfWeek = today.getDay()
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    start.setDate(today.getDate() - daysToMonday)
+    start.setHours(0, 0, 0, 0)
+    return { start, end: new Date(start.getTime() + 6 * 86400000 + 86399999) }
+  }
+  if (period === "month") {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1)
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59)
+    return { start, end }
+  }
+  if (period === "custom_range") {
+    return resolveCustomDateRange(customDateRange, termStart, termEnd)
+  }
+  return { start: termStart, end: termEnd }
+}
 
 interface TermAnalyticsProps {
   staffData: Student[]
@@ -28,34 +82,28 @@ const getExpectedStartTime = (staff: Student, date: Date): string | null => {
 
 export function TermAnalytics({ staffData, termStartDate, termEndDate }: TermAnalyticsProps) {
   const [punctualityPeriod, setPunctualityPeriod] = useState<PunctualityPeriod>("term")
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined)
+  const [rangePickerOpen, setRangePickerOpen] = useState(false)
 
   const termStart = useMemo(() => parseDateString(termStartDate), [termStartDate])
   const termEnd = useMemo(() => parseDateString(termEndDate), [termEndDate])
 
-  // Get date range for punctuality period
-  const getPeriodRange = (period: PunctualityPeriod) => {
-    const today = new Date()
-    if (period === "day") {
-      const start = new Date(today.setHours(0, 0, 0, 0))
-      return { start, end: new Date(start.getTime() + 86399999) }
-    }
-    if (period === "week") {
-      const start = new Date(today)
-      const dayOfWeek = today.getDay()
-      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-      start.setDate(today.getDate() - daysToMonday)
-      start.setHours(0, 0, 0, 0)
-      return { start, end: new Date(start.getTime() + 6 * 86400000 + 86399999) }
-    }
-    if (period === "month") {
-      const start = new Date(today.getFullYear(), today.getMonth(), 1)
-      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59)
-      return { start, end }
-    }
-    return { start: termStart, end: termEnd }
-  }
+  useEffect(() => {
+    setCustomDateRange({
+      from: parseDateString(termStartDate),
+      to: parseDateString(termEndDate),
+    })
+  }, [termStartDate, termEndDate])
 
-  // Calculate punctuality stats for a date range
+  const activePeriodRange = useMemo(
+    () => computeActivePeriodRange(punctualityPeriod, termStart, termEnd, customDateRange),
+    [punctualityPeriod, termStart, termEnd, customDateRange]
+  )
+
+  const termStartDay = useMemo(() => startOfDay(termStart), [termStart])
+  const termEndDay = useMemo(() => startOfDay(termEnd), [termEnd])
+
+  // Calculate punctuality stats for a date range (unscheduled days vs 8 AM, same ±10 min as late card)
   const calcPunctuality = (start: Date, end: Date) => {
     let onTime = 0, late = 0, early = 0
 
@@ -65,9 +113,8 @@ export function TermAnalytics({ staffData, termStartDate, termEndDate }: TermAna
         .forEach((entry) => {
           const entryDate = new Date(entry.timestamp)
           const expected = getExpectedStartTime(staff, entryDate)
-          if (!expected) { onTime++; return }
-
-          const diff = dateToMinutes(entryDate) - timeToMinutes(expected)
+          const referenceMinutes = expected ? timeToMinutes(expected) : IMPLIED_UNSCHEDULED_START_MINUTES
+          const diff = dateToMinutes(entryDate) - referenceMinutes
           if (diff < -10) { early++; onTime++ }
           else if (diff <= 10) { onTime++ }
           else { late++ }
@@ -123,20 +170,27 @@ export function TermAnalytics({ staffData, termStartDate, termEndDate }: TermAna
     }
   }, [staffData, termStart, termEnd])
 
-  // Period-specific punctuality
   const periodPunctuality = useMemo(() => {
-    const { start, end } = getPeriodRange(punctualityPeriod)
-    return calcPunctuality(start, end)
-  }, [staffData, punctualityPeriod, termStart, termEnd])
+    return calcPunctuality(activePeriodRange.start, activePeriodRange.end)
+  }, [staffData, activePeriodRange.start, activePeriodRange.end])
 
-  const getPeriodLabel = () => {
-    const { start, end } = getPeriodRange(punctualityPeriod)
+  const periodLabel = useMemo(() => {
+    const { start, end } = activePeriodRange
     const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
     if (punctualityPeriod === "day") return fmt(start)
     if (punctualityPeriod === "week") return `${fmt(start)} - ${fmt(end)}`
     if (punctualityPeriod === "month") return start.toLocaleDateString("en-US", { month: "long" })
+    if (punctualityPeriod === "custom_range") return `${fmt(start)} – ${fmt(end)}`
     return "Full Term"
-  }
+  }, [activePeriodRange, punctualityPeriod])
+
+  const customRangeButtonLabel = useMemo(() => {
+    if (!customDateRange?.from) return "Select dates"
+    if (customDateRange.to) {
+      return `${format(customDateRange.from, "MMM d, yyyy")} – ${format(customDateRange.to, "MMM d, yyyy")}`
+    }
+    return format(customDateRange.from, "MMM d, yyyy")
+  }, [customDateRange])
 
   const getColor = (rate: number, thresholds: [number, number]) =>
     rate >= thresholds[0] ? "text-green-600 dark:text-green-400" :
@@ -179,7 +233,7 @@ export function TermAnalytics({ staffData, termStartDate, termEndDate }: TermAna
                 <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{termStats.totalManual}</div>
                 <div className="text-muted-foreground">Manual Entries</div>
               </div>
-              <Calendar className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
+              <CalendarIcon className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
             </div>
           </CardContent>
         </Card>
@@ -221,9 +275,9 @@ export function TermAnalytics({ staffData, termStartDate, termEndDate }: TermAna
       {/* Charts */}
       <div className="grid md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <div className="flex justify-end">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <Select value={punctualityPeriod} onValueChange={(v: string) => setPunctualityPeriod(v as PunctualityPeriod)}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-full sm:w-[11rem]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -231,14 +285,47 @@ export function TermAnalytics({ staffData, termStartDate, termEndDate }: TermAna
                 <SelectItem value="week">This Week</SelectItem>
                 <SelectItem value="month">This Month</SelectItem>
                 <SelectItem value="term">Full Term</SelectItem>
+                <SelectItem value="custom_range">Custom dates</SelectItem>
               </SelectContent>
             </Select>
+            {punctualityPeriod === "custom_range" && (
+              <Popover open={rangePickerOpen} onOpenChange={setRangePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal sm:w-[min(100%,280px)]",
+                      !customDateRange?.from && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarDays className="mr-2 h-4 w-4 shrink-0" />
+                    <span className="truncate">{customRangeButtonLabel}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="range"
+                    defaultMonth={customDateRange?.from ?? termStart}
+                    selected={customDateRange}
+                    onSelect={(range) => {
+                      setCustomDateRange(range)
+                      if (range?.from && range?.to) setRangePickerOpen(false)
+                    }}
+                    numberOfMonths={2}
+                    disabled={(date) => {
+                      const d = startOfDay(date).getTime()
+                      return d < termStartDay.getTime() || d > termEndDay.getTime()
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
           <PunctualityChart
             onTimeCount={periodPunctuality.onTime}
             lateCount={periodPunctuality.late}
             earlyCount={periodPunctuality.early}
-            periodLabel={getPeriodLabel()}
+            periodLabel={periodLabel}
           />
         </div>
 
@@ -248,6 +335,13 @@ export function TermAnalytics({ staffData, termStartDate, termEndDate }: TermAna
           termEndDate={termEndDate}
         />
       </div>
+
+      <LateArrivalsByShiftHourChart
+        staffData={staffData}
+        rangeStart={activePeriodRange.start}
+        rangeEnd={activePeriodRange.end}
+        periodLabel={periodLabel}
+      />
     </div>
   )
 }

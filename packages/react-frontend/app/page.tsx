@@ -546,6 +546,7 @@ function HomePageContent() {
                 clockedInUsers={clockedInUsers}
                 onClockOutClick={handleClockOutFromTable}
                 onClockOutAll={handleClockOutAll}
+                currentTime={currentTime}
               />
               <ExpectedArrivalsTable
                 expectedArrivals={expectedArrivals}

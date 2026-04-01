@@ -7,7 +7,6 @@
 import { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Search, Shield, UserCheck, Check } from "lucide-react"
 import { type Student } from "@/lib/api"
@@ -27,17 +26,17 @@ export function StudentSearch({ staffData, selectedStaff, onSelectStaff, searchS
   // Always only show Student Lead and Student Assistant roles
   const filteredStaff = useMemo(() => {
     // First, filter to only include Student Lead and Student Assistant
-    const eligibleStaff = staffData.filter(staff => 
+    const eligibleStaff = staffData.filter(staff =>
       staff.role === "Student Assistant" || staff.role === "Student Lead"
     )
-    
+
     // If no search query, show all eligible staff
     if (!searchQuery) {
       return eligibleStaff
     }
-    
+
     // Otherwise, apply search filter on eligible staff
-    return eligibleStaff.filter(staff => 
+    return eligibleStaff.filter(staff =>
       staff.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       staff.cardId.toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -62,7 +61,7 @@ export function StudentSearch({ staffData, selectedStaff, onSelectStaff, searchS
             className="pl-10"
           />
         </div>
-        
+
         {/* Show search results only when user is searching */}
         {searchQuery && filteredStaff.length > 0 && (
           <ScrollArea className="mt-3 max-h-64">
@@ -78,8 +77,8 @@ export function StudentSearch({ staffData, selectedStaff, onSelectStaff, searchS
                     }}
                     className={cn(
                       "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-left transition-colors",
-                      isSelected 
-                        ? "bg-primary text-primary-foreground" 
+                      isSelected
+                        ? "bg-primary text-primary-foreground"
                         : "hover:bg-muted"
                     )}
                   >
@@ -112,7 +111,7 @@ export function StudentSearch({ staffData, selectedStaff, onSelectStaff, searchS
             </div>
           </ScrollArea>
         )}
-        
+
         {searchQuery && filteredStaff.length === 0 && (
           <div className="mt-4 py-6 text-center">
             <div className="text-muted-foreground text-sm">
@@ -120,7 +119,7 @@ export function StudentSearch({ staffData, selectedStaff, onSelectStaff, searchS
             </div>
           </div>
         )}
-        
+
         {!searchQuery && (
           <div className="mt-3 py-4 text-center border border-dashed rounded-md">
             <Search className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
@@ -133,7 +132,3 @@ export function StudentSearch({ staffData, selectedStaff, onSelectStaff, searchS
     </Card>
   )
 }
-
-
-
-
