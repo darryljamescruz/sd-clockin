@@ -23,11 +23,15 @@ import { aggregateConsecutiveShifts, getTodayScheduleForDate, parseScheduleBlock
 interface ClockedInTableProps {
   clockedInUsers: Student[]
   onClockOutClick?: (user: Student) => void
+  onClockOutAll?: (users: Student[]) => void | Promise<void>
 }
 
-export function ClockedInTable({ clockedInUsers, onClockOutClick }: ClockedInTableProps) {
+export function ClockedInTable({ clockedInUsers, onClockOutClick, onClockOutAll }: ClockedInTableProps) {
   const [selectedUser, setSelectedUser] = useState<Student | null>(null)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [allOutSnapshot, setAllOutSnapshot] = useState<Student[] | null>(null)
+  const [isConfirmAllOpen, setIsConfirmAllOpen] = useState(false)
+  const [isClockOutAllRunning, setIsClockOutAllRunning] = useState(false)
 
   const formatClockInTime = (timeStr: string | null) => {
     if (!timeStr) return ""
@@ -118,18 +122,65 @@ export function ClockedInTable({ clockedInUsers, onClockOutClick }: ClockedInTab
     }
   }
 
+  const requestClockOutAll = () => {
+    if (!onClockOutAll || clockedInUsers.length === 0) return
+    setAllOutSnapshot([...clockedInUsers])
+    setIsConfirmAllOpen(true)
+  }
+
+  const handleConfirmClockOutAll = async () => {
+    if (!onClockOutAll || !allOutSnapshot?.length) {
+      setIsConfirmAllOpen(false)
+      setAllOutSnapshot(null)
+      return
+    }
+    setIsClockOutAllRunning(true)
+    try {
+      await onClockOutAll(allOutSnapshot)
+    } finally {
+      setIsClockOutAllRunning(false)
+      setIsConfirmAllOpen(false)
+      setAllOutSnapshot(null)
+    }
+  }
+
+  const handleConfirmAllDialogChange = (open: boolean) => {
+    if (!open && !isClockOutAllRunning) {
+      setIsConfirmAllOpen(false)
+      setAllOutSnapshot(null)
+    } else if (open) {
+      setIsConfirmAllOpen(true)
+    }
+  }
+
   return (
     <>
       <Card className="bg-gradient-to-br from-card via-card to-card/90 backdrop-blur-md shadow-xl border-border/50 ring-1 ring-border/20 overflow-hidden">
         <CardHeader className="pb-4 pt-5 px-5 sm:px-6 border-b border-border/30 bg-muted/20">
-          <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-3 text-foreground">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-green-500 dark:bg-green-400 rounded-full shadow-sm shadow-green-500/50 animate-pulse"></div>
-              <span className="text-base sm:text-lg font-semibold">Currently Clocked In</span>
+          <CardTitle className="flex flex-col gap-3 text-foreground">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-green-500 dark:bg-green-400 rounded-full shadow-sm shadow-green-500/50 animate-pulse"></div>
+                <span className="text-base sm:text-lg font-semibold">Currently Clocked In</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+                {onClockOutAll && clockedInUsers.length > 0 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+                    onClick={requestClockOutAll}
+                    disabled={isClockOutAllRunning}
+                  >
+                    Clock out all
+                  </Button>
+                ) : null}
+                <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 font-medium shadow-sm">
+                  {clockedInUsers.length} Active
+                </Badge>
+              </div>
             </div>
-            <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 sm:ml-auto font-medium shadow-sm">
-              {clockedInUsers.length} Active
-            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 sm:p-6 sm:pt-4">
@@ -210,6 +261,32 @@ export function ClockedInTable({ clockedInUsers, onClockOutClick }: ClockedInTab
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => handleDialogClose(false)}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmClockOut}>Clock Out</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isConfirmAllOpen} onOpenChange={handleConfirmAllDialogChange}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clock out everyone?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {allOutSnapshot?.length
+                ? `This will clock out ${allOutSnapshot.length} people who are currently clocked in.`
+                : "This will clock out everyone who is currently clocked in."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isClockOutAllRunning}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                void handleConfirmClockOutAll()
+              }}
+              disabled={isClockOutAllRunning}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isClockOutAllRunning ? "Working…" : "Clock out all"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

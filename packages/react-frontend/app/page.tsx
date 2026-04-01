@@ -284,6 +284,44 @@ function HomePageContent() {
     toast.success(`${staff.name} clocked out successfully at ${formatTime(new Date())}`)
   }
 
+  const handleClockOutAll = async (users: Student[]) => {
+    if (!currentTerm) return
+    if (isClosed) {
+      toast.error("Service Desk is closed. Clock-ins resume next business day.")
+      return
+    }
+    if (users.length === 0) return
+
+    try {
+      await Promise.all(
+        users.map((u) =>
+          api.checkins.create({
+            studentId: u.id,
+            termId: currentTerm.id,
+            type: "out",
+            isManual: true,
+          })
+        )
+      )
+      const students = await api.students.getAll(currentTerm.id)
+      setStaffData(students)
+      toast.success(
+        users.length === 1
+          ? `${users[0].name} clocked out successfully at ${formatTime(new Date())}`
+          : `Clocked out ${users.length} people at ${formatTime(new Date())}`
+      )
+    } catch (err) {
+      console.error("Error clocking out all:", err)
+      toast.error("Failed to clock out everyone. Refresh and try again, or clock out individually.")
+      try {
+        const students = await api.students.getAll(currentTerm.id)
+        setStaffData(students)
+      } catch {
+        /* ignore refresh failure */
+      }
+    }
+  }
+
   // Sort clocked in users: chronological (clock-in time), then alphabetical, non-scheduled at bottom
   // Uses shared logic to check if actually clocked in (handles multiple shifts)
   const clockedInUsers = staffData
@@ -504,7 +542,11 @@ function HomePageContent() {
 
             {/* Tables Grid */}
             <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-10">
-              <ClockedInTable clockedInUsers={clockedInUsers} onClockOutClick={handleClockOutFromTable} />
+              <ClockedInTable
+                clockedInUsers={clockedInUsers}
+                onClockOutClick={handleClockOutFromTable}
+                onClockOutAll={handleClockOutAll}
+              />
               <ExpectedArrivalsTable
                 expectedArrivals={expectedArrivals}
                 currentTime={currentTime}
