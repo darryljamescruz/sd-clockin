@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -29,10 +29,10 @@ type Availability = {
   friday: string[]
 }
 
-export function SchedulesPage({ students, terms }: SchedulesPageProps) {
+export function SchedulesPage({ students: initialStudents, terms }: SchedulesPageProps) {
   const [selectedTermId, setSelectedTermId] = useState<string>("")
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
-  const [schedules, setSchedules] = useState<Record<string, Schedule>>({})
+  const [students, setStudents] = useState<Student[]>(initialStudents)
   const [availability, setAvailability] = useState<Availability>({
     monday: [],
     tuesday: [],
@@ -43,6 +43,7 @@ export function SchedulesPage({ students, terms }: SchedulesPageProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [roleFilter, setRoleFilter] = useState<"all" | "lead" | "assistant">("all")
   const [isDragging, setIsDragging] = useState(false)
   const [dragMode, setDragMode] = useState<"add" | "remove">("add")
   const [inputMode, setInputMode] = useState<"grid" | "manual">("grid")
@@ -64,33 +65,62 @@ export function SchedulesPage({ students, terms }: SchedulesPageProps) {
     }
   }, [terms])
 
-  // Fetch all schedules for the selected term
+  // Aggregate pull: Fetch all students with schedules for the selected term
   useEffect(() => {
     const fetchSchedules = async () => {
       if (!selectedTermId) return
 
       setIsLoading(true)
-      const schedulesData: Record<string, Schedule> = {}
-
-      await Promise.all(
-        students.map(async (student) => {
-          try {
-            const schedule = await api.schedules.get(student.id, selectedTermId)
-            if (schedule) {
-              schedulesData[student.id] = schedule
-            }
-          } catch (error) {
-            // Student might not have a schedule
+      try {
+        // This returns students WITH their weeklySchedule already populated
+        const fetchedStudents = await api.students.getAll(selectedTermId)
+        setStudents(fetchedStudents)
+        
+        // Update selected student if it exists in the new list
+        if (selectedStudent) {
+          const updated = fetchedStudents.find(s => s.id === selectedStudent.id)
+          if (updated) {
+            setSelectedStudent(updated)
           }
-        })
-      )
-
-      setSchedules(schedulesData)
-      setIsLoading(false)
+        }
+      } catch (error) {
+        console.error("Failed to fetch students with schedules:", error)
+      } finally {
+        setIsLoading(false)
+      }
     }
 
     fetchSchedules()
-  }, [selectedTermId, students])
+  }, [selectedTermId])
+
+  // Parse time string to hour (24h format)
+  const parseTimeToHour = (timeStr: string): number => {
+    if (!timeStr) return 0
+
+    const trimmed = timeStr.trim().toUpperCase()
+    const hasAM = trimmed.includes("AM")
+    const hasPM = trimmed.includes("PM")
+
+    const numericPart = timeStr.replace(/\s*(AM|PM)\s*/gi, "").trim()
+
+    let hours: number
+    if (numericPart.includes(":")) {
+      hours = parseInt(numericPart.split(":")[0], 10)
+    } else {
+      hours = parseInt(numericPart, 10)
+    }
+
+    if (Number.isNaN(hours)) return 0
+
+    // Handle AM/PM
+    if (hasAM && hours === 12) {
+      hours = 0
+    } else if (hasPM && hours !== 12) {
+      hours += 12
+    }
+
+    return hours
+  }
 
   // Convert a time block like "8-11" or "9 AM - 12 PM" to individual hour blocks
   const expandTimeBlock = (block: string): string[] => {
@@ -192,8 +222,8 @@ export function SchedulesPage({ students, terms }: SchedulesPageProps) {
 
   // Load selected student's schedule into availability state
   useEffect(() => {
-    if (selectedStudent && schedules[selectedStudent.id]) {
-      const normalized = normalizeAvailability(schedules[selectedStudent.id].availability)
+    if (selectedStudent && selectedStudent.weeklySchedule) {
+      const normalized = normalizeAvailability(selectedStudent.weeklySchedule)
       setAvailability(normalized)
       setManualInputs(availabilityToManualInputs(normalized))
     } else {
@@ -212,44 +242,31 @@ export function SchedulesPage({ students, terms }: SchedulesPageProps) {
         friday: [{ start: "", end: "" }],
       })
     }
-  }, [selectedStudent, schedules])
+  }, [selectedStudent?.id, selectedStudent?.weeklySchedule])
 
-  // Filter students
+  // Filter and sort students
   const filteredStudents = useMemo(() => {
-    if (!searchQuery) return students
-    return students.filter(s =>
-      s.name.toLowerCase().includes(searchQuery.toLowerCase())
+    let eligible = students.filter(
+      (s) => s.role === "Student Assistant" || s.role === "Student Lead"
     )
-  }, [students, searchQuery])
-
-  // Parse time string to hour (24h format)
-  const parseTimeToHour = (timeStr: string): number => {
-    if (!timeStr) return 0
-
-    const trimmed = timeStr.trim().toUpperCase()
-    const hasAM = trimmed.includes("AM")
-    const hasPM = trimmed.includes("PM")
-
-    const numericPart = timeStr.replace(/\s*(AM|PM)\s*/gi, "").trim()
-
-    let hours: number
-    if (numericPart.includes(":")) {
-      hours = parseInt(numericPart.split(":")[0], 10)
-    } else {
-      hours = parseInt(numericPart, 10)
+    
+    // Apply role filter
+    if (roleFilter === "lead") eligible = eligible.filter((s) => s.role === "Student Lead")
+    if (roleFilter === "assistant") eligible = eligible.filter((s) => s.role === "Student Assistant")
+    
+    // Apply search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      eligible = eligible.filter(
+        (s) =>
+          s.name.toLowerCase().includes(query) ||
+          s.cardId.toLowerCase().includes(query)
+      )
     }
-
-    if (isNaN(hours)) return 0
-
-    // Handle AM/PM
-    if (hasAM && hours === 12) {
-      hours = 0
-    } else if (hasPM && hours !== 12) {
-      hours += 12
-    }
-
-    return hours
-  }
+    
+    // Alphabetical sort by name
+    return eligible.sort((a, b) => a.name.localeCompare(b.name))
+  }, [students, searchQuery, roleFilter])
 
   // Check if a specific hour is selected
   const isHourSelected = (day: typeof DAYS[number], hour: number): boolean => {
@@ -411,16 +428,15 @@ export function SchedulesPage({ students, terms }: SchedulesPageProps) {
         availability,
       })
 
-      // Update local state
-      setSchedules(prev => ({
-        ...prev,
-        [selectedStudent.id]: {
-          ...prev[selectedStudent.id],
-          studentId: selectedStudent.id,
-          termId: selectedTermId,
-          availability,
-        }
-      }))
+      // Update local state for the student list
+      setStudents(prev => prev.map(s => 
+        s.id === selectedStudent.id 
+          ? { ...s, weeklySchedule: availability } 
+          : s
+      ))
+      
+      // Update selected student
+      setSelectedStudent(prev => prev ? { ...prev, weeklySchedule: availability } : null)
     } catch (error) {
       console.error("Failed to save schedule:", error)
     } finally {
@@ -429,9 +445,9 @@ export function SchedulesPage({ students, terms }: SchedulesPageProps) {
   }
 
   // Check if student has any schedule
-  const hasSchedule = (studentId: string) => {
-    const schedule = schedules[studentId]
-    return schedule && Object.values(schedule.availability).some(day => day.length > 0)
+  const hasSchedule = (student: Student) => {
+    const schedule = student.weeklySchedule
+    return schedule && Object.values(schedule).some(day => day.length > 0)
   }
 
   return (
@@ -463,21 +479,15 @@ export function SchedulesPage({ students, terms }: SchedulesPageProps) {
       {selectedTermId && (
         <CSVImport
           termId={selectedTermId}
-          onImportComplete={() => {
-            // Refetch schedules
-            const fetchSchedules = async () => {
-              const schedulesData: Record<string, Schedule> = {}
-              await Promise.all(
-                students.map(async (student) => {
-                  try {
-                    const schedule = await api.schedules.get(student.id, selectedTermId)
-                    if (schedule) schedulesData[student.id] = schedule
-                  } catch (error) {}
-                })
-              )
-              setSchedules(schedulesData)
+          onImportComplete={async () => {
+            // Refetch all students with schedules
+            setIsLoading(true)
+            try {
+              const fetchedStudents = await api.students.getAll(selectedTermId)
+              setStudents(fetchedStudents)
+            } finally {
+              setIsLoading(false)
             }
-            fetchSchedules()
           }}
         />
       )}
@@ -485,56 +495,85 @@ export function SchedulesPage({ students, terms }: SchedulesPageProps) {
       {/* Main content - master detail layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[600px]">
         {/* Left panel - Student list */}
-        <Card className="lg:col-span-1 bg-card/70">
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search students..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+        <Card className="lg:col-span-1 bg-card/70 h-fit">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Students
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search students..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
 
-              <div className="text-xs text-muted-foreground">
-                {filteredStudents.length} students
-              </div>
+            {/* Role filter */}
+            <div className="flex gap-1">
+              {(["all", "lead", "assistant"] as const).map((f) => (
+                <Button
+                  key={f}
+                  size="sm"
+                  variant={roleFilter === f ? "default" : "outline"}
+                  className="h-7 text-xs px-2 flex-1"
+                  onClick={() => setRoleFilter(f)}
+                >
+                  {f === "all" ? "All" : f === "lead" ? "Lead" : "Assistant"}
+                </Button>
+              ))}
+            </div>
 
-              <div className="space-y-1 max-h-[500px] overflow-y-auto">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (
-                  filteredStudents.map((student) => (
-                    <button
-                      key={student.id}
-                      onClick={() => setSelectedStudent(student)}
-                      className={cn(
-                        "w-full text-left px-3 py-2 rounded-md transition-colors",
-                        "hover:bg-accent",
-                        selectedStudent?.id === student.id
-                          ? "bg-accent"
-                          : ""
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="font-medium truncate">{student.name}</span>
-                          {student.role === "Student Lead" && (
-                            <Shield className="w-3 h-3 text-blue-500 shrink-0" />
-                          )}
-                        </div>
-                        {hasSchedule(student.id) && (
-                          <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+            <div className="text-xs text-muted-foreground">
+              {filteredStudents.length} students
+            </div>
+
+            <div className="space-y-1 max-h-[600px] overflow-y-auto pr-1">
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-2">
+                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">Loading schedules...</p>
+                </div>
+              ) : filteredStudents.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  No students found
+                </div>
+              ) : (
+                filteredStudents.map((student) => (
+                  <button
+                    key={student.id}
+                    onClick={() => setSelectedStudent(student)}
+                    className={cn(
+                      "w-full text-left px-3 py-2 rounded-md transition-colors",
+                      "hover:bg-accent",
+                      selectedStudent?.id === student.id
+                        ? "bg-accent"
+                        : ""
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-medium truncate text-sm">{student.name}</span>
+                        <span className="text-xs text-muted-foreground truncate">
+                          {student.role === "Student Lead" ? "Lead" : "Assistant"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {student.role === "Student Lead" && (
+                          <Shield className="w-3 h-3 text-blue-500" />
+                        )}
+                        {hasSchedule(student) && (
+                          <div className="w-2 h-2 rounded-full bg-green-500" title="Has schedule" />
                         )}
                       </div>
-                    </button>
-                  ))
-                )}
-              </div>
+                    </div>
+                  </button>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
