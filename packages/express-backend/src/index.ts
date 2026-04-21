@@ -17,7 +17,34 @@ import adminUsersRouter from './routes/admin-users.js';
 import { verifyAdmin } from './utils/auth.js';
 
 const app: Application = express();
-// ... (corsOptions stays same)
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    const allowedOrigins =
+      process.env.ALLOWED_ORIGINS?.split(',').map((o) => o.trim()) || [];
+
+    // Check if origin is in the allowed list
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else if (process.env.NODE_ENV === 'development') {
+      // In development, allow localhost
+      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    } else {
+      callback(null, false);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 86400, // 24 hours - cache preflight requests
+};
+
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json());

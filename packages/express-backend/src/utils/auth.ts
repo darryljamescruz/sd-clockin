@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 
 const TOKEN_ALGORITHM = 'HS256';
 const TOKEN_TYPE = 'JWT';
@@ -74,29 +74,36 @@ export async function verifySessionToken(token: string, secret: string): Promise
   }
 }
 
-export const verifyAdmin = async (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Unauthorized: No token provided' });
-  }
+export const verifyAdmin: RequestHandler = (req, res, next) => {
+  const execute = async () => {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ message: 'Unauthorized: No token provided' });
+      return;
+    }
 
-  const token = authHeader.split(' ')[1];
-  const secret = process.env.AUTH_SESSION_SECRET || process.env.MICROSOFT_CLIENT_SECRET || process.env.AZURE_CLIENT_SECRET;
+    const token = authHeader.split(' ')[1];
+    const secret = process.env.AUTH_SESSION_SECRET || process.env.MICROSOFT_CLIENT_SECRET || process.env.AZURE_CLIENT_SECRET;
 
-  if (!secret) {
-    console.error('AUTH_SESSION_SECRET is not configured');
-    return res.status(500).json({ message: 'Server configuration error' });
-  }
+    if (!secret) {
+      console.error('AUTH_SESSION_SECRET is not configured');
+      res.status(500).json({ message: 'Server configuration error' });
+      return;
+    }
 
-  const payload = await verifySessionToken(token, secret);
-  
-  if (!payload || !payload.roles.includes('admin')) {
-    return res.status(403).json({ message: 'Forbidden: Admin access required' });
-  }
+    const payload = await verifySessionToken(token, secret);
+    
+    if (!payload || !payload.roles.includes('admin')) {
+      res.status(403).json({ message: 'Forbidden: Admin access required' });
+      return;
+    }
 
-  // Add user info to request for downstream use if needed
-  (req as any).user = payload;
-  
-  next();
+    // Add user info to request for downstream use if needed
+    (req as any).user = payload;
+    
+    next();
+  };
+
+  execute().catch(next);
 };

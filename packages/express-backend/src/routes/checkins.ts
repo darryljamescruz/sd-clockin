@@ -3,7 +3,7 @@ import CheckIn from '../models/CheckIn.js';
 import Student from '../models/Student.js';
 import Term from '../models/Term.js';
 import Shift from '../models/Shift.js';
-import { getPSTDateAsUTC } from '../utils/timezone.js';
+import { getPSTDateAsUTC, getPSTDayBoundaries } from '../utils/timezone.js';
 import cache, { CacheKeys } from '../utils/cache.js';
 import { verifyAdmin } from '../utils/auth.js';
 
