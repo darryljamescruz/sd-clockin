@@ -63,7 +63,7 @@ app.use('/api/terms', termsRouter);
 // Protected Admin routes
 app.use('/api/schedules', verifyAdmin, schedulesRouter);
 app.use('/api/import', verifyAdmin, importRouter);
-app.use('/api/admin-users', verifyAdmin, adminUsersRouter);
+app.use('/api/admin-users', adminUsersRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
