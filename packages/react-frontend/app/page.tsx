@@ -563,7 +563,6 @@ function HomePageContent() {
           </>
         )}
       </div>
-      <Toaster />
     </div>
   )
 }

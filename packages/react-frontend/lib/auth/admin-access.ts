@@ -25,6 +25,8 @@ export async function authorizeAdminAccess(data: {
   name?: string
 }): Promise<AdminAccessResult> {
   const url = `${getBackendApiBaseUrl()}/admin-users/authorize`
+  console.log(`[AUTH] Attempting to authorize admin: ${data.email} at ${url}`)
+
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -43,6 +45,8 @@ export async function authorizeAdminAccess(data: {
   } else {
     bodyText = await response.text().catch(() => "")
   }
+
+  console.log(`[AUTH] Authorization result for ${data.email}:`, payload)
 
   if (!response.ok) {
     const fallbackMessage = bodyText

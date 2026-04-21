@@ -37,6 +37,12 @@ function redirectWithError(request: NextRequest, errorCode: string): NextRespons
   return response
 }
 
+function getRequestOrigin(request: NextRequest): string {
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || request.nextUrl.host
+  const protocol = request.headers.get("x-forwarded-proto") || (request.nextUrl.protocol === "https:" ? "https" : "http")
+  return `${protocol}://${host}`
+}
+
 export async function GET(request: NextRequest) {
   const stateParam = request.nextUrl.searchParams.get("state")
   const code = request.nextUrl.searchParams.get("code")
@@ -57,7 +63,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const config = getMicrosoftAuthConfig(request.nextUrl.origin)
+    const origin = getRequestOrigin(request)
+    console.log(`[AUTH] Callback origin detected as: ${origin}`)
+    const config = getMicrosoftAuthConfig(origin)
+    console.log(`[AUTH] Exchanging code for tokens with redirect_uri: ${config.redirectUri}`)
     const tokens = await exchangeCodeForTokens(config, code)
 
     if (!tokens.id_token) {

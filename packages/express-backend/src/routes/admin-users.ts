@@ -167,6 +167,8 @@ router.post('/authorize', (async (req: Request, res: Response) => {
     const name = normalize(req.body.name);
     const emailLower = normalizeLower(email);
 
+    console.log(`[AUTH] Authorization request for: ${emailLower}`);
+
     if (!emailLower) {
       return res.status(400).json({
         allowed: false,
@@ -180,12 +182,14 @@ router.post('/authorize', (async (req: Request, res: Response) => {
     });
 
     if (!adminUser) {
+      console.log(`[AUTH] User not found or inactive in admin list: ${emailLower}`);
       return res.status(403).json({
         allowed: false,
         message: 'User is not an active admin',
       });
     }
 
+    console.log(`[AUTH] User authorized successfully: ${emailLower}`);
     adminUser.lastLoginAt = new Date();
     if (!adminUser.name && name) {
       adminUser.name = name;

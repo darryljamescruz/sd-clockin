@@ -9,9 +9,18 @@ function isSecureRequest(request: NextRequest): boolean {
   return forwardedProto === "https" || request.nextUrl.protocol === "https:"
 }
 
+function getRequestOrigin(request: NextRequest): string {
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || request.nextUrl.host
+  const protocol = request.headers.get("x-forwarded-proto") || (request.nextUrl.protocol === "https:" ? "https" : "http")
+  return `${protocol}://${host}`
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const config = getMicrosoftAuthConfig(request.nextUrl.origin)
+    const origin = getRequestOrigin(request)
+    console.log(`[AUTH] Login origin detected as: ${origin}`)
+    const config = getMicrosoftAuthConfig(origin)
+    console.log(`[AUTH] Redirecting to Microsoft with redirect_uri: ${config.redirectUri}`)
     const state = crypto.randomUUID()
     const nonce = crypto.randomUUID()
     const authorizeUrl = buildMicrosoftAuthorizeUrl(config, state, nonce)
