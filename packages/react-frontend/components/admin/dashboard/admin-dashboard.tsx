@@ -78,7 +78,7 @@ export function AdminDashboard({
           setIsLoadingStudents(true)
         }
 
-        const fetchedStudents = await api.students.getAll(currentTerm.id)
+        const fetchedStudents = await api.students.getAll(currentTerm.id, true)
         if (!isCancelled) {
           setStaffData(fetchedStudents)
         }

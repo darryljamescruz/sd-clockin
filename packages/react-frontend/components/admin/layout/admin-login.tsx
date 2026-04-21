@@ -34,7 +34,11 @@ export function AdminLogin({ isOpen, onToggle }: AdminLoginProps) {
         Admin Login
       </Button>
 
-      <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onToggle()}>
+      <Dialog open={isOpen} onOpenChange={(open: boolean) => {
+        if (!open) {
+          onToggle()
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">

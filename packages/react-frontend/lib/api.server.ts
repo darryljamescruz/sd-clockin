@@ -40,9 +40,13 @@ export async function getTerms(): Promise<Term[]> {
 /**
  * Fetch all students for a term (server-side)
  */
-export async function getStudents(termId?: string): Promise<Student[]> {
+export async function getStudents(termId?: string, includeHistory = false): Promise<Student[]> {
   try {
-    const query = termId ? `?termId=${termId}` : ""
+    const params = new URLSearchParams()
+    if (termId) params.append("termId", termId)
+    if (includeHistory) params.append("includeHistory", "true")
+    
+    const query = params.toString() ? `?${params.toString()}` : ""
     return await fetchServerAPI<Student[]>(`/students${query}`)
   } catch (error) {
     console.error("Failed to fetch students:", error)

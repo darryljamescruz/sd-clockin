@@ -8,8 +8,8 @@ export default async function AdminDashboardPage() {
   const terms = await getTerms()
   const activeTerm = getActiveTerm(terms)
 
-  // Fetch students for the active term
-  const students = activeTerm ? await getStudents(activeTerm.id) : []
+  // Fetch students for the active term with history for the dashboard
+  const students = activeTerm ? await getStudents(activeTerm.id, true) : []
 
   return (
     <AdminDashboard
