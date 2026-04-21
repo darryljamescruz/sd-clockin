@@ -85,11 +85,29 @@ export interface AdminUser {
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   
+  // Get session token from cookie if in browser
+  let sessionToken: string | undefined;
+  if (typeof document !== 'undefined') {
+    const name = "admin_session=";
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const ca = decodedCookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) == ' ') {
+        c = c.substring(1);
+      }
+      if (c.indexOf(name) == 0) {
+        sessionToken = c.substring(name.length, c.length);
+      }
+    }
+  }
+
   try {
     const response = await fetch(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        ...(sessionToken ? { 'Authorization': `Bearer ${sessionToken}` } : {}),
         ...options?.headers,
       },
     });
@@ -110,14 +128,22 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
 
 export const studentsAPI = {
   // Get all students, optionally with data for a specific term
-  getAll: async (termId?: string): Promise<Student[]> => {
-    const query = termId ? `?termId=${termId}` : '';
+  getAll: async (termId?: string, includeHistory = false): Promise<Student[]> => {
+    const params = new URLSearchParams();
+    if (termId) params.append('termId', termId);
+    if (includeHistory) params.append('includeHistory', 'true');
+    
+    const query = params.toString() ? `?${params.toString()}` : '';
     return fetchAPI<Student[]>(`/students${query}`);
   },
 
   // Get a single student by ID, optionally with term-specific data
-  getById: async (id: string, termId?: string): Promise<Student> => {
-    const query = termId ? `?termId=${termId}` : '';
+  getById: async (id: string, termId?: string, includeHistory = false): Promise<Student> => {
+    const params = new URLSearchParams();
+    if (termId) params.append('termId', termId);
+    if (includeHistory) params.append('includeHistory', 'true');
+    
+    const query = params.toString() ? `?${params.toString()}` : '';
     return fetchAPI<Student>(`/students/${id}${query}`);
   },
 
@@ -224,6 +250,11 @@ export const checkinsAPI = {
 
     const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
     return fetchAPI<CheckIn[]>(`/checkins${query}`);
+  },
+
+  // Get today's check-ins (Public)
+  getToday: async (termId: string): Promise<CheckIn[]> => {
+    return fetchAPI<CheckIn[]>(`/checkins/today?termId=${termId}`);
   },
 
   // Create a new check-in

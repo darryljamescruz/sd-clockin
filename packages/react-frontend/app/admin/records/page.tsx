@@ -76,8 +76,8 @@ export default function RecordsPage() {
         setIsLoadingStudent(true)
         const currentTerm = terms.find((t) => t.name === selectedTerm)
         if (currentTerm) {
-          // Fetch only the selected student with term-specific data
-          const fetchedStudent = await api.students.getById(selectedStaff.id, currentTerm.id)
+          // Fetch only the selected student with term-specific data and history
+          const fetchedStudent = await api.students.getById(selectedStaff.id, currentTerm.id, true)
           setSelectedStaff(fetchedStudent)
         }
       } catch (err) {
@@ -98,8 +98,8 @@ export default function RecordsPage() {
     try {
       const currentTerm = terms.find((t) => t.name === selectedTerm)
       if (currentTerm) {
-        // Fetch only the specific student with term-specific data
-        const updatedStaff = await api.students.getById(studentId, currentTerm.id)
+        // Fetch only the specific student with term-specific data and history
+        const updatedStaff = await api.students.getById(studentId, currentTerm.id, true)
         if (selectedStaff?.id === studentId) {
           setSelectedStaff(updatedStaff)
         }

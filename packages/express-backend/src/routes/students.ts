@@ -8,6 +8,7 @@ import {
   getPSTDateComponents,
 } from '../utils/timezone.js';
 import cache, { CacheKeys, CacheTTL } from '../utils/cache.js';
+import { verifyAdmin } from '../utils/auth.js';
 
 const router = express.Router();
 
@@ -90,9 +91,18 @@ function aggregateConsecutiveScheduleBlocks(
 // GET all students with their schedules for a specific term
 router.get('/', (async (req: Request, res: Response) => {
   try {
-    const { termId } = req.query;
-    // Admin panel (no termId): Get ALL students for management
-    // Dashboard (with termId): Get all students, compute clock-in status dynamically
+    const { includeHistory } = req.query;
+    let termId = req.query.termId as string;
+    const shouldIncludeHistory = includeHistory === 'true';
+
+    // If termId is not provided, try to find the active term
+    if (!termId || termId.trim() === '') {
+      const Term = (await import('../models/Term.js')).default;
+      const activeTerm = await Term.findOne({ isActive: true }).lean();
+      if (activeTerm) {
+        termId = String(activeTerm._id);
+      }
+    }
 
     // Cache the student list to avoid repeated queries
     const students = await cache.wrapper(
@@ -101,7 +111,7 @@ router.get('/', (async (req: Request, res: Response) => {
       async () => await Student.find({}).lean()
     );
 
-    // If termId is provided, get schedules and check-ins for that term
+    // If we have a termId (either provided or active), get schedules and check-ins
     if (termId) {
       const now = new Date();
 
@@ -127,10 +137,13 @@ router.get('/', (async (req: Request, res: Response) => {
         }).sort({ timestamp: -1 }).lean(),
 
         // 4. Get recent historical check-ins for all students (limited for performance)
-        CheckIn.find({ termId })
-          .sort({ timestamp: -1 })
-          .limit(students.length * 50) // 50 per student max
-          .lean(),
+        // Only fetch if explicitly requested (Admin Detail view)
+        shouldIncludeHistory 
+          ? CheckIn.find({ termId })
+              .sort({ timestamp: -1 })
+              .limit(students.length * 50) // 50 per student max
+              .lean()
+          : Promise.resolve([]),
       ]);
 
       // Build lookup maps for O(1) access
@@ -555,7 +568,8 @@ router.get('/', (async (req: Request, res: Response) => {
 // GET a single student by ID, optionally with term-specific data
 router.get('/:id', (async (req: Request, res: Response) => {
   try {
-    const { termId } = req.query;
+    const { termId, includeHistory } = req.query;
+    const shouldIncludeHistory = includeHistory === 'true';
     const student = await Student.findById(req.params.id).lean();
 
     if (!student) {
@@ -763,14 +777,16 @@ router.get('/:id', (async (req: Request, res: Response) => {
         currentStatus = 'present';
       }
 
-      // Get all check-ins for historical data
-      const checkIns = await CheckIn.find({
-        studentId: student._id,
-        termId,
-      })
-        .sort({ timestamp: -1 })
-        .limit(50)
-        .lean();
+      // Get all check-ins for historical data if requested
+      const checkIns = shouldIncludeHistory 
+        ? await CheckIn.find({
+            studentId: student._id,
+            termId,
+          })
+            .sort({ timestamp: -1 })
+            .limit(50)
+            .lean()
+        : [];
 
       return res.json({
         id: String(student._id),
@@ -818,7 +834,7 @@ router.get('/:id', (async (req: Request, res: Response) => {
 }) as RequestHandler);
 
 // POST - Create a new student
-router.post('/', (async (req: Request, res: Response) => {
+router.post('/', verifyAdmin, (async (req: Request, res: Response) => {
   try {
     const { name, cardId, role } = req.body;
 
@@ -866,7 +882,7 @@ router.post('/', (async (req: Request, res: Response) => {
 }) as RequestHandler);
 
 // PUT - Update a student
-router.put('/:id', (async (req: Request, res: Response) => {
+router.put('/:id', verifyAdmin, (async (req: Request, res: Response) => {
   try {
     const { name, cardId, role } = req.body;
 
@@ -913,7 +929,7 @@ router.put('/:id', (async (req: Request, res: Response) => {
 }) as RequestHandler);
 
 // DELETE - Delete a student
-router.delete('/:id', (async (req: Request, res: Response) => {
+router.delete('/:id', verifyAdmin, (async (req: Request, res: Response) => {
   try {
     const student = await Student.findByIdAndDelete(req.params.id);
 

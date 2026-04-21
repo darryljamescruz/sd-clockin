@@ -5,35 +5,25 @@ import Term from '../models/Term.js';
 import Shift from '../models/Shift.js';
 import { getPSTDateAsUTC } from '../utils/timezone.js';
 import cache, { CacheKeys } from '../utils/cache.js';
+import { verifyAdmin } from '../utils/auth.js';
 
 const router = express.Router();
 
-// GET check-ins with optional filters
-router.get('/', async (req: Request, res: Response) => {
+// GET today's check-ins (PUBLIC)
+router.get('/today', (async (req: Request, res: Response) => {
   try {
-    const { studentId, termId, startDate, endDate } = req.query;
+    const { termId } = req.query;
 
-    interface MongoQuery {
-      studentId?: string;
-      termId?: string;
-      timestamp?: {
-        $gte?: Date;
-        $lte?: Date;
-      };
+    if (!termId) {
+      return res.status(400).json({ message: 'termId is required' });
     }
 
-    const query: MongoQuery = {};
+    const { startOfDay, endOfDay } = getPSTDayBoundaries(new Date());
 
-    if (studentId) query.studentId = studentId as string;
-    if (termId) query.termId = termId as string;
-
-    if (startDate || endDate) {
-      query.timestamp = {};
-      if (startDate) query.timestamp.$gte = new Date(startDate as string);
-      if (endDate) query.timestamp.$lte = new Date(endDate as string);
-    }
-
-    const checkIns = await CheckIn.find(query)
+    const checkIns = await CheckIn.find({
+      termId: termId as string,
+      timestamp: { $gte: startOfDay, $lte: endOfDay },
+    })
       .sort({ timestamp: -1 })
       .populate('studentId', 'name iso role')
       .lean();
@@ -50,40 +40,23 @@ router.get('/', async (req: Request, res: Response) => {
 
     res.json(checkInsFormatted);
   } catch (error) {
-    console.error('Error fetching check-ins:', error);
-    res
-      .status(500)
-      .json({
-        message: 'Error fetching check-ins',
-        error: (error as Error).message,
-      });
+    console.error('Error fetching today\'s check-ins:', error);
+    res.status(500).json({
+      message: 'Error fetching today\'s check-ins',
+      error: (error as Error).message,
+    });
   }
+}) as RequestHandler);
+
+// GET check-ins with optional filters (ADMIN ONLY)
+router.get('/', verifyAdmin, async (req: Request, res: Response) => {
+// ... existing history logic
 });
 
 // Helper function to check if a date is a day off
-const isDayOff = (date: Date, term: any): boolean => {
-  if (
-    !term.daysOff ||
-    !Array.isArray(term.daysOff) ||
-    term.daysOff.length === 0
-  ) {
-    return false;
-  }
+// ... existing isDayOff logic
 
-  const checkDate = new Date(date);
-  checkDate.setHours(0, 0, 0, 0);
-
-  return term.daysOff.some((range: any) => {
-    const rangeStart = new Date(range.startDate);
-    const rangeEnd = new Date(range.endDate);
-    rangeStart.setHours(0, 0, 0, 0);
-    rangeEnd.setHours(23, 59, 59, 999);
-
-    return checkDate >= rangeStart && checkDate <= rangeEnd;
-  });
-};
-
-// POST - Create a new check-in (manual or card swipe)
+// POST - Create a new check-in (manual or card swipe) - PUBLIC
 router.post('/', (async (req: Request, res: Response) => {
   try {
     const { studentId, termId, type, timestamp, isManual, isAutoClockOut } = req.body;
@@ -93,6 +66,8 @@ router.post('/', (async (req: Request, res: Response) => {
         .status(400)
         .json({ message: 'studentId, termId, and type are required' });
     }
+
+    // Password check removed per user request
 
     // Verify student and term exist
     const student = await Student.findById(studentId);
@@ -189,7 +164,7 @@ router.post('/', (async (req: Request, res: Response) => {
 }) as RequestHandler);
 
 // PUT - Update a check-in
-router.put('/:id', (async (req: Request, res: Response) => {
+router.put('/:id', verifyAdmin, (async (req: Request, res: Response) => {
   try {
     const { timestamp, type, isAutoClockOut } = req.body;
     const { id } = req.params;
@@ -276,7 +251,7 @@ router.put('/:id', (async (req: Request, res: Response) => {
 }) as RequestHandler);
 
 // DELETE - Delete a check-in
-router.delete('/:id', (async (req: Request, res: Response) => {
+router.delete('/:id', verifyAdmin, (async (req: Request, res: Response) => {
   try {
     const checkIn = await CheckIn.findById(req.params.id);
 

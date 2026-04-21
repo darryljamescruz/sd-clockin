@@ -16,6 +16,7 @@ import { getUpcomingShifts, isCurrentlyClockedIn, timeToMinutes } from "@/lib/sh
 
 function HomePageContent() {
   const searchParams = useSearchParams()
+  const [mounted, setMounted] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isClosed, setIsClosed] = useState(false)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
@@ -29,6 +30,11 @@ function HomePageContent() {
   const [currentTerm, setCurrentTerm] = useState<Term | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
+
+  // Set mounted state
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Fetch initial data (terms and students)
   useEffect(() => {
@@ -382,11 +388,11 @@ function HomePageContent() {
       <CardContent className="p-6 sm:p-10 text-center">
         <div className="space-y-3">
           <div className="text-4xl sm:text-6xl lg:text-7xl font-mono font-bold text-foreground tracking-tight tabular-nums">
-            {formatTime(currentTime)}
+            {mounted ? formatTime(currentTime) : "00:00:00 AM"}
           </div>
           <div className="text-sm sm:text-lg lg:text-xl text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
             <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-primary/70" />
-            <span className="break-words font-medium">{formatDate(currentTime)}</span>
+            <span className="break-words font-medium">{mounted ? formatDate(currentTime) : "Loading..."}</span>
           </div>
         </div>
       </CardContent>

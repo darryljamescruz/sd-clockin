@@ -1,5 +1,6 @@
 import express, { Request, RequestHandler, Response } from 'express';
 import AdminUser from '../models/AdminUser.js';
+import { verifyAdmin } from '../utils/auth.js';
 
 const router = express.Router();
 
@@ -47,7 +48,7 @@ function formatAdminUser(user: {
   };
 }
 
-router.get('/', (async (_req: Request, res: Response) => {
+router.get('/', verifyAdmin, (async (_req: Request, res: Response) => {
   try {
     const adminUsers = await AdminUser.find().sort({ createdAt: -1 }).lean();
     res.json(adminUsers.map((adminUser) => formatAdminUser(adminUser)));
@@ -60,7 +61,7 @@ router.get('/', (async (_req: Request, res: Response) => {
   }
 }) as RequestHandler);
 
-router.post('/', (async (req: Request, res: Response) => {
+router.post('/', verifyAdmin, (async (req: Request, res: Response) => {
   try {
     const email = normalize(req.body.email);
     const name = normalize(req.body.name);
@@ -100,7 +101,7 @@ router.post('/', (async (req: Request, res: Response) => {
   }
 }) as RequestHandler);
 
-router.put('/:id', (async (req: Request, res: Response) => {
+router.put('/:id', verifyAdmin, (async (req: Request, res: Response) => {
   try {
     const adminUser = await AdminUser.findById(req.params.id);
     if (!adminUser) {
@@ -142,7 +143,7 @@ router.put('/:id', (async (req: Request, res: Response) => {
   }
 }) as RequestHandler);
 
-router.delete('/:id', (async (req: Request, res: Response) => {
+router.delete('/:id', verifyAdmin, (async (req: Request, res: Response) => {
   try {
     const adminUser = await AdminUser.findById(req.params.id);
     if (!adminUser) {

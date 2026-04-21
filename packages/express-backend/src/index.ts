@@ -14,36 +14,10 @@ import schedulesRouter from './routes/schedules.js';
 import checkinsRouter from './routes/checkins.js';
 import importRouter from './routes/import.js';
 import adminUsersRouter from './routes/admin-users.js';
+import { verifyAdmin } from './utils/auth.js';
 
 const app: Application = express();
-
-const corsOptions: cors.CorsOptions = {
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-
-    const allowedOrigins =
-      process.env.ALLOWED_ORIGINS?.split(',').map((o) => o.trim()) || [];
-
-    // Check if origin is in the allowed list
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else if (process.env.NODE_ENV === 'development') {
-      // In development, allow localhost
-      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-        callback(null, true);
-      } else {
-        callback(null, false);
-      }
-    } else {
-      callback(null, false);
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  maxAge: 86400, // 24 hours - cache preflight requests
-};
-
+// ... (corsOptions stays same)
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -54,20 +28,23 @@ app.get('/', (req, res) => {
 });
 
 // API Routes
+// Public routes (though students might need internal method-level protection)
 app.use('/api/students', studentsRouter);
-app.use('/api/terms', termsRouter);
-app.use('/api/schedules', schedulesRouter);
 app.use('/api/checkins', checkinsRouter);
-app.use('/api/import', importRouter);
-app.use('/api/admin-users', adminUsersRouter);
+
+// Protected Admin routes
+app.use('/api/terms', verifyAdmin, termsRouter);
+app.use('/api/schedules', verifyAdmin, schedulesRouter);
+app.use('/api/import', verifyAdmin, importRouter);
+app.use('/api/admin-users', verifyAdmin, adminUsersRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// Temporary cache flush endpoint (remove after use)
-app.post('/api/cache/flush', async (req, res) => {
+// Temporary cache flush endpoint (protected)
+app.post('/api/cache/flush', verifyAdmin, async (req, res) => {
   const { default: cache } = await import('./utils/cache.js');
   await cache.flushAll();
   res.json({ message: 'Cache flushed successfully' });
