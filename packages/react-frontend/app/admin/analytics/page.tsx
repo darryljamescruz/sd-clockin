@@ -50,7 +50,7 @@ export default function AnalyticsPage() {
         setIsLoading(true)
         const currentTerm = terms.find((t) => t.name === selectedTerm)
         if (currentTerm) {
-          const fetchedStudents = await api.students.getAll(currentTerm.id)
+          const fetchedStudents = await api.students.getAll(currentTerm.id, true)
           setStaffData(fetchedStudents)
         }
       } catch (err) {
