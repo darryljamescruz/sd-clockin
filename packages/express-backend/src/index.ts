@@ -58,9 +58,9 @@ app.get('/', (req, res) => {
 // Public routes (though students might need internal method-level protection)
 app.use('/api/students', studentsRouter);
 app.use('/api/checkins', checkinsRouter);
+app.use('/api/terms', termsRouter);
 
 // Protected Admin routes
-app.use('/api/terms', verifyAdmin, termsRouter);
 app.use('/api/schedules', verifyAdmin, schedulesRouter);
 app.use('/api/import', verifyAdmin, importRouter);
 app.use('/api/admin-users', verifyAdmin, adminUsersRouter);

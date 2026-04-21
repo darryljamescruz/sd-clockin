@@ -1,6 +1,7 @@
 import express, { Request, Response, RequestHandler } from 'express';
 import Term from '../models/Term.js';
 import cache, { CacheKeys, CacheTTL } from '../utils/cache.js';
+import { verifyAdmin } from '../utils/auth.js';
 
 const router = express.Router();
 
@@ -142,7 +143,7 @@ const parseDateString = (dateString: string): Date => {
 };
 
 // POST - Create a new term
-router.post('/', (async (req: Request, res: Response) => {
+router.post('/', verifyAdmin, (async (req: Request, res: Response) => {
   try {
     const { name, startDate, endDate, isActive, daysOff, notes } = req.body;
 
@@ -232,7 +233,7 @@ router.post('/', (async (req: Request, res: Response) => {
 }) as RequestHandler);
 
 // PUT - Update a term
-router.put('/:id', (async (req: Request, res: Response) => {
+router.put('/:id', verifyAdmin, (async (req: Request, res: Response) => {
   try {
     const { name, startDate, endDate, isActive, daysOff, notes } = req.body;
 
@@ -352,7 +353,7 @@ router.put('/:id', (async (req: Request, res: Response) => {
 }) as RequestHandler);
 
 // DELETE - Delete a term
-router.delete('/:id', (async (req: Request, res: Response) => {
+router.delete('/:id', verifyAdmin, (async (req: Request, res: Response) => {
   try {
     const term = await Term.findByIdAndDelete(req.params.id);
 
